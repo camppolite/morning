@@ -4,6 +4,9 @@
 #include <filesystem>
 #include <cstdlib> // For rand() and srand()
 
+#include <setupapi.h>
+#include <devguid.h> // For GUID_DEVINTERFACE_COMPORT
+
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include <opencv2/highgui/highgui.hpp>
@@ -21,6 +24,14 @@ const char* window_name = "Edge Map";
 #include <direct.h>
 
 #pragma comment(lib, "ntdll")
+#pragma comment(lib, "setupapi.lib")
+// GUID for COM ports
+DEFINE_GUID(GUID_DEVINTERFACE_COMPORT, 0x86E0D1E0L, 0x8089, 0x11D0, 0x9C, 0xE4, 0x08, 0x00, 0x3E, 0x30, 0x1F, 0x73);
+// Structure to hold port information
+struct ComPortInfo {
+	std::wstring portName;
+	std::wstring description;
+};
 
 namespace fs = std::filesystem;
 
@@ -577,28 +588,104 @@ void test() {
 	CloseHandle(hSerial);
 }
 
-void getMyComPortName() {
-	HKEY hKey;
-	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"HARDWARE\\DEVICEMAP\\SERIALCOMM", 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
-		DWORD i = 0;
-		DWORD nameSize, dataSize;
-		TCHAR name[256], data[256];
+std::vector<ComPortInfo> EnumerateSerialPorts() {
+	std::vector<ComPortInfo> ports;
+	HDEVINFO hDevInfo = INVALID_HANDLE_VALUE;
+	SP_DEVINFO_DATA deviceInfoData;
+	DWORD i = 0;
 
-		while (true) {
-			nameSize = sizeof(name);
-			dataSize = sizeof(data);
 
-			// Enumerate the values in the key
-			if (RegEnumValueW(hKey, i++, name, &nameSize, NULL, NULL, (LPBYTE)data, &dataSize) == ERROR_SUCCESS) {
-				// 'data' contains the COM port name, e.g., "COM1"
-				printf("1111111111\n");
-			}
-			else {
-				break; // Break the loop if enumeration fails (end of list)
-			}
-		}
-		RegCloseKey(hKey);
+
+	// Get a device information set for the COM port device interface class
+	hDevInfo = SetupDiGetClassDevs(
+		&GUID_DEVINTERFACE_COMPORT,
+		NULL,
+		NULL,
+		DIGCF_PRESENT | DIGCF_DEVICEINTERFACE
+	);
+
+	if (hDevInfo == INVALID_HANDLE_VALUE) {
+		std::wcerr << L"SetupDiGetClassDevs failed: " << GetLastError() << std::endl;
+		return ports;
 	}
+
+	deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+
+	// Enumerate through all devices in the set
+	for (i = 0; SetupDiEnumDeviceInfo(hDevInfo, i, &deviceInfoData); i++) {
+		TCHAR portName[MAX_PATH];
+		TCHAR friendlyName[MAX_PATH];
+		HKEY hDeviceRegistryKey = NULL;
+
+		// 1. Get the port name (e.g., "COM1") from the registry
+		hDeviceRegistryKey = SetupDiOpenDevRegKey(
+			hDevInfo,
+			&deviceInfoData,
+			DICS_FLAG_GLOBAL,
+			0,
+			DIREG_DEV,
+			KEY_READ
+		);
+
+		if (hDeviceRegistryKey != INVALID_HANDLE_VALUE) {
+			DWORD dwType = 0;
+			DWORD dwSize = sizeof(portName);
+			if (RegQueryValueEx(hDeviceRegistryKey, TEXT("PortName"), NULL, &dwType, (LPBYTE)portName, &dwSize) == ERROR_SUCCESS) {
+				// 2. Get the friendly name (e.g., "Arduino Uno (COM1)")
+				if (SetupDiGetDeviceRegistryProperty(
+					hDevInfo,
+					&deviceInfoData,
+					SPDRP_FRIENDLYNAME,
+					NULL,
+					(PBYTE)friendlyName,
+					sizeof(friendlyName),
+					NULL
+				)) {
+					ports.push_back({ portName, friendlyName });
+				}
+				else if (SetupDiGetDeviceRegistryProperty( // Fallback to SPDRP_DEVICEDESC if friendly name is unavailable
+					hDevInfo,
+					&deviceInfoData,
+					SPDRP_DEVICEDESC,
+					NULL,
+					(PBYTE)friendlyName,
+					sizeof(friendlyName),
+					NULL
+				)) {
+					ports.push_back({ portName, friendlyName });
+				}
+			}
+			RegCloseKey(hDeviceRegistryKey);
+		}
+	}
+
+	// Clean up
+	SetupDiDestroyDeviceInfoList(hDevInfo);
+
+	if (GetLastError() != ERROR_NO_MORE_ITEMS) {
+		// Handle potential error during enumeration
+		std::wcerr << L"Error during enumeration: " << GetLastError() << std::endl;
+	}
+
+	return ports;
+}
+
+std::wstring getArduinoLeonardoComPort() {
+	std::vector<ComPortInfo> comPorts = EnumerateSerialPorts();
+
+	if (comPorts.empty()) {
+		std::wcout << L"No serial ports found." << std::endl;
+	}
+	else {
+		std::wcout << L"Available Serial Ports:" << std::endl;
+		for (const auto& port : comPorts) {
+			if (std::wcsstr(port.description.c_str(), L"Arduino Leonardo") != nullptr) {
+				return port.portName;
+			}
+			//std::wcout << L"* Port: " << port.portName << L" -> Description: " << port.description << std::endl;
+		}
+	}
+	return nullptr;
 }
 
 static void CannyThreshold(int, void*)
@@ -616,30 +703,30 @@ static void CannyThreshold(int, void*)
 
 int main(int argc, const char** argv)
 {
-	src = imread("111.png", IMREAD_COLOR); // Load an image
-	if (src.empty())
-	{
-		std::cout << "Could not open or find the image!\n" << std::endl;
-		std::cout << "Usage: " << argv[0] << " <Input image>" << std::endl;
-		return -1;
-	}
+	//src = imread("111.png", IMREAD_COLOR); // Load an image
+	//if (src.empty())
+	//{
+	//	std::cout << "Could not open or find the image!\n" << std::endl;
+	//	std::cout << "Usage: " << argv[0] << " <Input image>" << std::endl;
+	//	return -1;
+	//}
 
-	dst.create(src.size(), src.type());
+	//dst.create(src.size(), src.type());
 
-	cvtColor(src, src_gray, COLOR_BGR2GRAY);
+	//cvtColor(src, src_gray, COLOR_BGR2GRAY);
 
-	namedWindow(window_name, WINDOW_AUTOSIZE);
+	//namedWindow(window_name, WINDOW_AUTOSIZE);
 
-	createTrackbar("Min Threshold:", window_name, &lowThreshold, max_lowThreshold, CannyThreshold);
+	//createTrackbar("Min Threshold:", window_name, &lowThreshold, max_lowThreshold, CannyThreshold);
 
-	CannyThreshold(0, 0);
+	//CannyThreshold(0, 0);
 
-	waitKey(0);
-
-
+	//waitKey(0);
 
 
-	getMyComPortName();
+
+
+	auto comPortName = getArduinoLeonardoComPort();
 
 	init_log();
 	log_info("ÈÕÖ¾Êä³ö²âÊÔ");
