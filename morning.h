@@ -7,6 +7,13 @@
 #include <iostream>
 #include <string>
 
+
+#include "opencv2/core/core.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <opencv2/highgui/highgui.hpp>
+
+
+
 typedef struct _UNICODE_STRING {
 	USHORT Length;
 	USHORT MaximumLength;
@@ -46,6 +53,7 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 std::vector<DWORD> FindPidsByName(const wchar_t* name);
 HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);
 DWORD GetModuleSize(HANDLE hProcess, HMODULE hModule);
+cv::Mat hwnd2mat(HWND hwnd);
 
 //uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
@@ -68,9 +76,12 @@ public:
 
 	HANDLE pid;
 	HWND hwnd;
+	RECT rect;
 	HANDLE rProcess = 0;
 	HMODULE hNtdll = 0;
 	PFN_NtReadVirtualMemory pNtReadVirtualMemory;
+
+	Step step;
 };
 
 class GoodMorning {

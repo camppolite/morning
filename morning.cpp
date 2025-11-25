@@ -7,9 +7,6 @@
 #include <setupapi.h>
 #include <devguid.h> // For GUID_DEVINTERFACE_COMPORT
 
-#include "opencv2/core/core.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include <opencv2/highgui/highgui.hpp>
 using namespace cv;
 
 cv::Mat src, src_gray;
@@ -53,10 +50,12 @@ typedef unsigned long long QWORD;
 //PFN_NtReadVirtualMemory pNtReadVirtualMemory;
 
 GoodMorning gm;
+HANDLE hSerial;
 
 
 MyWindowInfo::MyWindowInfo(HANDLE processID) {
 	pid = processID;
+	step = Step::START;
 }
 
 uintptr_t MyWindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
@@ -232,29 +231,54 @@ void GoodMorning::hook_data() {
 }
 
 void GoodMorning::work() {
-	Step step = Step::START;
+	for (auto winfo : this->winsInfo) {
+		GetWindowRect(winfo.hwnd, &winfo.rect);
+	}
+
 	while (true) {
-		switch (step)
-		{
-		case START:
-			break;
-		case DO_TASK:
-			break;
-		case DONE_TASK:
-			break;
-		default:
-			break;
+		for (auto winfo : this->winsInfo) {
+			switch (winfo.step)
+			{
+			case START:
+			{
+				SetForegroundWindow(winfo.hwnd);
+				break;
+			}
+
+			case DO_TASK:
+			{
+				break;
+			}
+
+			case DONE_TASK:
+				break;
+			default:
+				break;
+			}
 		}
 	}
 }
 
 void GoodMorning::test() {
+	HWND sc = GetDesktopWindow();
+	hwnd2mat(sc);
+	POINT cursor_pos;
+	GetCursorPos(&cursor_pos);
+	log_info("Mouse position: %d, %d", cursor_pos.x, cursor_pos.y);
 	RECT rect;
 	for (auto winfo : this->winsInfo) {
 
 		GetWindowRect(winfo.hwnd, &rect);
+
+		hwnd2mat(winfo.hwnd);
+		POINT cursor_pos;
+		GetCursorPos(&cursor_pos);
+		if (ScreenToClient(winfo.hwnd, &cursor_pos)) {
+			log_info("Mouse position (Client): %d, %d", cursor_pos.x, cursor_pos.y);
+		}
 	}
 	printf("\n");
+
 }
 
 std::vector<DWORD> FindPidsByName(const wchar_t* name)
@@ -384,8 +408,8 @@ cv::Mat hwnd2mat(HWND hwnd) {
 	struct tm* lt = localtime(&t);
 	char filename[35];
 	filename[strftime(filename, sizeof(filename), "%Y-%m-%d %H-%M-%S-", lt)] = '\0';
-	// SEED the generator ONCE at the start of the program
-	std::srand(static_cast<unsigned int>(t));
+
+	//log_info("rand:%d", rand());
 	current_path /= filename + std::string("r") + std::to_string(rand()) + ".png";
 	cv::imwrite(current_path.string().c_str(), src);
 	return src;
@@ -701,8 +725,166 @@ static void CannyThreshold(int, void*)
 	imshow(window_name, dst);
 }
 
+void MatchingMethod()
+{
+	// Mask image(M) : The mask, a grayscale image that masks the template
+	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
+	// The mask must have the same dimensions as the template
+	// The mask should have a CV_8U or CV_32F depth and the same number of channels as the template image. In CV_8U case, the mask values are treated as binary, i.e. zero and non-zero.
+	// In CV_32F case, the values should fall into [0..1] range and the template pixels will be multiplied by the corresponding mask pixel values.
+	// Since the input images in the sample have the CV_8UC3 type, the mask is also read as color image.
+
+	//In OpenCV, a mask image is a binary image (pixels are typically 0 or 255) used to define a Region of Interest (ROI). 
+	// You can create a mask using several methods, with the two most common approaches being: 
+	//Drawing shapes on a black canvas
+	//Thresholding an existing image
+	auto img = imread("2025-11-25 15-28-35-r16562.png");
+	auto templ = imread("cursor.png", IMREAD_COLOR);
+	auto mask = imread("mask.png", IMREAD_COLOR);
+
+	if (img.empty() || templ.empty())
+	{
+		printf("Can't read one of the images\n");
+		return ;
+	}
+
+	int result_cols = img.cols - templ.cols + 1;
+	int result_rows = img.rows - templ.rows + 1;
+
+	Mat result;
+	result.create(result_rows, result_cols, CV_32FC1);
+
+	auto match_method = TM_CCORR_NORMED;
+	matchTemplate(img, templ, result, match_method, mask);
+
+	normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+
+	double minVal; double maxVal; Point minLoc; Point maxLoc;
+	Point matchLoc;
+
+	minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+
+	if (match_method == TM_SQDIFF || match_method == TM_SQDIFF_NORMED)
+	{
+		matchLoc = minLoc;
+	}
+	else
+	{
+		matchLoc = maxLoc;
+	}
+	log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
+	return;
+}
+
+void ThresholdinginRange()
+{
+	auto frame = imread("cursor.png");
+	//auto frame = imread("111.png");
+	Mat frame_HSV, frame_threshold;
+	// Convert from BGR to HSV colorspace
+	cvtColor(frame, frame_HSV, COLOR_BGR2HSV);
+	// Detect the object based on HSV Range Values
+	// 色调H（Hue）：用角度度量，取值范围为0°~360°，从红色开始按逆时针方向计算，红色为0°，绿色为120°,蓝色为240°。
+	// 饱和度S（Saturation）：取值范围为0.0~1.0，值越大，颜色越饱和。用距V轴的距离来度量 
+	// 明度V（Value）：取值范围为0(黑色)~1(白色)。轴V=0端为黑色，轴V=1端为白色。
+	//The mask will have 255 (white) for pixels within the range, and 0 (black)otherwise.
+	inRange(frame_HSV, Scalar(30, 100, 100), Scalar(110, 255, 255), frame_threshold);  // 鼠标
+	auto current_path = fs::current_path();
+	current_path /= "mask.png";
+	imwrite(current_path.string(), frame_threshold);
+	imshow("output", frame_threshold);
+	waitKey(0);
+}
+
+int Serial(std::wstring name) {
+	DCB dcbSerialParams = { 0 };
+	COMMTIMEOUTS timeouts = { 0 };
+
+	// Open the serial port
+	hSerial = CreateFile(name.c_str(),
+		GENERIC_READ | GENERIC_WRITE,
+		0,                          // No sharing
+		NULL,                       // No security attributes
+		OPEN_EXISTING,              // Open existing port
+		FILE_ATTRIBUTE_NORMAL,      // Normal file attributes
+		NULL);                      // No template file
+
+	if (hSerial == INVALID_HANDLE_VALUE) {
+		std::cerr << "Error opening serial port." << std::endl;
+		return 1;
+	}
+
+	// Get current serial port parameters
+	dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+	if (!GetCommState(hSerial, &dcbSerialParams)) {
+		std::cerr << "Error getting comm state." << std::endl;
+		CloseHandle(hSerial);
+		return 1;
+	}
+
+	// Set serial port parameters (e.g., 9600 baud, 8 data bits, no parity, 1 stop bit)
+	dcbSerialParams.BaudRate = CBR_9600;
+	dcbSerialParams.ByteSize = 8;
+	dcbSerialParams.Parity = NOPARITY;
+	dcbSerialParams.StopBits = ONESTOPBIT;
+
+	if (!SetCommState(hSerial, &dcbSerialParams)) {
+		std::cerr << "Error setting comm state." << std::endl;
+		CloseHandle(hSerial);
+		return 1;
+	}
+
+	// Set communication timeouts
+	timeouts.ReadIntervalTimeout = 50;
+	timeouts.ReadTotalTimeoutConstant = 50;
+	timeouts.ReadTotalTimeoutMultiplier = 10;
+	timeouts.WriteTotalTimeoutConstant = 50;
+	timeouts.WriteTotalTimeoutMultiplier = 10;
+
+	if (!SetCommTimeouts(hSerial, &timeouts)) {
+		std::cerr << "Error setting timeouts." << std::endl;
+		CloseHandle(hSerial);
+		return 1;
+	}
+
+	// Close the serial port
+	//CloseHandle(hSerial);
+	return 0;
+}
+
+void SerialWrite() {
+	// Example: Writing data
+	char data_to_send[] = "Hello Serial!";
+	DWORD bytes_written;
+	if (!WriteFile(hSerial, data_to_send, sizeof(data_to_send) - 1, &bytes_written, NULL)) {
+		std::cerr << "Error writing to serial port." << std::endl;
+	}
+	else {
+		std::cout << "Sent: " << data_to_send << std::endl;
+	}
+}
+
+void SerialRead() {
+	// Example: Reading data (simplified, typically done in a loop/thread)
+	char buffer[256];
+	DWORD bytes_read;
+	if (!ReadFile(hSerial, buffer, sizeof(buffer) - 1, &bytes_read, NULL)) {
+		std::cerr << "Error reading from serial port." << std::endl;
+	}
+	else {
+		buffer[bytes_read] = '\0';
+		std::cout << "Received: " << buffer << std::endl;
+	}
+}
+
 int main(int argc, const char** argv)
 {
+	init_log();
+	//log_info("日志输出测试");
+
+	// SEED the generator ONCE at the start of the program
+	std::srand(static_cast<unsigned int>(time(nullptr)));
+
 	//src = imread("111.png", IMREAD_COLOR); // Load an image
 	//if (src.empty())
 	//{
@@ -724,12 +906,9 @@ int main(int argc, const char** argv)
 	//waitKey(0);
 
 
-
-
-	auto comPortName = getArduinoLeonardoComPort();
-
-	init_log();
-	log_info("日志输出测试");
+	//ThresholdinginRange();
+	//MatchingMethod();
+	//auto comPortName = getArduinoLeonardoComPort();
 
 	for (auto processID : FindPidsByName(TARGET_APP_NAME)) {
 		EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
@@ -737,8 +916,9 @@ int main(int argc, const char** argv)
 	Sleep(50);  // 等一下枚举窗口句柄回调完成再执行
 
 	//gm.hook_data();
-	//gm.work();
-	gm.test();
+	gm.work();
+	//Sleep(2000);
+	//gm.test();
 	return 0;
 }
 
