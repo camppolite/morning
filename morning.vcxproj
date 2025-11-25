@@ -78,13 +78,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\opencv2\install\opencv\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\opencv2\install\opencv\x64\vc17\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\opencv2\opencv\build\include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\opencv2\opencv\build\x64\vc16\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\opencv2\install\opencv\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\opencv2\install\opencv\x64\vc17\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\opencv2\opencv\build\include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\opencv2\opencv\build\x64\vc16\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -92,6 +92,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,7 +127,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>D:\opencv2\install\opencv\x64\vc17\lib\opencv_world4130.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>D:\opencv2\opencv\build\x64\vc16\lib\opencv_world4120.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -145,7 +146,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>D:\opencv2\install\opencv\x64\vc17\lib\opencv_world4130.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>D:\opencv2\opencv\build\x64\vc16\lib\opencv_world4120.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
