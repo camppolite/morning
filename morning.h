@@ -49,6 +49,8 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 	_Out_opt_ PSIZE_T NumberOfBytesRead
 	);
 
+#define START 0
+
 
 std::vector<DWORD> FindPidsByName(const wchar_t* name);
 HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);
@@ -81,7 +83,7 @@ public:
 	HMODULE hNtdll = 0;
 	PFN_NtReadVirtualMemory pNtReadVirtualMemory;
 
-	Step step;
+	int step;
 };
 
 class GoodMorning {
@@ -92,35 +94,11 @@ public:
 	void work();
 	void test();
 
+	bool waiting = false;
 	std::vector<MyWindowInfo> winsInfo;
+	HANDLE hSerial;
 private:
 
 };
 
-enum Step {
-	START = 0,
-	DO_TASK,
-	DONE_TASK,
-};
 
-enum StepDoTask {
-	GET_TASK = 0,
-	READ_TASK,
-	MOVE_TO_DO,
-	USE_PROP,
-	SHOP_BUYITEM,
-	FINISH_TASK,
-	CHANGE_SCENE,
-	MOVE_TO_DONE,
-	REPLY_TASK,
-	CONTINUE_TASK,
-	COMPLETE_TASK,
-	END_TASK,
-};
-
-enum StepShopBuy {
-	OPEN_SHOP,
-	PAGE_DOWN,
-	BUY_ITEM,
-	END_SHOP
-};

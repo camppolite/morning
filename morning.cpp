@@ -7,7 +7,7 @@
 #include <setupapi.h>
 #include <devguid.h> // For GUID_DEVINTERFACE_COMPORT
 
-using namespace cv;
+//using namespace cv;
 
 cv::Mat src, src_gray;
 cv::Mat dst, detected_edges;
@@ -50,12 +50,12 @@ typedef unsigned long long QWORD;
 //PFN_NtReadVirtualMemory pNtReadVirtualMemory;
 
 GoodMorning gm;
-HANDLE hSerial;
+
 
 
 MyWindowInfo::MyWindowInfo(HANDLE processID) {
 	pid = processID;
-	step = Step::START;
+	step = START;
 }
 
 uintptr_t MyWindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
@@ -245,13 +245,6 @@ void GoodMorning::work() {
 				break;
 			}
 
-			case DO_TASK:
-			{
-				break;
-			}
-
-			case DONE_TASK:
-				break;
 			default:
 				break;
 			}
@@ -714,18 +707,18 @@ std::wstring getArduinoLeonardoComPort() {
 
 static void CannyThreshold(int, void*)
 {
-	blur(src_gray, detected_edges, Size(3, 3));
+	blur(src_gray, detected_edges, cv::Size(3, 3));
 
 	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold * ratio, kernel_size);
 
-	dst = Scalar::all(0);
+	dst = cv::Scalar::all(0);
 
 	src.copyTo(dst, detected_edges);
 	cv::imwrite("222.png", dst);
 	imshow(window_name, dst);
 }
 
-void MatchingMethod()
+bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold)
 {
 	// Mask image(M) : The mask, a grayscale image that masks the template
 	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
@@ -738,33 +731,43 @@ void MatchingMethod()
 	// You can create a mask using several methods, with the two most common approaches being: 
 	//Drawing shapes on a black canvas
 	//Thresholding an existing image
-	auto img = imread("2025-11-25 15-28-35-r16562.png");
-	auto templ = imread("cursor.png", IMREAD_COLOR);
-	auto mask = imread("mask.png", IMREAD_COLOR);
 
-	if (img.empty() || templ.empty())
+	// cv2.TM_CCORR_NORMED  # 这个对颜色敏感度高
+
+	auto templ = cv::imread(templ_path, cv::IMREAD_COLOR);
+	auto mask = cv::imread(mask_path, cv::IMREAD_COLOR);
+
+	auto image = hwnd2mat(hwnd);
+	// Ensure the ROI is within the image boundaries
+	roi_rect = roi_rect & cv::Rect(0, 0, image.cols, image.rows);
+
+	// 2. Access the ROI using the Mat operator()
+	// 'image_roi' is a new Mat header pointing to the data in 'image'
+	cv::Mat image_roi = image(roi_rect);
+
+	if (image.empty() || templ.empty())
 	{
 		printf("Can't read one of the images\n");
-		return ;
+		return false;
 	}
 
-	int result_cols = img.cols - templ.cols + 1;
-	int result_rows = img.rows - templ.rows + 1;
+	int result_cols = image_roi.cols - templ.cols + 1;
+	int result_rows = image_roi.rows - templ.rows + 1;
 
-	Mat result;
+	cv::Mat result;
 	result.create(result_rows, result_cols, CV_32FC1);
 
-	auto match_method = TM_CCORR_NORMED;
-	matchTemplate(img, templ, result, match_method, mask);
+	auto match_method = cv::TM_CCORR_NORMED;
+	matchTemplate(image_roi, templ, result, match_method, mask);
 
-	normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+	cv::normalize(result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat());
 
-	double minVal; double maxVal; Point minLoc; Point maxLoc;
-	Point matchLoc;
+	double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
+	cv::Point matchLoc;
 
-	minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+	minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat());
 
-	if (match_method == TM_SQDIFF || match_method == TM_SQDIFF_NORMED)
+	if (match_method == cv::TM_SQDIFF || match_method == cv::TM_SQDIFF_NORMED)
 	{
 		matchLoc = minLoc;
 	}
@@ -773,27 +776,27 @@ void MatchingMethod()
 		matchLoc = maxLoc;
 	}
 	log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
-	return;
+	return maxVal >= threshold;
 }
 
 void ThresholdinginRange()
 {
-	auto frame = imread("cursor.png");
+	auto frame = cv::imread("cursor.png");
 	//auto frame = imread("111.png");
-	Mat frame_HSV, frame_threshold;
+	cv::Mat frame_HSV, frame_threshold;
 	// Convert from BGR to HSV colorspace
-	cvtColor(frame, frame_HSV, COLOR_BGR2HSV);
+	cv::cvtColor(frame, frame_HSV, cv::COLOR_BGR2HSV);
 	// Detect the object based on HSV Range Values
 	// 色调H（Hue）：用角度度量，取值范围为0°~360°，从红色开始按逆时针方向计算，红色为0°，绿色为120°,蓝色为240°。
 	// 饱和度S（Saturation）：取值范围为0.0~1.0，值越大，颜色越饱和。用距V轴的距离来度量 
 	// 明度V（Value）：取值范围为0(黑色)~1(白色)。轴V=0端为黑色，轴V=1端为白色。
 	//The mask will have 255 (white) for pixels within the range, and 0 (black)otherwise.
-	inRange(frame_HSV, Scalar(30, 100, 100), Scalar(110, 255, 255), frame_threshold);  // 鼠标
+	cv::inRange(frame_HSV, cv::Scalar(30, 100, 100), cv::Scalar(110, 255, 255), frame_threshold);  // 鼠标
 	auto current_path = fs::current_path();
 	current_path /= "mask.png";
-	imwrite(current_path.string(), frame_threshold);
-	imshow("output", frame_threshold);
-	waitKey(0);
+	cv::imwrite(current_path.string(), frame_threshold);
+	cv::imshow("output", frame_threshold);
+	cv::waitKey(0);
 }
 
 int Serial(std::wstring name) {
@@ -801,7 +804,7 @@ int Serial(std::wstring name) {
 	COMMTIMEOUTS timeouts = { 0 };
 
 	// Open the serial port
-	hSerial = CreateFile(name.c_str(),
+	gm.hSerial = CreateFile(name.c_str(),
 		GENERIC_READ | GENERIC_WRITE,
 		0,                          // No sharing
 		NULL,                       // No security attributes
@@ -809,16 +812,16 @@ int Serial(std::wstring name) {
 		FILE_ATTRIBUTE_NORMAL,      // Normal file attributes
 		NULL);                      // No template file
 
-	if (hSerial == INVALID_HANDLE_VALUE) {
+	if (gm.hSerial == INVALID_HANDLE_VALUE) {
 		std::cerr << "Error opening serial port." << std::endl;
 		return 1;
 	}
 
 	// Get current serial port parameters
 	dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
-	if (!GetCommState(hSerial, &dcbSerialParams)) {
+	if (!GetCommState(gm.hSerial, &dcbSerialParams)) {
 		std::cerr << "Error getting comm state." << std::endl;
-		CloseHandle(hSerial);
+		CloseHandle(gm.hSerial);
 		return 1;
 	}
 
@@ -828,9 +831,9 @@ int Serial(std::wstring name) {
 	dcbSerialParams.Parity = NOPARITY;
 	dcbSerialParams.StopBits = ONESTOPBIT;
 
-	if (!SetCommState(hSerial, &dcbSerialParams)) {
+	if (!SetCommState(gm.hSerial, &dcbSerialParams)) {
 		std::cerr << "Error setting comm state." << std::endl;
-		CloseHandle(hSerial);
+		CloseHandle(gm.hSerial);
 		return 1;
 	}
 
@@ -841,9 +844,9 @@ int Serial(std::wstring name) {
 	timeouts.WriteTotalTimeoutConstant = 50;
 	timeouts.WriteTotalTimeoutMultiplier = 10;
 
-	if (!SetCommTimeouts(hSerial, &timeouts)) {
+	if (!SetCommTimeouts(gm.hSerial, &timeouts)) {
 		std::cerr << "Error setting timeouts." << std::endl;
-		CloseHandle(hSerial);
+		CloseHandle(gm.hSerial);
 		return 1;
 	}
 
@@ -856,7 +859,7 @@ void SerialWrite() {
 	// Example: Writing data
 	char data_to_send[] = "Hello Serial!";
 	DWORD bytes_written;
-	if (!WriteFile(hSerial, data_to_send, sizeof(data_to_send) - 1, &bytes_written, NULL)) {
+	if (!WriteFile(gm.hSerial, data_to_send, sizeof(data_to_send) - 1, &bytes_written, NULL)) {
 		std::cerr << "Error writing to serial port." << std::endl;
 	}
 	else {
@@ -868,7 +871,7 @@ void SerialRead() {
 	// Example: Reading data (simplified, typically done in a loop/thread)
 	char buffer[256];
 	DWORD bytes_read;
-	if (!ReadFile(hSerial, buffer, sizeof(buffer) - 1, &bytes_read, NULL)) {
+	if (!ReadFile(gm.hSerial, buffer, sizeof(buffer) - 1, &bytes_read, NULL)) {
 		std::cerr << "Error reading from serial port." << std::endl;
 	}
 	else {
@@ -905,7 +908,20 @@ int main(int argc, const char** argv)
 
 	//waitKey(0);
 
+	auto current_path = fs::current_path();
+	current_path /= "object\\cursors\\mask.png";
 
+	cv::Mat image = cv::imread("input_image.jpg");
+	// 1. Define the ROI using cv::Rect(x, y, width, height)
+	// Example: A 100x100 pixel region starting at (50, 50) from the top-left corner
+	cv::Rect roi_rect(50, 50, 100, 100);
+
+	// Ensure the ROI is within the image boundaries
+	roi_rect = roi_rect & cv::Rect(0, 0, image.cols, image.rows);
+
+	// 2. Access the ROI using the Mat operator()
+	// 'image_roi' is a new Mat header pointing to the data in 'image'
+	cv::Mat image_roi = image(roi_rect);
 	//ThresholdinginRange();
 	//MatchingMethod();
 	//auto comPortName = getArduinoLeonardoComPort();
@@ -916,7 +932,7 @@ int main(int argc, const char** argv)
 	Sleep(50);  // 等一下枚举窗口句柄回调完成再执行
 
 	//gm.hook_data();
-	gm.work();
+	//gm.work();
 	//Sleep(2000);
 	//gm.test();
 	return 0;

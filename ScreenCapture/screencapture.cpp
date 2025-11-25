@@ -132,8 +132,7 @@ inline cv::Mat hwnd2mat(HWND hwnd) {
 	struct tm* lt = localtime(&t);
 	char filename[35];
 	filename[strftime(filename, sizeof(filename), "%Y-%m-%d %H-%M-%S-", lt)] = '\0';
-	// SEED the generator ONCE at the start of the program
-	std::srand(static_cast<unsigned int>(t));
+
 	current_path /= filename + std::string("r") + std::to_string(rand()) + ".png";
 	cv::imwrite(current_path.string(), src);
 	return src;
@@ -199,6 +198,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 			MyWindowInfo winfo((HANDLE)targetProcessId);
 			winfo.hwnd = hwnd;
 			sc.winsInfo.push_back(winfo);
+			printf("窗口句柄回调成功：%s\n", gametitle.c_str());
 			return FALSE;
 		}
 		VirtualFree(
@@ -212,7 +212,11 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 
 int main(int argc, const char** argv)
 {
+	// SEED the generator ONCE at the start of the program
+	std::srand(static_cast<unsigned int>(time(nullptr)));
+
 	for (auto processID : FindPidsByName(TARGET_APP_NAME)) {
+		printf("窗口句柄开始\n");
 		EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
 	}
 	Sleep(50);  // 等一下枚举窗口句柄回调完成再执行
