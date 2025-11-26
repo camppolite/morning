@@ -50,7 +50,7 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 	);
 
 #define START 0
-
+#define LEN_OF_INT64 22  // 21 + 1
 
 std::vector<DWORD> FindPidsByName(const wchar_t* name);
 HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);
@@ -109,5 +109,26 @@ public:
 private:
 
 };
+
+class Step {
+public:
+	Step(std::vector<std::string> step_list);
+	void reset();
+	void previous();
+	void next();
+	std::string current();
+
+	std::vector<std::string> steps;
+	int index = 0;
+	bool end = false;
+};
+
+std::vector<std::string> datu_step = {"goto", "sfsfsf"};
+
+const char* STOP_MP3 = "mmp3:STOP\n";
+
+const char* MS_MOVE_HUMAN_SYMBOL = "movehm:%d,%d,%d,%d,%d\n";  // cx, cy, x, y, mode
+
+
 
 

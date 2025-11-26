@@ -328,6 +328,31 @@ void GoodMorning::test() {
 
 }
 
+Step::Step(std::vector<std::string> step_list) {
+	steps = step_list;
+}
+
+void Step::reset() {
+	index = 0;
+	end = false;
+}
+
+void Step::previous() {
+	if (steps.size() == 1) return;
+	if (index > 0) index -= 1;
+}
+
+void Step::next() {
+	if (steps.size() == 1) end = true;
+	else if (index < steps.size() - 1) index += 1;
+	else end = true;
+}
+
+std::string Step::current() {
+	return steps[index];
+}
+
+
 cv::Rect ROI_NULL() {
 	cv::Rect roi_empty;
 	return roi_empty;
@@ -599,7 +624,7 @@ void test() {
 	COMMTIMEOUTS timeouts = { 0 };
 
 	// Open the serial port
-	hSerial = CreateFileW(L"COM1",
+	hSerial = CreateFileW(L"\\\\.\\COM1",
 		GENERIC_READ | GENERIC_WRITE,
 		0,                          // No sharing
 		NULL,                       // No security attributes
@@ -762,9 +787,10 @@ std::wstring getArduinoLeonardoComPort() {
 		std::wcout << L"Available Serial Ports:" << std::endl;
 		for (const auto& port : comPorts) {
 			if (std::wcsstr(port.description.c_str(), L"Arduino Leonardo") != nullptr) {
+				std::wcout << L"* Port: " << port.portName << L" -> Description: " << port.description << std::endl;
 				return port.portName;
 			}
-			//std::wcout << L"* Port: " << port.portName << L" -> Description: " << port.description << std::endl;
+
 		}
 	}
 	return nullptr;
@@ -1005,12 +1031,14 @@ void ThresholdinginRange()
 	cv::waitKey(0);
 }
 
-int Serial(std::wstring name) {
+int Serial() {
+	auto comPortName = getArduinoLeonardoComPort();
 	DCB dcbSerialParams = { 0 };
 	COMMTIMEOUTS timeouts = { 0 };
 
 	// Open the serial port
-	gm.hSerial = CreateFile(name.c_str(),
+	// Use "\\\\.\\COM3" for COM ports >= 10, or "COM3" for COM ports < 10
+	gm.hSerial = CreateFile((L"\\\\.\\" + comPortName).c_str(),
 		GENERIC_READ | GENERIC_WRITE,
 		0,                          // No sharing
 		NULL,                       // No security attributes
@@ -1019,7 +1047,7 @@ int Serial(std::wstring name) {
 		NULL);                      // No template file
 
 	if (gm.hSerial == INVALID_HANDLE_VALUE) {
-		std::cerr << "Error opening serial port." << std::endl;
+		std::cerr << "Error opening serial port." << GetLastError() << std::endl;
 		return 1;
 	}
 
@@ -1032,7 +1060,7 @@ int Serial(std::wstring name) {
 	}
 
 	// Set serial port parameters (e.g., 9600 baud, 8 data bits, no parity, 1 stop bit)
-	dcbSerialParams.BaudRate = CBR_9600;
+	dcbSerialParams.BaudRate = 57616;
 	dcbSerialParams.ByteSize = 8;
 	dcbSerialParams.Parity = NOPARITY;
 	dcbSerialParams.StopBits = ONESTOPBIT;
@@ -1061,15 +1089,13 @@ int Serial(std::wstring name) {
 	return 0;
 }
 
-void SerialWrite() {
-	// Example: Writing data
-	char data_to_send[] = "Hello Serial!";
+void SerialWrite(const char* data) {
 	DWORD bytes_written;
-	if (!WriteFile(gm.hSerial, data_to_send, sizeof(data_to_send) - 1, &bytes_written, NULL)) {
+	if (!WriteFile(gm.hSerial, data, strlen(data), &bytes_written, NULL)) {
 		std::cerr << "Error writing to serial port." << std::endl;
 	}
 	else {
-		std::cout << "Sent: " << data_to_send << std::endl;
+		std::cout << "Sent: " << data << std::endl;
 	}
 }
 
@@ -1084,6 +1110,18 @@ void SerialRead() {
 		buffer[bytes_read] = '\0';
 		std::cout << "Received: " << buffer << std::endl;
 	}
+}
+
+void serial_move_human(long x, long y, int mode) {
+	POINT cursor_pos;
+	GetCursorPos(&cursor_pos);
+	int64_t snp_len = strlen(MS_MOVE_HUMAN_SYMBOL) + LEN_OF_INT64;
+	// 在堆上分配内存
+	char* warn_key_buf = new char[snp_len];
+	snprintf(warn_key_buf, snp_len, MS_MOVE_HUMAN_SYMBOL, cursor_pos.x, cursor_pos.y, x, y, mode);
+	SerialWrite(warn_key_buf);
+	// 使用完毕后，必须手动释放内存，防止内存泄漏
+	delete[] warn_key_buf;
 }
 
 int main(int argc, const char** argv)
@@ -1121,8 +1159,16 @@ int main(int argc, const char** argv)
 
 	//ThresholdinginRange();
 	//MatchingMethod();
-	//auto comPortName = getArduinoLeonardoComPort();
 
+	//test();
+	Serial();
+	//SerialWrite(STOP_MP3);
+	serial_move_human(67, 84, 1);
+
+	//const char* send_data = "hkey:WIN\n";
+	//SerialWrite(send_data);
+	//SerialRead();
+	//Sleep(10000);
 	for (auto processID : FindPidsByName(TARGET_APP_NAME)) {
 		EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
 	}
@@ -1131,7 +1177,7 @@ int main(int argc, const char** argv)
 	//gm.hook_data();
 	//gm.work();
 	//Sleep(2000);
-	gm.test();
+	//gm.test();
 	return 0;
 }
 
