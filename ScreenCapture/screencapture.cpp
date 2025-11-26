@@ -125,6 +125,11 @@ inline cv::Mat hwnd2mat(HWND hwnd) {
 	DeleteObject(hbwindow); DeleteDC(hwindowCompatibleDC); ReleaseDC(hwnd, hwindowDC);
 	//imshow("output", src);
 	//cv::waitKey(0);
+
+	cv::Mat image_bgr;
+	// 2. Use cvtColor with the COLOR_BGRA2BGR conversion code
+	cv::cvtColor(src, image_bgr, cv::COLOR_BGRA2BGR);
+
 	auto current_path = fs::current_path();
 	//fs::path filename = "data.txt";
 	//fs::path full_path = current_path / filename;
@@ -134,8 +139,8 @@ inline cv::Mat hwnd2mat(HWND hwnd) {
 	filename[strftime(filename, sizeof(filename), "%Y-%m-%d %H-%M-%S-", lt)] = '\0';
 
 	current_path /= filename + std::string("r") + std::to_string(rand()) + ".png";
-	cv::imwrite(current_path.string(), src);
-	return src;
+	cv::imwrite(current_path.string(), image_bgr);
+	return image_bgr;
 }
 
 inline std::vector<DWORD> FindPidsByName(const wchar_t* name)

@@ -56,10 +56,17 @@ std::vector<DWORD> FindPidsByName(const wchar_t* name);
 HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);
 DWORD GetModuleSize(HANDLE hProcess, HMODULE hModule);
 cv::Mat hwnd2mat(HWND hwnd);
+cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+cv::Point MatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double threshold, int match_method);
+cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method);
 
 //uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
 void init_log();
+
+cv::Rect ROI_NULL();
 
 
 class MyWindowInfo {
@@ -69,6 +76,7 @@ public:
 	uintptr_t ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask);
 	uintptr_t PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask);
 	uintptr_t getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
+	POINT MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
 
 	int pos_x = 0;
 	int pos_y = 0;
@@ -93,6 +101,7 @@ public:
 	void hook_data();
 	void work();
 	void test();
+
 
 	bool waiting = false;
 	std::vector<MyWindowInfo> winsInfo;
