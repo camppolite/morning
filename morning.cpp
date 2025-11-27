@@ -213,7 +213,7 @@ POINT MyWindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, s
 	}
 
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	auto cv_pos = getMatchLoc(result, threshold, match_method);
+	auto cv_pos = getMatchLoc(result, threshold, match_method, rect, templ.cols, templ.rows);
 	if (cv_pos.x > -1) {
 		pos.x += cv_pos.x;
 		pos.y += cv_pos.y;
@@ -227,7 +227,7 @@ GoodMorning::GoodMorning() {
 }
 
 void GoodMorning::init() {
-	for (auto winfo : this->winsInfo) {
+	for (MyWindowInfo& winfo : this->winsInfo) {
 		GetWindowRect(winfo.hwnd, &winfo.rect);
 	}
 }
@@ -325,11 +325,14 @@ void GoodMorning::test() {
 		GetWindowRect(winfo.hwnd, &rect);
 
 		SetForegroundWindow(winfo.hwnd);
+
 		//MatchingRect(winfo.hwnd, ROI_NULL(), "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
 		//cv::Rect roi_test(290, 200, 50, 50);
-		MatchingRectPos(ROI_NULL(), "2025-11-26 16-28-51-r8483.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
-		MatchingRectPos(ROI_NULL(), "2025-11-26 16-28-51-r15605.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
+		//MatchingRectPos(ROI_NULL(), "2025-11-26 16-28-51-r8483.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
+		//MatchingRectPos(ROI_NULL(), "2025-11-26 16-28-51-r15605.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
 		//hwnd2mat(winfo.hwnd);
+
+		bool res = ClickMatchImage(&winfo, ROI_NULL(), "object\\test.png", "", 0.78, cv::TM_CCORR_NORMED, 0, 0, 0, 0, 1);
 	}
 	//hwnd2mat(sc);
 	printf("\n");
@@ -880,10 +883,11 @@ cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string
 	}
 
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	return getMatchLoc(result, threshold, match_method);
+	RECT rect{ 0, 0, 0, 0 };
+	return getMatchLoc(result, threshold, match_method, rect, templ.cols, templ.rows);
 }
 
-cv::Point MatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
+cv::Point MatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
 	// Mask image(M) : The mask, a grayscale image that masks the template
 	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
 	// The mask must have the same dimensions as the template
@@ -899,7 +903,7 @@ cv::Point MatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, 
 	// cv2.TM_CCORR_NORMED  # 这个对颜色敏感度高
 	cv::Point pos(-1, -1);
 
-	auto image = hwnd2mat(hwnd);
+	auto image = hwnd2mat(winfo->hwnd);
 	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
 	if (image.empty() || templ.empty())
 	{
@@ -928,7 +932,55 @@ cv::Point MatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, 
 	}
 
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	return getMatchLoc(result, threshold, match_method);
+	return getMatchLoc(result, threshold, match_method, winfo->rect, templ.cols, templ.rows);
+}
+
+cv::Point MatchingRectLeftTop(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
+	// Mask image(M) : The mask, a grayscale image that masks the template
+	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
+	// The mask must have the same dimensions as the template
+	// The mask should have a CV_8U or CV_32F depth and the same number of channels as the template image. In CV_8U case, the mask values are treated as binary, i.e. zero and non-zero.
+	// In CV_32F case, the values should fall into [0..1] range and the template pixels will be multiplied by the corresponding mask pixel values.
+	// Since the input images in the sample have the CV_8UC3 type, the mask is also read as color image.
+
+	//In OpenCV, a mask image is a binary image (pixels are typically 0 or 255) used to define a Region of Interest (ROI). 
+	// You can create a mask using several methods, with the two most common approaches being: 
+	//Drawing shapes on a black canvas
+	//Thresholding an existing image
+
+	// cv2.TM_CCORR_NORMED  # 这个对颜色敏感度高
+	cv::Point pos(-1, -1);
+
+	auto image = hwnd2mat(winfo->hwnd);
+	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
+	if (image.empty() || templ.empty())
+	{
+		log_error("Can't read one of the images\n");
+		return pos;
+	}
+	cv::Mat mask;
+	if (!mask_path.empty())
+	{
+		mask = cv::imread((current_path / mask_path).string(), cv::IMREAD_COLOR);
+		if (mask.empty())
+		{
+			log_error("Can't read mask image\n");
+			return pos;
+		}
+	}
+
+	cv::Mat image_roi = image;
+	if (!roi_rect.empty()) {
+		// Ensure the ROI is within the image boundaries
+		roi_rect = roi_rect & cv::Rect(0, 0, image.cols, image.rows);
+
+		// 2. Access the ROI using the Mat operator()
+		// 'image_roi' is a new Mat header pointing to the data in 'image'
+		cv::Mat image_roi = image(roi_rect);
+	}
+
+	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
+	return getMatchLoc(result, threshold, match_method, winfo->rect, 0, 0);
 }
 
 bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method)
@@ -975,7 +1027,8 @@ bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::str
 	}
 
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	auto matchLoc = getMatchLoc(result, threshold, match_method);
+	RECT rect{ 0, 0, 0, 0 };
+	auto matchLoc = getMatchLoc(result, threshold, match_method, rect, 0, 0);
 	return matchLoc.x > -1;
 }
 
@@ -1021,7 +1074,9 @@ cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double thresh
 	return result;
 }
 
-cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method) {
+cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method, RECT win_rect, int width, int height) {
+	//int height = image.rows;
+	//int width = image.cols;
 	cv::Point matchLoc(-1, -1);
 	double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
 
@@ -1034,6 +1089,13 @@ cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method) {
 		{ matchLoc = maxLoc; }
 	}
 	log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
+	//int height = image.rows;
+	//int width = image.cols;
+	// 后台截图，窗口右偏7像素，窗口标题31像素
+	matchLoc.x += win_rect.left + width / 2 + 7;
+	matchLoc.y += win_rect.top + height / 2 + 31;
+	log_info("MatchingRectPos:%d, %d\n", matchLoc.x, matchLoc.y);
+	log_info("win rect:%d, %d\n", win_rect.left, win_rect.top);
 	return matchLoc;
 }
 
@@ -1182,16 +1244,26 @@ bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode)
 	time_t t = time(nullptr);
 	do {
 		// 因为有鼠标漂移，所以需要多次移动
-		if (time(nullptr) - t > 1.5) return false;
+		if (time(nullptr) - t > 3.5) {
+			log_warn("鼠标点击超时");
+			return false;
+		}
 		serial_move_human(mouse_pos, 0);
 		cursor_pos = get_cursor_pos(winfo, mouse_pos);
 		if (cursor_pos.x < 0) return false;
-		mouse_pos = { mouse_pos.x + mouse_pos.x - cursor_pos.x, mouse_pos.y + mouse_pos.y - cursor_pos.y };
+		mouse_pos = { mouse_pos.x + target_pos.x - cursor_pos.x, mouse_pos.y + target_pos.y - cursor_pos.y };
 		Sleep(5);
 	} while (abs(target_pos.x - cursor_pos.x) > 5 || abs(target_pos.y - cursor_pos.y) > 5);
-
-	GetCursorPos(&mouse_pos);  // 执行这个鼠标不再移动
-	serial_move_human(mouse_pos, mode);
+	switch (mode)
+	{
+	case 1:
+	{
+		serial_click_cur();
+		break;
+	}
+	default:
+		break;
+	}
 	return true;
 }
 
@@ -1203,12 +1275,19 @@ POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos) {
 		// 循环等待鼠标移动停止
 		if (time(nullptr) - t > 1.5) return tmp_pos;
 		Sleep(5);
-		auto cursor_pos = MatchingRectPos(winfo->hwnd, ROI_cursor(winfo, pos), image_cursors_cursor, image_cursors_cursor_mask);  // 游戏自身的鼠标
+		auto cursor_pos = MatchingRectLeftTop(winfo, ROI_cursor(winfo, pos), image_cursors_cursor, image_cursors_cursor_mask);  // 游戏自身的鼠标
 		if (cursor_pos.x == cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y) return tmp_pos;
 		tmp_pos.x = cursor_pos.x;
 		tmp_pos.y = cursor_pos.y;
 	}
+}
+
+bool ClickMatchImage(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int x_fix, int y_fix, int xs, int ys, int mode) {
+	auto cv_pos = MatchingRectPos(winfo, roi_rect, templ_path, mask_path, threshold, match_method);
+	if (cv_pos.x < 0) return false;
+	POINT pos = { cv_pos.x + x_fix, cv_pos.y + y_fix };
+	return mouse_click_human(winfo, pos, xs, ys, mode);
 }
 
 int main(int argc, const char** argv)
@@ -1247,8 +1326,9 @@ int main(int argc, const char** argv)
 	//ThresholdinginRange();
 	//MatchingMethod();
 
+	
+	Serial();
 	//test();
-	//Serial();
 	//SerialWrite(STOP_MP3);
 	//serial_move_human(67, 84, 1);
 

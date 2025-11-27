@@ -59,24 +59,6 @@ std::string to_dianxiaoer("to_dianxiaoer");
 std::string talk_get_baoturenwu("talk_get_baoturenwu");
 std::vector<std::string*> datu_step = { &to_changan_jiudian, &to_dianxiaoer, &talk_get_baoturenwu };
 
-std::vector<DWORD> FindPidsByName(const wchar_t* name);
-HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);
-DWORD GetModuleSize(HANDLE hProcess, HMODULE hModule);
-cv::Mat hwnd2mat(HWND hwnd);
-cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-cv::Point MatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double threshold, int match_method);
-cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method);
-
-
-
-//uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
-BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
-void init_log();
-
-cv::Rect ROI_NULL();
-
 class Step {
 public:
 	Step();
@@ -120,6 +102,7 @@ class GoodMorning {
 public:
 	GoodMorning();
 
+	void init();
 	void hook_data();
 	void work();
 	void test();
@@ -132,11 +115,30 @@ private:
 
 };
 
+std::vector<DWORD> FindPidsByName(const wchar_t* name);
+HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);
+DWORD GetModuleSize(HANDLE hProcess, HMODULE hModule);
+cv::Mat hwnd2mat(HWND hwnd);
+cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+cv::Point MatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+cv::Point MatchingRectLeftTop(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double threshold, int match_method);
+cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method, RECT win_rect, int width, int height);
+
+//uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
+void init_log();
+
+cv::Rect ROI_NULL();
+
+
+
 
 
 bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode);
 POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos);
-
+bool ClickMatchImage(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int x_fix, int y_fix, int xs, int ys, int mode);
 
 
 const char* STOP_MP3 = "mmp3:STOP\n";
