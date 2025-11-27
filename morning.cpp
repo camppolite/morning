@@ -55,7 +55,6 @@ auto current_path = fs::current_path();
 
 MyWindowInfo::MyWindowInfo(HANDLE processID) {
 	pid = processID;
-	step = START;
 }
 
 uintptr_t MyWindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
@@ -290,17 +289,22 @@ void GoodMorning::work() {
 
 	while (true) {
 		for (auto winfo : this->winsInfo) {
-			switch (winfo.step)
-			{
-			case START:
-			{
-				SetForegroundWindow(winfo.hwnd);
-				break;
+			SetForegroundWindow(winfo.hwnd);
+			if (winfo.step.current() == &to_changan_jiudian) {
+				log_info("111111");
 			}
 
-			default:
-				break;
-			}
+			//switch (winfo.step)
+			//{
+			//case START:
+			//{
+			//	SetForegroundWindow(winfo.hwnd);
+			//	break;
+			//}
+
+			//default:
+			//	break;
+			//}
 		}
 	}
 }
@@ -328,7 +332,9 @@ void GoodMorning::test() {
 
 }
 
-Step::Step(std::vector<std::string> step_list) {
+Step::Step() {}
+
+Step::Step(std::vector<std::string*> step_list) {
 	steps = step_list;
 }
 
@@ -348,7 +354,7 @@ void Step::next() {
 	else end = true;
 }
 
-std::string Step::current() {
+std::string* Step::current() {
 	return steps[index];
 }
 
@@ -357,6 +363,22 @@ cv::Rect ROI_NULL() {
 	cv::Rect roi_empty;
 	return roi_empty;
 }
+
+cv::Rect ROI_cursor(MyWindowInfo* winfo, POINT pos) {
+	int len = 160;
+	cv::Rect roi(pos.x - len, pos.y - len, len * 2, len * 2);
+	if (roi.x < winfo->rect.left) roi.x = winfo->rect.left;
+	if (roi.y < winfo->rect.top) roi.y = winfo->rect.top;
+	if (roi.x + roi.width > winfo->rect.right) roi.width = winfo->rect.right - winfo->rect.left;
+	if (roi.y + roi.height > winfo->rect.bottom) roi.height = winfo->rect.bottom - winfo->rect.top;
+	if (winfo->rect.left >= roi.x + roi.width || winfo->rect.top >= roi.x + roi.height || winfo->rect.right <= roi.x || winfo->rect.bottom <= roi.y)
+	{
+		cv::Rect roi_error(0, 0, 10, 10);
+		return roi_error;
+	}
+	return roi;
+}
+
 
 std::vector<DWORD> FindPidsByName(const wchar_t* name)
 {
@@ -1072,10 +1094,10 @@ int Serial() {
 	}
 
 	// Set communication timeouts
-	timeouts.ReadIntervalTimeout = 50;
-	timeouts.ReadTotalTimeoutConstant = 50;
+	timeouts.ReadIntervalTimeout = 1000;
+	timeouts.ReadTotalTimeoutConstant = 1000;
 	timeouts.ReadTotalTimeoutMultiplier = 10;
-	timeouts.WriteTotalTimeoutConstant = 50;
+	timeouts.WriteTotalTimeoutConstant = 1000;
 	timeouts.WriteTotalTimeoutMultiplier = 10;
 
 	if (!SetCommTimeouts(gm.hSerial, &timeouts)) {
@@ -1112,16 +1134,77 @@ void SerialRead() {
 	}
 }
 
-void serial_move_human(long x, long y, int mode) {
-	POINT cursor_pos;
-	GetCursorPos(&cursor_pos);
-	int64_t snp_len = strlen(MS_MOVE_HUMAN_SYMBOL) + LEN_OF_INT64;
+void serial_move_human(POINT pos, int mode) {
+	POINT mouse_pos;
+	GetCursorPos(&mouse_pos);
+	int64_t snp_len = strlen(MS_MOVE_HUMAN_SYMBOL) + LEN_OF_INT64 + LEN_OF_INT64 + LEN_OF_INT64 + LEN_OF_INT64 + LEN_OF_INT64 + 1;
 	// 在堆上分配内存
-	char* warn_key_buf = new char[snp_len];
-	snprintf(warn_key_buf, snp_len, MS_MOVE_HUMAN_SYMBOL, cursor_pos.x, cursor_pos.y, x, y, mode);
-	SerialWrite(warn_key_buf);
+	char* data_buf = new char[snp_len];
+	snprintf(data_buf, snp_len, MS_MOVE_HUMAN_SYMBOL, mouse_pos.x, mouse_pos.y, pos.x, pos.y, mode);
+	SerialWrite(data_buf);
 	// 使用完毕后，必须手动释放内存，防止内存泄漏
-	delete[] warn_key_buf;
+	delete[] data_buf;
+	SerialRead();
+}
+
+void serial_click_cur() {
+	SerialWrite(CLICK_CURRENT_SYMBOL);
+	SerialRead();
+}
+
+void input_alt_xxx(const char* data) {
+	int64_t snp_len = strlen(KEY_ALT_xxx) + strlen(data) + 1;
+	// 在堆上分配内存
+	char* data_buf = new char[snp_len];
+	snprintf(data_buf, snp_len, KEY_ALT_xxx, data);
+	SerialWrite(data_buf);
+	// 使用完毕后，必须手动释放内存，防止内存泄漏
+	delete[] data_buf;
+	SerialRead();
+}
+
+bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode) {
+	// mode:0不点击，1左键，2右键，5ctrl+左键, 6alt+a攻击
+	POINT target_pos = pos;
+	POINT mouse_pos = { pos.x + xs, pos.y + ys };
+	POINT cursor_pos;
+
+	if (mode == 6) {
+		mode = 1;
+		input_alt_xxx("a");
+		target_pos.x += 25;
+		target_pos.y -= 15;
+	}
+	time_t t = time(nullptr);
+	do {
+		// 因为有鼠标漂移，所以需要多次移动
+		if (time(nullptr) - t > 1.5) return false;
+		serial_move_human(mouse_pos, 0);
+		cursor_pos = get_cursor_pos(winfo, mouse_pos);
+		if (cursor_pos.x < 0) return false;
+		mouse_pos = { mouse_pos.x + mouse_pos.x - cursor_pos.x, mouse_pos.y + mouse_pos.y - cursor_pos.y };
+		Sleep(5);
+	} while (abs(target_pos.x - cursor_pos.x) > 5 || abs(target_pos.y - cursor_pos.y) > 5);
+
+	GetCursorPos(&mouse_pos);  // 执行这个鼠标不再移动
+	serial_move_human(mouse_pos, mode);
+	return true;
+}
+
+POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos) {
+	// 获取鼠标漂移量
+	POINT tmp_pos = {-1, -1};
+	time_t t = time(nullptr);
+	while (true) {
+		// 循环等待鼠标移动停止
+		if (time(nullptr) - t > 1.5) return tmp_pos;
+		Sleep(5);
+		auto cursor_pos = MatchingRectPos(winfo->hwnd, ROI_cursor(winfo, pos), image_cursors_cursor, image_cursors_cursor_mask);  // 游戏自身的鼠标
+		if (cursor_pos.x == cursor_pos.y == -1) continue;
+		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y) return tmp_pos;
+		tmp_pos.x = cursor_pos.x;
+		tmp_pos.y = cursor_pos.y;
+	}
 }
 
 int main(int argc, const char** argv)
@@ -1161,9 +1244,9 @@ int main(int argc, const char** argv)
 	//MatchingMethod();
 
 	//test();
-	Serial();
+	//Serial();
 	//SerialWrite(STOP_MP3);
-	serial_move_human(67, 84, 1);
+	//serial_move_human(67, 84, 1);
 
 	//const char* send_data = "hkey:WIN\n";
 	//SerialWrite(send_data);
@@ -1175,7 +1258,7 @@ int main(int argc, const char** argv)
 	Sleep(50);  // 等一下枚举窗口句柄回调完成再执行
 
 	//gm.hook_data();
-	//gm.work();
+	gm.work();
 	//Sleep(2000);
 	//gm.test();
 	return 0;

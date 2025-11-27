@@ -52,6 +52,13 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define START 0
 #define LEN_OF_INT64 22  // 21 + 1
 
+
+
+std::string to_changan_jiudian("to_changan_jiudian");
+std::string to_dianxiaoer("to_dianxiaoer");
+std::string talk_get_baoturenwu("talk_get_baoturenwu");
+std::vector<std::string*> datu_step = { &to_changan_jiudian, &to_dianxiaoer, &talk_get_baoturenwu };
+
 std::vector<DWORD> FindPidsByName(const wchar_t* name);
 HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);
 DWORD GetModuleSize(HANDLE hProcess, HMODULE hModule);
@@ -62,12 +69,27 @@ bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::str
 cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double threshold, int match_method);
 cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method);
 
+
+
 //uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
 void init_log();
 
 cv::Rect ROI_NULL();
 
+class Step {
+public:
+	Step();
+	Step(std::vector<std::string*> step_list);
+	void reset();
+	void previous();
+	void next();
+	std::string* current();
+
+	std::vector<std::string*> steps;
+	int index = 0;
+	bool end = false;
+};
 
 class MyWindowInfo {
 public:
@@ -91,7 +113,7 @@ public:
 	HMODULE hNtdll = 0;
 	PFN_NtReadVirtualMemory pNtReadVirtualMemory;
 
-	int step;
+	Step step = Step(datu_step);
 };
 
 class GoodMorning {
@@ -110,25 +132,22 @@ private:
 
 };
 
-class Step {
-public:
-	Step(std::vector<std::string> step_list);
-	void reset();
-	void previous();
-	void next();
-	std::string current();
 
-	std::vector<std::string> steps;
-	int index = 0;
-	bool end = false;
-};
 
-std::vector<std::string> datu_step = {"goto", "sfsfsf"};
+bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode);
+POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos);
+
+
 
 const char* STOP_MP3 = "mmp3:STOP\n";
 
 const char* MS_MOVE_HUMAN_SYMBOL = "movehm:%d,%d,%d,%d,%d\n";  // cx, cy, x, y, mode
+const char* CLICK_CURRENT_SYMBOL = "hkeyCC\n";
+const char* KEY_ALT_xxx = "hkey:ALT_%s\n";
 
+
+const char* image_cursors_cursor = "object\\cursors\\cursor.png";
+const char* image_cursors_cursor_mask = "object\\cursors\\cursor_mask.png";
 
 
 
