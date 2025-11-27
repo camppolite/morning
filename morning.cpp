@@ -226,6 +226,12 @@ GoodMorning::GoodMorning() {
 
 }
 
+void GoodMorning::init() {
+	for (auto winfo : this->winsInfo) {
+		GetWindowRect(winfo.hwnd, &winfo.rect);
+	}
+}
+
 void GoodMorning::hook_data() {
 	for (auto winfo : gm.winsInfo) {
 
@@ -283,9 +289,7 @@ void GoodMorning::hook_data() {
 }
 
 void GoodMorning::work() {
-	for (auto winfo : this->winsInfo) {
-		GetWindowRect(winfo.hwnd, &winfo.rect);
-	}
+
 
 	while (true) {
 		for (auto winfo : this->winsInfo) {
@@ -1257,10 +1261,11 @@ int main(int argc, const char** argv)
 	}
 	Sleep(50);  // 等一下枚举窗口句柄回调完成再执行
 
+	gm.init();
 	//gm.hook_data();
-	gm.work();
+	//gm.work();
 	//Sleep(2000);
-	//gm.test();
+	gm.test();
 	return 0;
 }
 
