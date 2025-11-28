@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <cstdlib> // For rand() and srand()
+#include <chrono>
 
 #include <setupapi.h>
 #include <devguid.h> // For GUID_DEVINTERFACE_COMPORT
@@ -221,6 +222,129 @@ POINT MyWindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, s
 	return pos;
 }
 
+void MyWindowInfo::update_player_float_pos() {
+	// 读取更新玩家坐标
+	SIZE_T regionSize = 0x8;
+	BYTE* buffer = new BYTE[regionSize];
+	SIZE_T bytesRead;
+	pNtReadVirtualMemory(hProcess, (PVOID)player_pos_addr, buffer, regionSize, &bytesRead);
+	player_x = *reinterpret_cast<float*>(buffer);
+	player_y = *reinterpret_cast<float*>(buffer + 4);
+	delete[] buffer;
+}
+
+void MyWindowInfo::update_scene() {
+	// 得到的string内容为"建邺城[25,88]"，可以分解为场景名+玩家坐标
+	BYTE* buffer = new BYTE[map_offset];
+	SIZE_T bytesRead;
+	pNtReadVirtualMemory(hProcess, (PVOID)map_info_addr, buffer, map_offset, &bytesRead);
+	// Use the std::string constructor that accepts a const char*
+	 // The cast is necessary to convert unsigned char* to the expected const char*
+	std::string str_result(reinterpret_cast<const char*>(buffer));
+	size_t start = 0;
+	size_t end = 0;
+	end = str_result.find("[", start);
+	if (end != std::string::npos) {
+		scene = str_result.substr(start, end - start);
+		// Move the starting point past the delimiter
+		start = end + 1;
+		end = str_result.find(",", start);
+		if (end != std::string::npos) {
+			player_pos.x = std::stoi(str_result.substr(start, end - start));
+			// Move the starting point past the delimiter
+			start = end + 1;
+			end = str_result.find("]", start);
+			if (end != std::string::npos) {
+				player_pos.y = std::stoi(str_result.substr(start, end - start));
+				// Move the starting point past the delimiter
+				start = end + 1;
+			}
+		}
+	}
+	delete[] buffer;
+}
+
+void MyWindowInfo::scan_dianxiaoer_addr_pos() {
+	// 店小二坐标，这个地址要店小二出现在玩家视野中才会出现
+	// 0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 00 00 00 00 00 00 00 00 01 F0 AD BA 00 CA 9A 3B FF C9 9A 3B 00 F0 AD BA 00 00 00 00 0D F0 AD BA 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 F0 AD BA ? ? ? ? ? ? ? ?
+	auto dianxiaoer_AoB_adr = PerformAoBScan(
+		hProcess,
+		0,
+		"0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 00 00 00 00 00 00 00 00 01 F0 AD BA 00 CA 9A 3B FF C9 9A 3B 00 F0 AD BA 00 00 00 00 0D F0 AD BA 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 F0 AD BA",
+		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+	if (dianxiaoer_AoB_adr == 0) log_error("查找店小二坐标地址失败");
+	if (dianxiaoer_AoB_adr > 0) {
+		dianxiaoer_pos_addr = dianxiaoer_AoB_adr + 0x58;
+	}
+}
+
+void MyWindowInfo::update_dianxiaoer_pos() {
+	// 读取更新小二坐标
+	SIZE_T regionSize = 0x8;
+	BYTE* buffer = new BYTE[regionSize];
+	SIZE_T bytesRead;
+	pNtReadVirtualMemory(hProcess, (PVOID)dianxiaoer_pos_addr, buffer, regionSize, &bytesRead);
+	dianxiaoer_pos.x = *reinterpret_cast<long*>(buffer);
+	dianxiaoer_pos.y = *reinterpret_cast<long*>(buffer + 4);
+	delete[] buffer;
+}
+
+void MyWindowInfo::move_cursor_center_top() {
+	POINT pos = { rect.left + 515, rect.top + 150 };
+	serial_move_human(pos, 0);
+}
+
+void MyWindowInfo::open_beibao() {
+	move_cursor_center_top();
+	for (int i = 0; i < 5; i++) {
+		input_alt_e();
+		if (WaitMatchingRect(hwnd, ROI_beibao(), img_btn_beibao, 2000)) {
+			if (MatchingRect(hwnd, ROI_beibao(), img_btn_package_prop_640)) {
+				ClickMatchImage(this, ROI_beibao(), img_btn_package_prop_640);
+			}
+			break;
+		}
+	}
+}
+
+void MyWindowInfo::open_map() {
+	for (int i = 0; i < 5; i++) {
+		input_tab();
+		if (WaitMatchingRect(hwnd, ROI_beibao(), img_btn_beibao, 2000)) {
+			if (MatchingRect(hwnd, ROI_beibao(), img_btn_package_prop_640)) {
+				ClickMatchImage(this, ROI_beibao(), img_btn_package_prop_640);
+			}
+			break;
+		}
+	}
+}
+
+void MyWindowInfo::UpdateWindowRect() {
+	GetWindowRect(hwnd, &rect);
+	// 后台截图，窗口右偏7像素，窗口标题31像素
+	rect.left += 7;
+	rect.bottom += 31;
+}
+
+cv::Rect MyWindowInfo::ROI_cursor(POINT pos) {
+	int len = 160;
+	cv::Rect roi(pos.x - len, pos.y - len, len * 2, len * 2);
+	if (roi.x < rect.left) roi.x = rect.left;
+	if (roi.y < rect.top) roi.y = rect.top;
+	if (roi.x + roi.width > rect.right) roi.width = rect.right - rect.left;
+	if (roi.y + roi.height > rect.bottom) roi.height = rect.bottom - rect.top;
+	if (rect.left >= roi.x + roi.width || rect.top >= roi.x + roi.height || rect.right <= roi.x || rect.bottom <= roi.y)
+	{
+		cv::Rect roi_error(0, 0, 10, 10);
+		return roi_error;
+	}
+	return roi;
+}
+
+cv::Rect MyWindowInfo::ROI_beibao() {
+	return cv::Rect(rect.left + 400, rect.top + 180, 250, 200);
+}
+
 
 GoodMorning::GoodMorning() {
 
@@ -233,7 +357,7 @@ void GoodMorning::init() {
 }
 
 void GoodMorning::hook_data() {
-	for (auto winfo : gm.winsInfo) {
+	for (MyWindowInfo& winfo : this->winsInfo) {
 
 		winfo.hNtdll = GetModuleHandleA("ntdll.dll");
 		PFN_NtOpenProcess pNtOpenProcess = (PFN_NtOpenProcess)GetProcAddress(winfo.hNtdll, "NtOpenProcess");
@@ -241,58 +365,32 @@ void GoodMorning::hook_data() {
 
 		OBJECT_ATTRIBUTES OA = { sizeof(OA), NULL };
 		CLIENT_ID         CID = { (HANDLE)winfo.pid, NULL };
-		NTSTATUS status = pNtOpenProcess(&winfo.rProcess, PROCESS_ALL_ACCESS, &OA, &CID);
+		NTSTATUS status = pNtOpenProcess(&winfo.hProcess, PROCESS_ALL_ACCESS, &OA, &CID);
 
-		auto mhmainDllBase = getProcessModulesAddress(winfo.rProcess, MHMAIN_DLL);
+		auto mhmainDllBase = getProcessModulesAddress(winfo.hProcess, MHMAIN_DLL);
 
-		//// 读取玩家坐标
-		//player_pos_addr = getRelativeStaticAddressByAoB(
-		//	rProcess,
-		//	mhmainDllBase,
-		//	"83 3D 00 00 00 00 FF 75 DF 0F 57 D2 0F 57 C9 48 8D 0D 00 00 00 00 E8 00 00 00 00 48 8D 0D 00 00 00 00 E8 00 00 00 00",
-		//	"xx????xxxxxxxxxxxx????x????xxx????x????",
-		//	18);
-		//if (player_pos_addr > 0) {
-		//	SIZE_T regionSize = 0x8;
-		//	BYTE* buffer = new BYTE[regionSize];
-		//	SIZE_T bytesRead;
-		//	pNtReadVirtualMemory(rProcess, (PVOID)player_pos_addr, buffer, regionSize, &bytesRead);
-		//	pos_x = *reinterpret_cast<float*>(buffer);
-		//	pos_y = *reinterpret_cast<float*>(buffer + 4);
-		//	delete[] buffer;
-		//}
+		// 玩家坐标地址
+		winfo.player_pos_addr = winfo.getRelativeStaticAddressByAoB(
+			winfo.hProcess,
+			mhmainDllBase,
+			"83 3D 00 00 00 00 FF 75 DF 0F 57 D2 0F 57 C9 48 8D 0D 00 00 00 00 E8 00 00 00 00 48 8D 0D 00 00 00 00 E8 00 00 00 00",
+			"xx????xxxxxxxxxxxx????x????xxx????x????",
+			18);
+		if (winfo.player_pos_addr == 0) log_error("查找玩家坐标地址失败");
 
-		//// 场景[100,10] (111,111)
-		//// B4 F3 CC C6 B9 FA BE B3 5B 31 39 38 2C 32 33 32 5D 00 B6 FE 28 31 31 31 2C 31 31 31 29 00
-		//auto map_info_AoB_adr = PerformAoBScan(rProcess, 0, "28 31 31 31 2C 31 31 31 29 00", "xxxxxxxxxx");
-
-		//if (map_info_AoB_adr > 0) {
-		//	SIZE_T map_offset = 0x14;
-		//	map_info_addr = map_info_AoB_adr - map_offset;
-		//	BYTE* buffer = new BYTE[map_offset];
-		//	SIZE_T bytesRead;
-		//	pNtReadVirtualMemory(rProcess, (PVOID)map_info_addr, buffer, map_offset, &bytesRead);
-		//	delete[] buffer;
-		//}
-
-		//// 店小二坐标
-		//// 0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 00 00 00 00 00 00 00 00 01 F0 AD BA 00 CA 9A 3B FF C9 9A 3B 00 F0 AD BA 00 00 00 00 0D F0 AD BA 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 F0 AD BA ? ? ? ? ? ? ? ?
-		//auto dianxiaoer_AoB_adr = PerformAoBScan(
-		//	rProcess,
-		//	0,
-		//	"0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 00 00 00 00 00 00 00 00 01 F0 AD BA 00 CA 9A 3B FF C9 9A 3B 00 F0 AD BA 00 00 00 00 0D F0 AD BA 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 F0 AD BA",
-		//	"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-		//if (dianxiaoer_AoB_adr > 0) {
-		//	dianxiaoer_pos_addr = dianxiaoer_AoB_adr + 0x58;
-		//}
+		log_info("查找场景地址开始:0x%X", winfo.hProcess);
+		// 场景[100,10] (111,111)
+		// B4 F3 CC C6 B9 FA BE B3 5B 31 39 38 2C 32 33 32 5D 00 B6 FE 28 31 31 31 2C 31 31 31 29 00
+		auto map_info_AoB_adr = winfo.PerformAoBScan(winfo.hProcess, 0, "28 31 31 31 2C 31 31 31 29 00", "xxxxxxxxxx");
+		if (map_info_AoB_adr == 0) log_error("查找场景地址失败");
+		else winfo.map_info_addr = map_info_AoB_adr - winfo.map_offset;
+		log_info("查找场景地址结束:0x%X", winfo.hProcess);
 	}
 }
 
 void GoodMorning::work() {
-
-
 	while (true) {
-		for (auto winfo : this->winsInfo) {
+		for (MyWindowInfo& winfo : this->winsInfo) {
 			SetForegroundWindow(winfo.hwnd);
 			if (winfo.step.current() == &to_changan_jiudian) {
 				log_info("111111");
@@ -320,7 +418,10 @@ void GoodMorning::test() {
 	GetCursorPos(&cursor_pos);
 	log_info("Mouse position: %d, %d", cursor_pos.x, cursor_pos.y);
 	RECT rect;
-	for (auto winfo : this->winsInfo) {
+	for (MyWindowInfo& winfo : this->winsInfo) {
+
+		winfo.update_player_float_pos();
+		winfo.update_scene();
 
 		GetWindowRect(winfo.hwnd, &rect);
 
@@ -371,20 +472,7 @@ cv::Rect ROI_NULL() {
 	return roi_empty;
 }
 
-cv::Rect ROI_cursor(MyWindowInfo* winfo, POINT pos) {
-	int len = 160;
-	cv::Rect roi(pos.x - len, pos.y - len, len * 2, len * 2);
-	if (roi.x < winfo->rect.left) roi.x = winfo->rect.left;
-	if (roi.y < winfo->rect.top) roi.y = winfo->rect.top;
-	if (roi.x + roi.width > winfo->rect.right) roi.width = winfo->rect.right - winfo->rect.left;
-	if (roi.y + roi.height > winfo->rect.bottom) roi.height = winfo->rect.bottom - winfo->rect.top;
-	if (winfo->rect.left >= roi.x + roi.width || winfo->rect.top >= roi.x + roi.height || winfo->rect.right <= roi.x || winfo->rect.bottom <= roi.y)
-	{
-		cv::Rect roi_error(0, 0, 10, 10);
-		return roi_error;
-	}
-	return roi;
-}
+
 
 
 std::vector<DWORD> FindPidsByName(const wchar_t* name)
@@ -587,6 +675,19 @@ void init_log() {
 	log_file[strftime(log_file, sizeof(log_file), "log/%Y-%m-%d.log", lt)] = '\0';
 	FILE* fp = fopen(log_file, "a");
 	log_set_fp(fp);
+}
+
+uint64_t getCurrentTimeMilliseconds() {
+	// 1. Get the current time point
+	auto now = std::chrono::system_clock::now();
+
+	// 2. Cast the duration since the epoch to milliseconds
+	auto duration_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(
+		now.time_since_epoch()
+	);
+
+	// 3. Return the count of milliseconds as an integer
+	return duration_since_epoch.count();
 }
 
 //void init_data() {
@@ -822,7 +923,7 @@ std::wstring getArduinoLeonardoComPort() {
 
 		}
 	}
-	return nullptr;
+	return std::wstring();
 }
 
 static void CannyThreshold(int, void*)
@@ -885,6 +986,34 @@ cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
 	RECT rect{ 0, 0, 0, 0 };
 	return getMatchLoc(result, threshold, match_method, rect, templ.cols, templ.rows);
+}
+
+cv::Point WaitMatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, int timeout, std::string mask_path, double threshold, int match_method) {
+	auto t_ms = getCurrentTimeMilliseconds();
+	while (true) {
+		auto pos = MatchingRectPos(winfo, roi_rect, templ_path, mask_path, threshold, match_method);
+		if (pos.x > 0) return pos;
+		if (timeout == 0) break;
+		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
+			log_info("超时: %s", templ_path.c_str());
+			return cv::Point(-1, -1);
+		}
+		Sleep(5);
+	}
+}
+
+bool WaitMatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout, std::string mask_path, double threshold, int match_method) {
+	auto t_ms = getCurrentTimeMilliseconds();
+	while (true) {
+		auto match = MatchingRect(hwnd, roi_rect, templ_path, mask_path, threshold, match_method);
+		if (match) return true;
+		if (timeout == 0) break;
+		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
+			log_info("超时: %s", templ_path.c_str());
+			return false;
+		}
+		Sleep(5);
+	}
 }
 
 cv::Point MatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
@@ -1091,9 +1220,8 @@ cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method, RECT w
 	log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
 	//int height = image.rows;
 	//int width = image.cols;
-	// 后台截图，窗口右偏7像素，窗口标题31像素
-	matchLoc.x += win_rect.left + width / 2 + 7;
-	matchLoc.y += win_rect.top + height / 2 + 31;
+	matchLoc.x += win_rect.left + width / 2;
+	matchLoc.y += win_rect.top + height / 2;
 	log_info("MatchingRectPos:%d, %d\n", matchLoc.x, matchLoc.y);
 	log_info("win rect:%d, %d\n", win_rect.left, win_rect.top);
 	return matchLoc;
@@ -1121,6 +1249,11 @@ void ThresholdinginRange()
 
 int Serial() {
 	auto comPortName = getArduinoLeonardoComPort();
+	if (comPortName.empty())
+	{
+		log_error("没找到com");
+		return 1;
+	}
 	DCB dcbSerialParams = { 0 };
 	COMMTIMEOUTS timeouts = { 0 };
 
@@ -1229,6 +1362,29 @@ void input_alt_xxx(const char* data) {
 	SerialRead();
 }
 
+void input_alt_a() {
+	input_alt_xxx("a");
+}
+
+void input_alt_e() {
+	input_alt_xxx("e");
+}
+
+void input_key_xxx(const char* data) {
+	int64_t snp_len = strlen(KEY_PRESS) + strlen(data) + 1;
+	// 在堆上分配内存
+	char* data_buf = new char[snp_len];
+	snprintf(data_buf, snp_len, KEY_PRESS, data);
+	SerialWrite(data_buf);
+	// 使用完毕后，必须手动释放内存，防止内存泄漏
+	delete[] data_buf;
+	SerialRead();
+}
+
+void input_tab() {
+	input_key_xxx("TAB");
+}
+
 bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode) {
 	// mode:0不点击，1左键，2右键，5ctrl+左键, 6alt+a攻击
 	POINT target_pos = pos;
@@ -1237,14 +1393,15 @@ bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode)
 
 	if (mode == 6) {
 		mode = 1;
-		input_alt_xxx("a");
+		input_alt_a();
 		target_pos.x += 25;
 		target_pos.y -= 15;
 	}
-	time_t t = time(nullptr);
+
+	auto t_ms = getCurrentTimeMilliseconds();
 	do {
 		// 因为有鼠标漂移，所以需要多次移动
-		if (time(nullptr) - t > 3.5) {
+		if (getCurrentTimeMilliseconds() - t_ms > 3500) {
 			log_warn("鼠标点击超时");
 			return false;
 		}
@@ -1270,12 +1427,12 @@ bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode)
 POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos) {
 	// 获取鼠标漂移量
 	POINT tmp_pos = {-1, -1};
-	time_t t = time(nullptr);
+	auto t_ms = getCurrentTimeMilliseconds();
 	while (true) {
 		// 循环等待鼠标移动停止
-		if (time(nullptr) - t > 1.5) return tmp_pos;
+		if (getCurrentTimeMilliseconds() - t_ms > 1500) return tmp_pos;
 		Sleep(5);
-		auto cursor_pos = MatchingRectLeftTop(winfo, ROI_cursor(winfo, pos), image_cursors_cursor, image_cursors_cursor_mask);  // 游戏自身的鼠标
+		auto cursor_pos = MatchingRectLeftTop(winfo, winfo->ROI_cursor(pos), img_cursors_cursor, img_cursors_cursor_mask);  // 游戏自身的鼠标
 		if (cursor_pos.x == cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y) return tmp_pos;
 		tmp_pos.x = cursor_pos.x;
@@ -1283,12 +1440,13 @@ POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos) {
 	}
 }
 
-bool ClickMatchImage(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int x_fix, int y_fix, int xs, int ys, int mode) {
-	auto cv_pos = MatchingRectPos(winfo, roi_rect, templ_path, mask_path, threshold, match_method);
+bool ClickMatchImage(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int x_fix, int y_fix, int xs, int ys, int mode, int timeout) {
+	auto cv_pos = WaitMatchingRectPos(winfo, roi_rect, templ_path, timeout, mask_path, threshold, match_method);
 	if (cv_pos.x < 0) return false;
 	POINT pos = { cv_pos.x + x_fix, cv_pos.y + y_fix };
 	return mouse_click_human(winfo, pos, xs, ys, mode);
 }
+
 
 int main(int argc, const char** argv)
 {
@@ -1342,10 +1500,10 @@ int main(int argc, const char** argv)
 	Sleep(50);  // 等一下枚举窗口句柄回调完成再执行
 
 	gm.init();
-	//gm.hook_data();
-	//gm.work();
+	gm.hook_data();
+	gm.work();
 	//Sleep(2000);
-	gm.test();
+	//gm.test();
 	return 0;
 }
 

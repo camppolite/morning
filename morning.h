@@ -54,6 +54,18 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 
 
 
+const char* STOP_MP3 = "mmp3:STOP\n";
+
+const char* MS_MOVE_HUMAN_SYMBOL = "movehm:%d,%d,%d,%d,%d\n";  // cx, cy, x, y, mode
+const char* CLICK_CURRENT_SYMBOL = "hkeyCC\n";
+const char* KEY_ALT_xxx = "hkey:ALT_%s\n";
+const char* KEY_PRESS = "hkey:%s\n";
+
+const char* img_btn_beibao = "object\\btn\\beibao.png";
+const char* img_btn_package_prop_640 = "object\\btn\\package_prop_640.png";
+const char* img_cursors_cursor = "object\\cursors\\cursor.png";
+const char* img_cursors_cursor_mask = "object\\cursors\\cursor_mask.png";
+
 std::string to_changan_jiudian("to_changan_jiudian");
 std::string to_dianxiaoer("to_dianxiaoer");
 std::string talk_get_baoturenwu("talk_get_baoturenwu");
@@ -81,17 +93,36 @@ public:
 	uintptr_t PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask);
 	uintptr_t getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 	POINT MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+	void update_player_float_pos();
+	void update_scene();
+	void scan_dianxiaoer_addr_pos();
+	void update_dianxiaoer_pos();
 
-	int pos_x = 0;
-	int pos_y = 0;
+	void move_cursor_center_top();
+	void open_beibao();
+	void open_map();
+
+
+	void UpdateWindowRect();
+	cv::Rect ROI_cursor(POINT pos);
+	cv::Rect ROI_beibao();
+
+	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
+	float player_y = 0;  // 这里的玩家坐标是float值，是内部地图坐标
+	POINT player_pos = { 0, 0 };
 	uintptr_t player_pos_addr = 0;
 	uintptr_t map_info_addr = 0;
+	SIZE_T map_offset = 0x14;
+
 	uintptr_t dianxiaoer_pos_addr = 0;
+	POINT dianxiaoer_pos = { 0, 0 };
+
+	std::string scene;
 
 	HANDLE pid;
 	HWND hwnd;
 	RECT rect;
-	HANDLE rProcess = 0;
+	HANDLE hProcess = 0;
 	HMODULE hNtdll = 0;
 	PFN_NtReadVirtualMemory pNtReadVirtualMemory;
 
@@ -125,6 +156,9 @@ cv::Point MatchingRectLeftTop(MyWindowInfo* winfo, cv::Rect roi_rect, std::strin
 bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
 cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double threshold, int match_method);
 cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method, RECT win_rect, int width, int height);
+cv::Point WaitMatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+bool WaitMatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+uint64_t getCurrentTimeMilliseconds();
 
 //uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
@@ -133,23 +167,19 @@ void init_log();
 cv::Rect ROI_NULL();
 
 
-
-
-
+int Serial();
+void SerialWrite(const char* data);
+void SerialRead();
+void serial_click_cur();
+void serial_move_human(POINT pos, int mode);
 bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode);
 POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos);
-bool ClickMatchImage(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int x_fix, int y_fix, int xs, int ys, int mode);
-
-
-const char* STOP_MP3 = "mmp3:STOP\n";
-
-const char* MS_MOVE_HUMAN_SYMBOL = "movehm:%d,%d,%d,%d,%d\n";  // cx, cy, x, y, mode
-const char* CLICK_CURRENT_SYMBOL = "hkeyCC\n";
-const char* KEY_ALT_xxx = "hkey:ALT_%s\n";
-
-
-const char* image_cursors_cursor = "object\\cursors\\cursor.png";
-const char* image_cursors_cursor_mask = "object\\cursors\\cursor_mask.png";
+bool ClickMatchImage(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path="", double threshold=0.78, int match_method=cv::TM_CCORR_NORMED, int x_fix=0, int y_fix = 0, int xs = 0, int ys = 0, int mode=1, int timeout=500);
+void input_alt_xxx(const char* data);
+void input_alt_a();
+void input_alt_e();
+void input_key_xxx(const char* data);
+void input_tab();
 
 
 
