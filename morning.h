@@ -109,6 +109,8 @@ public:
 	void open_map();
 	void move_to_dianxiaoer();
 	POINT get_map_max_loc(unsigned int scene_id);
+	int convert_to_map_pos_x(float x);
+	int convert_to_map_pos_y(float y, int max_y);
 
 	void UpdateWindowRect();
 	cv::Rect ROI_cursor(POINT pos);
@@ -117,7 +119,7 @@ public:
 	// 20像素一个坐标点
 	// (x - 1) * 20 + 30 = player_x  其中x是地图上显示的坐标
 	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
-	// (max_y - y) * 20 + 30 = player_x  其中y是地图上显示的坐标,max_y是地图y的最大值。例如建邺城y最大值是142
+	// (max_y - y) * 20 + 30 = player_y  其中y是地图上显示的坐标,max_y是地图y的最大值。例如建邺城y最大值是142
 	float player_y = 0;  // 这里的玩家坐标是float值，是内部地图坐标
 	POINT player_pos = { 0, 0 };
 	uintptr_t player_pos_addr = 0;
@@ -125,7 +127,8 @@ public:
 	SIZE_T map_offset = 0x14;
 
 	uintptr_t dianxiaoer_pos_addr = 0;
-	POINT dianxiaoer_pos = { 0, 0 };
+	float dianxiaoer_pos_x = 0;
+	float dianxiaoer_pos_y = 0;
 
 	uintptr_t scene_id_addr = 0;
 	std::string scene;
@@ -136,6 +139,7 @@ public:
 	RECT rect;
 	HANDLE hProcess = 0;
 	HMODULE hNtdll = 0;
+	HMODULE mhmainDllBase = 0;
 	PFN_NtReadVirtualMemory pNtReadVirtualMemory;
 
 	Step step = Step(datu_step);
