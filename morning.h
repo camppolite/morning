@@ -52,6 +52,11 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define START 0
 #define LEN_OF_INT64 22  // 21 + 1
 
+//// 场景id
+//#define 长安城 1001
+//#define 长安酒店 1028
+//#define 建邺城 1501
+//#define 东海湾 1506
 
 
 const char* STOP_MP3 = "mmp3:STOP\n";
@@ -95,19 +100,24 @@ public:
 	POINT MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
 	void update_player_float_pos();
 	void update_scene();
+	void update_scene_id();
 	void scan_dianxiaoer_addr_pos();
 	void update_dianxiaoer_pos();
 
 	void move_cursor_center_top();
 	void open_beibao();
 	void open_map();
-
+	void move_to_dianxiaoer();
+	POINT get_map_max_loc(unsigned int scene_id);
 
 	void UpdateWindowRect();
 	cv::Rect ROI_cursor(POINT pos);
 	cv::Rect ROI_beibao();
 
+	// 20像素一个坐标点
+	// (x - 1) * 20 + 30 = player_x  其中x是地图上显示的坐标
 	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
+	// (max_y - y) * 20 + 30 = player_x  其中y是地图上显示的坐标,max_y是地图y的最大值。例如建邺城y最大值是142
 	float player_y = 0;  // 这里的玩家坐标是float值，是内部地图坐标
 	POINT player_pos = { 0, 0 };
 	uintptr_t player_pos_addr = 0;
@@ -117,7 +127,9 @@ public:
 	uintptr_t dianxiaoer_pos_addr = 0;
 	POINT dianxiaoer_pos = { 0, 0 };
 
+	uintptr_t scene_id_addr = 0;
 	std::string scene;
+	unsigned int scene_id = 0;
 
 	HANDLE pid;
 	HWND hwnd;

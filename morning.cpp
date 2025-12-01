@@ -1,5 +1,6 @@
 #include "morning.h"
 #include "log.h"
+#include "astar.h"
 
 #include <filesystem>
 #include <cstdlib> // For rand() and srand()
@@ -264,9 +265,20 @@ void MyWindowInfo::update_scene() {
 	delete[] buffer;
 }
 
+void MyWindowInfo::update_scene_id() {
+	// 读取更新场景id
+	SIZE_T regionSize = 0x8;
+	BYTE* buffer = new BYTE[regionSize];
+	SIZE_T bytesRead;
+	pNtReadVirtualMemory(hProcess, (PVOID)scene_id_addr, buffer, regionSize, &bytesRead);
+	scene_id = *reinterpret_cast<unsigned int*>(buffer);
+	delete[] buffer;
+}
+
 void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 	// 店小二坐标，这个地址要店小二出现在玩家视野中才会出现
 	// 0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 00 00 00 00 00 00 00 00 01 F0 AD BA 00 CA 9A 3B FF C9 9A 3B 00 F0 AD BA 00 00 00 00 0D F0 AD BA 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 F0 AD BA ? ? ? ? ? ? ? ?
+	log_info("查找店小二坐标开始:0x%X", hProcess);
 	auto dianxiaoer_AoB_adr = PerformAoBScan(
 		hProcess,
 		0,
@@ -276,6 +288,7 @@ void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 	if (dianxiaoer_AoB_adr > 0) {
 		dianxiaoer_pos_addr = dianxiaoer_AoB_adr + 0x58;
 	}
+	log_info("查找店小二坐标结束:0x%X", hProcess);
 }
 
 void MyWindowInfo::update_dianxiaoer_pos() {
@@ -317,6 +330,45 @@ void MyWindowInfo::open_map() {
 			break;
 		}
 	}
+}
+
+void MyWindowInfo::move_to_dianxiaoer() {
+	int x_pixel = 0;
+	int y_pixel = 0;
+	int center_x = 512;  // 中点坐标 1024 / 2 + x_rim
+	int center_y = 384;  // 中点坐标 768 / 2 + y_rim
+	int x_edge = 510;  // (25 - 1) * 20 + 30 超过这个坐标，人物会在窗口中间
+	scan_dianxiaoer_addr_pos();
+	update_player_float_pos();
+	update_dianxiaoer_pos();
+	auto max_loc = get_map_max_loc(长安酒店);
+
+	int y_edge = (max_loc.y - 19) * 20 +30;  // (max_y - 19) * 20 + 30 超过这个坐标，人物会在窗口中间
+	if (player_x <= x_edge) x_pixel = player_x;
+	else if (max_loc.x - player_x <= x_edge) x_pixel = 1024 - (max_loc.x - player_x);
+	else x_pixel = center_x - (player_x - dianxiaoer_pos.x);
+
+	if (player_y <= y_edge) y_pixel = player_y;
+	else if (max_loc.y - player_y <= y_edge) y_pixel = 1024 - (max_loc.y - player_y);
+	else y_pixel = center_y - (player_y - dianxiaoer_pos.y);
+
+	log_info("相对像素:%d,%d", x_pixel, y_pixel);
+	log_info("相对坐标:%d,%d", rect.left + x_pixel, rect.top + y_pixel);
+}
+
+POINT MyWindowInfo::get_map_max_loc(unsigned int scene_id) {
+	POINT pos = {-1, -1};
+	switch (scene_id)
+	{
+	case 长安酒店:
+	{
+		pos = { 66, 42 };
+		break;
+	}
+	default:
+		break;
+	}
+	return pos;
 }
 
 void MyWindowInfo::UpdateWindowRect() {
@@ -378,13 +430,23 @@ void GoodMorning::hook_data() {
 			18);
 		if (winfo.player_pos_addr == 0) log_error("查找玩家坐标地址失败");
 
-		log_info("查找场景地址开始:0x%X", winfo.hProcess);
-		// 场景[100,10] (111,111)
-		// B4 F3 CC C6 B9 FA BE B3 5B 31 39 38 2C 32 33 32 5D 00 B6 FE 28 31 31 31 2C 31 31 31 29 00
-		auto map_info_AoB_adr = winfo.PerformAoBScan(winfo.hProcess, 0, "28 31 31 31 2C 31 31 31 29 00", "xxxxxxxxxx");
-		if (map_info_AoB_adr == 0) log_error("查找场景地址失败");
-		else winfo.map_info_addr = map_info_AoB_adr - winfo.map_offset;
-		log_info("查找场景地址结束:0x%X", winfo.hProcess);
+		//log_info("查找场景地址开始:0x%X", winfo.hProcess);
+		//// 场景[100,10] (111,111)
+		//// B4 F3 CC C6 B9 FA BE B3 5B 31 39 38 2C 32 33 32 5D 00 B6 FE 28 31 31 31 2C 31 31 31 29 00
+		//auto map_info_AoB_adr = winfo.PerformAoBScan(winfo.hProcess, 0, "28 31 31 31 2C 31 31 31 29 00", "xxxxxxxxxx");
+		//if (map_info_AoB_adr == 0) log_error("查找场景地址失败");
+		//else winfo.map_info_addr = map_info_AoB_adr - winfo.map_offset;
+		//log_info("查找场景地址结束:0x%X", winfo.hProcess);
+
+		// 场景id
+		// 48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 ? ? ? ? 44 89 3D ? ? ? ?
+		winfo.scene_id_addr = winfo.getRelativeStaticAddressByAoB(
+			winfo.hProcess,
+			mhmainDllBase,
+			"48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 00 00 00 00 44 89 3D 00 00 00 00",
+			"xxxxxxxxxxxxxxxxxxxx????xxx????",
+			27);
+		if (winfo.scene_id_addr == 0) log_error("查找场景id地址失败");
 	}
 }
 
@@ -420,8 +482,15 @@ void GoodMorning::test() {
 	RECT rect;
 	for (MyWindowInfo& winfo : this->winsInfo) {
 
-		winfo.update_player_float_pos();
-		winfo.update_scene();
+		while (true) {
+			winfo.update_player_float_pos();
+			winfo.update_scene_id();
+
+			//winfo.update_scene();
+			winfo.move_to_dianxiaoer();
+			printf("\n");
+		}
+
 
 		GetWindowRect(winfo.hwnd, &rect);
 
@@ -929,7 +998,7 @@ std::wstring getArduinoLeonardoComPort() {
 static void CannyThreshold(int, void*)
 {
 	blur(src_gray, detected_edges, cv::Size(3, 3));
-
+	const int ratio = 3;
 	Canny(detected_edges, detected_edges, lowThreshold, lowThreshold * ratio, kernel_size);
 
 	dst = cv::Scalar::all(0);
@@ -1501,9 +1570,8 @@ int main(int argc, const char** argv)
 
 	gm.init();
 	gm.hook_data();
-	gm.work();
-	//Sleep(2000);
-	//gm.test();
+	//gm.work();
+	gm.test();
 	return 0;
 }
 
