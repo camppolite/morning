@@ -94,8 +94,8 @@ std::vector<uintptr_t> MyWindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID
 			if (found)
 			{
 				auto matchAddress = reinterpret_cast<uintptr_t>(startAddress) + i;
-				std::cout << i << std::endl;
-				std::cout << "Pattern match found at address: 0x" << std::hex << matchAddress << std::endl;
+				//std::cout << i << std::endl;
+				//std::cout << "Pattern match found at address: 0x" << std::hex << matchAddress << std::endl;
 				res.push_back(matchAddress);
 				i += pattern.size(); // 跳过已对比过的字段
 			}
@@ -202,32 +202,10 @@ uintptr_t MyWindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, 
 			if (found)
 			{
 				matchAddress = reinterpret_cast<uintptr_t>(startAddress) + i;
-				std::cout << i << std::endl;
-				std::cout << "Pattern match found at address: 0x" << std::hex << matchAddress << std::endl;
+				//std::cout << i << std::endl;
+				//std::cout << "Pattern match found at address: 0x" << std::hex << matchAddress << std::endl;
 				// Additional actions can be performed here
-				//break;
-
-				SIZE_T regionSize = 0x20;
-				BYTE* buffer = new BYTE[regionSize];
-				SIZE_T bytesRead;
-				pNtReadVirtualMemory(hProcess, (PVOID)(matchAddress), buffer, regionSize, &bytesRead);
-				auto value = *reinterpret_cast<QWORD*>(buffer + 0x10);
-				delete[] buffer;
-
-				buffer = new BYTE[regionSize];
-				pNtReadVirtualMemory(hProcess, (PVOID)(value), buffer, regionSize, &bytesRead);
-				if (bytesRead > 0) {
-					auto addr = *reinterpret_cast<QWORD*>(buffer);
-					delete[] buffer;
-
-					//buffer = new BYTE[regionSize];
-					//pNtReadVirtualMemory(hProcess, (PVOID)(addr), buffer, regionSize, &bytesRead);
-					//auto addr2 = *reinterpret_cast<QWORD*>(buffer);
-					//delete[] buffer;
-
-					log_info("Pattern match found at address:0x%llX", matchAddress);
-					log_info("ScanMemoryRegion:0x%llX", addr);
-				}
+				break;
 			}
 		}
 	}
@@ -378,7 +356,7 @@ POINT MyWindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, s
 	}
 
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	auto cv_pos = getMatchLoc(result, threshold, match_method, rect, templ.cols, templ.rows);
+	auto cv_pos = getMatchLoc(result, threshold, match_method, templ.cols, templ.rows);
 	if (cv_pos.x > -1) {
 		pos.x += cv_pos.x;
 		pos.y += cv_pos.y;
@@ -560,8 +538,8 @@ void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 
 void MyWindowInfo::update_dianxiaoer_pos() {
 	// 读取更新小二坐标
-	dianxiaoer_pos_x = 0;
-	dianxiaoer_pos_y = 0;
+	dianxiaoer_pos_x = 1;
+	dianxiaoer_pos_y = 1;
 	SIZE_T regionSize = 0x24;
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
@@ -632,16 +610,18 @@ void MyWindowInfo::move_to_dianxiaoer() {
 	update_dianxiaoer_pos();
 	update_player_float_pos();
 
-	auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
-	auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
-
-	// A星寻路
-	auto astar_pos = astar(player_pos.x, player_pos.y, dxe_x, dxe_y, m_scene_id, 5, 5);
-	mouse_click_human(this, POINT{ astar_pos.x, astar_pos.y }, 0, 0, 1);
+	if (!is_near_dianxiaoer()) {
+		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
+		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
+		// A星寻路
+		auto astar_pos = astar(player_pos.x, player_pos.y, dxe_x, dxe_y, m_scene_id, 6, 6);
+		auto px = compute_pos_pixel(POINT{ astar_pos.x, astar_pos.y }, m_scene_id);
+		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
+	}
 }
 
 bool MyWindowInfo::talk_to_dianxiaoer() {
-	if (!is_moving() && is_near_dianxiaoer() && is_dianxiaoer_pos(dianxiaoer_pos_x, dianxiaoer_pos_y)) {
+	if (!is_moving() && is_near_dianxiaoer()) {
 		// 对话店小二
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
@@ -651,7 +631,7 @@ bool MyWindowInfo::talk_to_dianxiaoer() {
 		log_info("店小二坐标:%d,%d", dxe_x, dxe_y);
 		log_info("相对像素:%d,%d", px.x, px.y);
 		log_info("相对坐标:%d,%d", rect.left + px.x, rect.top + px.y);
-		hwnd2mat(hwnd);
+		//hwnd2mat(hwnd);
 		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
 		return true;
 	}
@@ -687,10 +667,12 @@ bool MyWindowInfo::is_moving() {
 
 bool MyWindowInfo::is_near_dianxiaoer() {
 	update_dianxiaoer_pos();
-	auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
-	auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
-	if (abs(dxe_x - player_pos.x) <= 5 && abs(dxe_x - player_pos.x) <= 5) {
-		return true;
+	if ((int)dianxiaoer_pos_x % 10 == 0 && (int)dianxiaoer_pos_x % 10 == 0 && is_dianxiaoer_pos(dianxiaoer_pos_x, dianxiaoer_pos_y)) {
+		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
+		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
+		if (abs(dxe_x - player_pos.x) <= 5 && abs(dxe_x - player_pos.x) <= 5) {
+			return true;
+		}
 	}
 	return false;
 }
@@ -730,22 +712,36 @@ void MyWindowInfo::UpdateWindowRect() {
 }
 
 cv::Rect MyWindowInfo::ROI_cursor(POINT pos) {
-	int len = 160;
-	cv::Rect roi(pos.x - len, pos.y - len, len * 2, len * 2);
-	if (roi.x < rect.left) roi.x = rect.left;
-	if (roi.y < rect.top) roi.y = rect.top;
-	if (roi.x + roi.width > rect.right) roi.width = rect.right - rect.left;
-	if (roi.y + roi.height > rect.bottom) roi.height = rect.bottom - rect.top;
-	if (rect.left >= roi.x + roi.width || rect.top >= roi.x + roi.height || rect.right <= roi.x || rect.bottom <= roi.y)
+	int len = 150;
+	long left = pos.x - rect.left - len;
+	long top = pos.y - rect.top - len;
+	long width = len * 2;
+	long height = len * 2;
+
+	if (pos.x - rect.left < len)
 	{
-		cv::Rect roi_error(0, 0, 10, 10);
-		return roi_error;
+		left = 0;
+		//width = len + pos.x - rect.left;
 	}
+	else if (rect.right - pos.x < len) {
+		left = pos.x - len;
+		//width = rect.right - left;
+	}
+	if (pos.y - rect.top < len) {
+		top = 0;
+		//height = len + pos.y - rect.top;
+	}
+	else if (rect.bottom - pos.y < len) {
+		top = pos.y - len;
+		//height = rect.bottom - top;
+	}
+
+	cv::Rect roi(left, top, width, height);
 	return roi;
 }
 
 cv::Rect MyWindowInfo::ROI_beibao() {
-	return cv::Rect(rect.left + 400, rect.top + 180, 250, 200);
+	return cv::Rect(400, 180, 250, 200);
 }
 
 
@@ -805,19 +801,32 @@ void GoodMorning::work() {
 	while (true) {
 		for (MyWindowInfo& winfo : this->winsInfo) {
 			SetForegroundWindow(winfo.hwnd);
-			if (winfo.step.current() == &to_changan_jiudian) {
-				log_info("111111");
+			if (winfo.step.current == &to_changan_jiudian) {
+				log_info("to_changan_jiudian");
 				winfo.step.next();
 			}
-			else if (winfo.step.current() == &to_dianxiaoer) {
-				if (!winfo.is_near_dianxiaoer()) {
-					winfo.move_to_dianxiaoer();
+			else if (winfo.step.current == &wait_load_scene_changanjiudian) {
+				log_info("wait_load_scene_changanjiudian");
+				winfo.update_scene_id();
+				if (winfo.m_scene_id == 长安酒店)
+				{
+					winfo.dianxiaoer_pos_addr = 0;
 					winfo.step.next();
 				}
 			}
-			else if (winfo.step.current() == &talk_get_baoturenwu) {
+			else if (winfo.step.current == &to_dianxiaoer) {
+				log_info("to_dianxiaoer");
 				winfo.move_to_dianxiaoer();
 				winfo.step.next();
+			}
+			else if (winfo.step.current == &talk_get_baoturenwu) {
+				log_info("talk_get_baoturenwu");
+				if (winfo.talk_to_dianxiaoer()) {
+					winfo.step.next();
+				}
+				else {
+					winfo.step.set_current(&to_dianxiaoer);
+				}
 			}
 			//switch (winfo.step)
 			//{
@@ -831,6 +840,7 @@ void GoodMorning::work() {
 			//	break;
 			//}
 		}
+		//Sleep(2000);
 	}
 }
 
@@ -842,6 +852,9 @@ void GoodMorning::test() {
 	log_info("Mouse position: %d, %d", cursor_pos.x, cursor_pos.y);
 	RECT rect;
 	for (MyWindowInfo& winfo : this->winsInfo) {
+		//cv::Rect roi_test(450, 338, 300, 300);
+		cv::Rect roi_test;
+		MatchingRectPos(roi_test, "2025-12-04 01-57-10-r8312.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
 		//auto wabaoturenwu_AoB_adr = winfo.PerformAoBScan(
 		//	winfo.hProcess,
 		//	0,
@@ -865,8 +878,7 @@ void GoodMorning::test() {
 		SetForegroundWindow(winfo.hwnd);
 
 		//MatchingRect(winfo.hwnd, ROI_NULL(), "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
-		//cv::Rect roi_test(290, 200, 50, 50);
-		//MatchingRectPos(ROI_NULL(), "2025-11-26 16-28-51-r8483.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
+
 		//MatchingRectPos(ROI_NULL(), "2025-11-26 16-28-51-r15605.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
 		//hwnd2mat(winfo.hwnd);
 
@@ -881,28 +893,42 @@ Step::Step() {}
 
 Step::Step(std::vector<std::string*> step_list) {
 	steps = step_list;
+	current = steps[0];
 }
 
 void Step::reset() {
-	index = 0;
+	current = steps[0];
 	end = false;
 }
 
 void Step::previous() {
 	if (steps.size() == 1) return;
-	if (index > 0) index -= 1;
+	if (index > 0) {
+		index -= 1;
+		current = steps[index];
+	}
 }
 
 void Step::next() {
 	if (steps.size() == 1) end = true;
-	else if (index < steps.size() - 1) index += 1;
+	else if (index < steps.size() - 1) {
+		index += 1;
+		current = steps[index];
+	}
 	else end = true;
 }
 
-std::string* Step::current() {
-	return steps[index];
-}
+void Step::set_current(std::string* step) {
+	// Use std::find to get an iterator to the element
+	std::vector<std::string*>::iterator it = std::find(steps.begin(), steps.end(), step);
 
+	// Check if the element was found
+	if (it != steps.end()) {
+		// Calculate the index using std::distance
+		index = std::distance(steps.begin(), it);
+		current = step;
+	}
+}
 
 cv::Rect ROI_NULL() {
 	cv::Rect roi_empty;
@@ -1361,10 +1387,56 @@ cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string
 		// 'image_roi' is a new Mat header pointing to the data in 'image'
 		cv::Mat image_roi = image(roi_rect);
 	}
+	cv::Mat result;
+	if (image.empty() || templ.empty())
+	{
+		log_error("Can't read one of the images\n");
+		//return result;
+	}
 
-	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	RECT rect{ 0, 0, 0, 0 };
-	return getMatchLoc(result, threshold, match_method, rect, templ.cols, templ.rows);
+	int result_cols = image.cols - templ.cols + 1;
+	int result_rows = image.rows - templ.rows + 1;
+
+	result.create(result_rows, result_cols, CV_32FC1);
+
+	bool method_accepts_mask = (cv::TM_SQDIFF == match_method || match_method == cv::TM_CCORR_NORMED);
+	try {
+		if (!mask.empty() && method_accepts_mask)
+		{
+			matchTemplate(image, templ, result, match_method, mask);
+		}
+		else
+		{
+			matchTemplate(image, templ, result, match_method);
+		}
+	}
+	catch (cv::Exception& e) {
+		log_error(e.what());
+		//return result;
+	}
+	cv::normalize(result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat());
+	cv::Point matchLoc(-1, -1);
+	double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
+
+	minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat());
+	if (match_method == cv::TM_SQDIFF || match_method == cv::TM_SQDIFF_NORMED)
+	{
+		matchLoc = minLoc;
+	}
+	else
+	{
+		log_info("maxVal:%f", maxVal);
+		if (maxVal >= threshold)
+		{
+			matchLoc = maxLoc;
+			//int height = image.rows;
+			//int width = image.cols;
+
+			log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
+		}
+	}
+	result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
+	return getMatchLoc(result, threshold, match_method, templ.cols, templ.rows);
 }
 
 cv::Point WaitMatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, int timeout, std::string mask_path, double threshold, int match_method) {
@@ -1440,7 +1512,7 @@ cv::Point MatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string te
 	}
 
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	return getMatchLoc(result, threshold, match_method, winfo->rect, templ.cols, templ.rows);
+	return getMatchLoc(result, threshold, match_method, templ.cols, templ.rows);
 }
 
 cv::Point MatchingRectLeftTop(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
@@ -1486,9 +1558,9 @@ cv::Point MatchingRectLeftTop(MyWindowInfo* winfo, cv::Rect roi_rect, std::strin
 		// 'image_roi' is a new Mat header pointing to the data in 'image'
 		cv::Mat image_roi = image(roi_rect);
 	}
-
+	//log_info("roi_rect:%d, %d, %d, %d", roi_rect.x, roi_rect.y, roi_rect.width, roi_rect.height);
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	return getMatchLoc(result, threshold, match_method, winfo->rect, 0, 0);
+	return getMatchLoc(result, threshold, match_method, 0, 0);
 }
 
 bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method)
@@ -1536,7 +1608,7 @@ bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::str
 
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
 	RECT rect{ 0, 0, 0, 0 };
-	auto matchLoc = getMatchLoc(result, threshold, match_method, rect, 0, 0);
+	auto matchLoc = getMatchLoc(result, threshold, match_method, 0, 0);
 	return matchLoc.x > -1;
 }
 
@@ -1582,7 +1654,7 @@ cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double thresh
 	return result;
 }
 
-cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method, RECT win_rect, int width, int height) {
+cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method, int width, int height) {
 	//int height = image.rows;
 	//int width = image.cols;
 	cv::Point matchLoc(-1, -1);
@@ -1593,16 +1665,17 @@ cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method, RECT w
 	{ matchLoc = minLoc; }
 	else
 	{
+		//log_info("maxVal:%f", maxVal);
 		if (maxVal >= threshold)
-		{ matchLoc = maxLoc; }
+		{
+			matchLoc = maxLoc; 
+			//int height = image.rows;
+			//int width = image.cols;
+			matchLoc.x += width / 2;
+			matchLoc.y += height / 2;
+			//log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
+		}
 	}
-	log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
-	//int height = image.rows;
-	//int width = image.cols;
-	matchLoc.x += win_rect.left + width / 2;
-	matchLoc.y += win_rect.top + height / 2;
-	log_info("MatchingRectPos:%d, %d\n", matchLoc.x, matchLoc.y);
-	log_info("win rect:%d, %d\n", win_rect.left, win_rect.top);
 	return matchLoc;
 }
 
@@ -1723,6 +1796,7 @@ void serial_move_human(POINT pos, int mode) {
 	// 使用完毕后，必须手动释放内存，防止内存泄漏
 	delete[] data_buf;
 	SerialRead();
+	//Sleep(50);
 }
 
 void serial_click_cur() {
@@ -1767,7 +1841,7 @@ void input_tab() {
 bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode) {
 	// mode:0不点击，1左键，2右键，5ctrl+左键, 6alt+a攻击
 	POINT target_pos = pos;
-	POINT mouse_pos = { pos.x + xs, pos.y + ys };
+	POINT mouse_move_pos = { pos.x + xs, pos.y + ys };
 	POINT cursor_pos;
 
 	if (mode == 6) {
@@ -1784,12 +1858,12 @@ bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode)
 			log_warn("鼠标点击超时");
 			return false;
 		}
-		serial_move_human(mouse_pos, 0);
-		cursor_pos = get_cursor_pos(winfo, mouse_pos);
-		if (cursor_pos.x < 0) return false;
-		mouse_pos = { mouse_pos.x + target_pos.x - cursor_pos.x, mouse_pos.y + target_pos.y - cursor_pos.y };
+		serial_move_human(mouse_move_pos, 0);
+		cursor_pos = get_cursor_pos(winfo, mouse_move_pos);
+		if (cursor_pos.x < 0) continue;
+		mouse_move_pos = { mouse_move_pos.x + target_pos.x - cursor_pos.x, mouse_move_pos.y + target_pos.y - cursor_pos.y };
 		Sleep(5);
-	} while (abs(target_pos.x - cursor_pos.x) > 5 || abs(target_pos.y - cursor_pos.y) > 5);
+	} while (abs(target_pos.x - cursor_pos.x) > 7 || abs(target_pos.y - cursor_pos.y) > 7);
 	switch (mode)
 	{
 	case 1:
@@ -1811,9 +1885,14 @@ POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos) {
 		// 循环等待鼠标移动停止
 		if (getCurrentTimeMilliseconds() - t_ms > 1500) return tmp_pos;
 		Sleep(5);
-		auto cursor_pos = MatchingRectLeftTop(winfo, winfo->ROI_cursor(pos), img_cursors_cursor, img_cursors_cursor_mask);  // 游戏自身的鼠标
+		auto cursor_pos = MatchingRectLeftTop(winfo, winfo->ROI_cursor(pos), img_cursors_cursor);  // 游戏自身的鼠标
 		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
-		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y) return tmp_pos;
+		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
+		{
+			tmp_pos.x += winfo->rect.left;
+			tmp_pos.y += winfo->rect.top;
+			return tmp_pos;
+		}
 		tmp_pos.x = cursor_pos.x;
 		tmp_pos.y = cursor_pos.y;
 	}
@@ -1856,10 +1935,6 @@ int main(int argc, const char** argv)
 	//waitKey(0);
 
 
-	// 1. Define the ROI using cv::Rect(x, y, width, height)
-	// Example: A 100x100 pixel region starting at (50, 50) from the top-left corner
-	cv::Rect roi_rect(50, 50, 100, 100);
-
 	//ThresholdinginRange();
 	//MatchingMethod();
 
@@ -1880,8 +1955,8 @@ int main(int argc, const char** argv)
 
 	gm.init();
 	gm.hook_data();
-	//gm.work();
-	gm.test();
+	gm.work();
+	//gm.test();
 	return 0;
 }
 
