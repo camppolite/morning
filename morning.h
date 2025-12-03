@@ -94,9 +94,13 @@ class MyWindowInfo {
 public:
 	MyWindowInfo(HANDLE processID);
 
+	std::vector<uintptr_t> ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask);
+	std::vector<uintptr_t> PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask);
+
 	uintptr_t ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask);
 	uintptr_t PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask);
 	uintptr_t getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
+	uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 	POINT MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
 	void update_player_float_pos();
 	void update_scene();
@@ -108,31 +112,34 @@ public:
 	void open_beibao();
 	void open_map();
 	void move_to_dianxiaoer();
+	bool is_dianxiaoer_pos(float x, float y);
+	POINT compute_pos_pixel(POINT dst, unsigned int scene_id);
 	POINT get_map_max_loc(unsigned int scene_id);
 	int convert_to_map_pos_x(float x);
-	int convert_to_map_pos_y(float y, int max_y);
+	int convert_to_map_pos_y(float y);
 
 	void UpdateWindowRect();
 	cv::Rect ROI_cursor(POINT pos);
 	cv::Rect ROI_beibao();
 
-	// 20像素一个坐标点
 	// (x - 1) * 20 + 30 = player_x  其中x是地图上显示的坐标
 	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
-	// (max_y - y) * 20 + 30 = player_y  其中y是地图上显示的坐标,max_y是地图y的最大值。例如建邺城y最大值是142
+	// (max_y - y - 1) * 20 + 30 = player_y  其中y是地图上显示的坐标,max_y是地图y的最大值。例如建邺城y最大值是142
 	float player_y = 0;  // 这里的玩家坐标是float值，是内部地图坐标
 	POINT player_pos = { 0, 0 };
+
 	uintptr_t player_pos_addr = 0;
 	uintptr_t map_info_addr = 0;
 	SIZE_T map_offset = 0x14;
 
 	uintptr_t dianxiaoer_pos_addr = 0;
+	std::vector<POINT> dianxiaoer_pos_list;  // 店小二固定移动的几个坐标
 	float dianxiaoer_pos_x = 0;
 	float dianxiaoer_pos_y = 0;
 
 	uintptr_t scene_id_addr = 0;
 	std::string scene;
-	unsigned int scene_id = 0;
+	unsigned int m_scene_id = 0;
 
 	HANDLE pid;
 	HWND hwnd;

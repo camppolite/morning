@@ -57,6 +57,123 @@ auto current_path = fs::current_path();
 
 MyWindowInfo::MyWindowInfo(HANDLE processID) {
 	pid = processID;
+	dianxiaoer_pos_list.push_back(POINT{ 450, 850 });
+	dianxiaoer_pos_list.push_back(POINT{ 710, 710 });
+	dianxiaoer_pos_list.push_back(POINT{ 570, 450 });
+	dianxiaoer_pos_list.push_back(POINT{ 890, 690 });
+	dianxiaoer_pos_list.push_back(POINT{ 410, 850 });
+	dianxiaoer_pos_list.push_back(POINT{ 230, 750 });
+	dianxiaoer_pos_list.push_back(POINT{ 230, 630 });
+	dianxiaoer_pos_list.push_back(POINT{ 470, 650 });
+	dianxiaoer_pos_list.push_back(POINT{ 750, 610 });
+	dianxiaoer_pos_list.push_back(POINT{ 650, 790 });
+}
+
+std::vector<uintptr_t> MyWindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
+{
+	std::vector<uintptr_t> res;
+	BYTE* buffer = new BYTE[regionSize];
+
+	SIZE_T bytesRead;
+	if (pNtReadVirtualMemory(hProcess, (PVOID)startAddress, buffer, regionSize, &bytesRead) == 0)
+		//if (ReadProcessMemory(hProcess, startAddress, buffer, regionSize, &bytesRead))
+	{
+		//log_info("startAddress:0x%llX, regionSize:0x%llX", startAddress, regionSize);
+		for (SIZE_T i = 0; i <= bytesRead - pattern.size(); i++)  // Updated loop condition
+		{
+			bool found = true;
+			for (SIZE_T j = 0; j < pattern.size(); j++)
+			{
+				if (mask[j] == 'x' && buffer[i + j] != pattern.at(j))
+				{
+					found = false;
+					break;
+				}
+			}
+			// Pattern match found
+			if (found)
+			{
+				auto matchAddress = reinterpret_cast<uintptr_t>(startAddress) + i;
+				std::cout << i << std::endl;
+				std::cout << "Pattern match found at address: 0x" << std::hex << matchAddress << std::endl;
+				res.push_back(matchAddress);
+				i += pattern.size(); // 跳过已对比过的字段
+			}
+		}
+	}
+
+	delete[] buffer;
+	return res;
+}
+
+std::vector<uintptr_t> MyWindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask)
+{
+	// ModuleBase 为0则扫描PRV内存，
+	// all 为true，则扫描全部匹配结果,为false扫描返回第一个
+	std::vector<BYTE> aob_byte;
+	int start, end;
+	start = end = 0;
+	char dl = ' ';
+	while ((start = pattern.find_first_not_of(dl, end))
+		!= std::string::npos) {
+		// str.find(dl, start) will return the index of dl
+		// from start index
+		end = pattern.find(dl, start);
+		// substr function return the substring of the
+		// original string from the given starting index
+		// to the given end index
+		auto sub_s = pattern.substr(start, end - start);
+		if (sub_s == "?") sub_s = "00";
+		aob_byte.push_back(static_cast<BYTE>(stoi(sub_s, nullptr, 16)));
+	}
+
+	std::vector<uintptr_t> res;
+	DWORD ModuleSize = GetModuleSize(hProcess, ModuleBase);
+
+	// Enumerate memory regions in the target process
+	SYSTEM_INFO systemInfo;
+	GetSystemInfo(&systemInfo);
+	LPVOID minimumApplicationAddress = systemInfo.lpMinimumApplicationAddress;
+	LPVOID maximumApplicationAddress = systemInfo.lpMaximumApplicationAddress;
+	if (ModuleBase > 0) {
+		// 全程序内存扫描
+		DWORD ModuleSize = GetModuleSize(hProcess, ModuleBase);
+		minimumApplicationAddress = ModuleBase;
+		maximumApplicationAddress = ModuleBase + ModuleSize;
+	}
+
+
+	MEMORY_BASIC_INFORMATION memoryInfo;
+	//for (LPVOID address = ModuleBase; address < ModuleBase + ModuleSize;)
+	for (LPVOID address = minimumApplicationAddress; address < maximumApplicationAddress;)
+	{
+		if (VirtualQueryEx(hProcess, address, &memoryInfo, sizeof(memoryInfo)) == sizeof(memoryInfo))
+		{
+			bool scan_condition = false;
+			if (ModuleBase > 0) scan_condition = memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && !(memoryInfo.Type & MEM_PRIVATE);
+			else scan_condition = memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && (memoryInfo.Type == MEM_PRIVATE);
+			// Check if the memory region is accessible and not reserved
+			if (scan_condition)
+				//if (memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && !(memoryInfo.Type & MEM_PRIVATE))
+			{
+				// Scan the memory region
+				auto matchAddress = ScanMemoryRegionEx(hProcess, memoryInfo.BaseAddress, memoryInfo.RegionSize, aob_byte, mask);
+				if (!matchAddress.empty()) {
+					// Insert all elements from vec2 at the end of vec1
+					// vec1.end() is the insertion point
+					// vec2.begin() and vec2.end() define the range to insert
+					res.insert(res.end(), matchAddress.begin(), matchAddress.end());
+				}
+			}
+			address = reinterpret_cast<LPVOID>(reinterpret_cast<char*>(address) + memoryInfo.RegionSize);
+		}
+		else
+		{
+			std::cout << "Failed to query memory information. Error code: " << GetLastError() << std::endl;
+			break;
+		}
+	}
+	return res;
 }
 
 uintptr_t MyWindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
@@ -68,6 +185,7 @@ uintptr_t MyWindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, 
 	if (pNtReadVirtualMemory(hProcess, (PVOID)startAddress, buffer, regionSize, &bytesRead) == 0)
 		//if (ReadProcessMemory(hProcess, startAddress, buffer, regionSize, &bytesRead))
 	{
+		//log_info("startAddress:0x%llX, regionSize:0x%llX", startAddress, regionSize);
 		for (SIZE_T i = 0; i <= bytesRead - pattern.size(); i++)  // Updated loop condition
 		{
 			bool found = true;
@@ -120,7 +238,7 @@ uintptr_t MyWindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, 
 
 uintptr_t MyWindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask)
 {
-	// ModuleBase 为0则全局内存扫描，
+	// ModuleBase 为0则扫描PRV内存，
 	// all 为true，则扫描全部匹配结果,为false扫描返回第一个
 	std::vector<BYTE> aob_byte;
 	int start, end;
@@ -134,7 +252,9 @@ uintptr_t MyWindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, cons
 		// substr function return the substring of the
 		// original string from the given starting index
 		// to the given end index
-		aob_byte.push_back(static_cast<BYTE>(stoi(pattern.substr(start, end - start), nullptr, 16)));
+		auto sub_s = pattern.substr(start, end - start);
+		if (sub_s == "?") sub_s = "00";
+		aob_byte.push_back(static_cast<BYTE>(stoi(sub_s, nullptr, 16)));
 	}
 
 	uintptr_t matchAddress = 0;
@@ -152,14 +272,18 @@ uintptr_t MyWindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, cons
 		maximumApplicationAddress = ModuleBase + ModuleSize;
 	}
 
+
 	MEMORY_BASIC_INFORMATION memoryInfo;
 	//for (LPVOID address = ModuleBase; address < ModuleBase + ModuleSize;)
 	for (LPVOID address = minimumApplicationAddress; address < maximumApplicationAddress;)
 	{
 		if (VirtualQueryEx(hProcess, address, &memoryInfo, sizeof(memoryInfo)) == sizeof(memoryInfo))
 		{
+			bool scan_condition = false;
+			if (ModuleBase > 0) scan_condition = memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && !(memoryInfo.Type & MEM_PRIVATE);
+			else scan_condition = memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && (memoryInfo.Type == MEM_PRIVATE);
 			// Check if the memory region is accessible and not reserved
-			if (memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS)
+			if (scan_condition)
 				//if (memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && !(memoryInfo.Type & MEM_PRIVATE))
 			{
 				// Scan the memory region
@@ -191,6 +315,22 @@ uintptr_t MyWindowInfo::getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE M
 	auto rav = *reinterpret_cast<long*>(buffer);
 	delete[] buffer;
 	return rav + 7 + AoB_adr + offset - 3;
+}
+
+uintptr_t MyWindowInfo::getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset) {
+	// adr_offset = rav_offset - 1
+	// opcode_adr = AoB_adr + adr_offset
+	// StaticAddress - opcode_adr - 5 = rav
+	auto AoB_adr = PerformAoBScan(hProcess, ModuleBase, AoB, mask);
+	if (AoB_adr <= 0) return AoB_adr;
+
+	SIZE_T regionSize = 0x10;
+	BYTE* buffer = new BYTE[regionSize];
+	SIZE_T bytesRead;
+	pNtReadVirtualMemory(hProcess, (PVOID)(AoB_adr + offset), buffer, regionSize, &bytesRead);
+	auto rav = *reinterpret_cast<long*>(buffer);
+	delete[] buffer;
+	return rav + 5 + AoB_adr + offset - 1;
 }
 
 POINT MyWindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
@@ -255,6 +395,8 @@ void MyWindowInfo::update_player_float_pos() {
 	player_x = *reinterpret_cast<float*>(buffer);
 	player_y = *reinterpret_cast<float*>(buffer + 4);
 	delete[] buffer;
+	player_pos.x = convert_to_map_pos_x(player_x);
+	player_pos.y = convert_to_map_pos_y(player_y);
 }
 
 void MyWindowInfo::update_scene() {
@@ -294,38 +436,123 @@ void MyWindowInfo::update_scene_id() {
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
 	pNtReadVirtualMemory(hProcess, (PVOID)scene_id_addr, buffer, regionSize, &bytesRead);
-	scene_id = *reinterpret_cast<unsigned int*>(buffer);
+	m_scene_id = *reinterpret_cast<unsigned int*>(buffer);
 	delete[] buffer;
 }
 
 void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 	if (dianxiaoer_pos_addr == 0) {
 		log_info("查找店小二坐标开始:0x%X", hProcess);
+		dianxiaoer_pos_x = 0;
+		dianxiaoer_pos_y = 0;
 		// 这个结构不是每次都会出现的，如果找不到，可以先出去再进来，重复试几次一般都会产生这个内存结构
 		// 先找到 #c80c0ff挖宝图任务 这个地址
-		auto wabaoturenwu_AoB_adr = PerformAoBScan(
+		//auto wabaoturenwu_AoB_adr = PerformAoBScan(
+		//	hProcess,
+		//	0,
+		//	"23 63 38 30 63 30 66 66 CD DA B1 A6 CD BC C8 CE CE F1 00",
+		//	"xxxxxxxxxxxxxxxxxxx");
+		//// 然后结构体上方有个地址指针，指向一个结构，这个结构包含店小二的动态坐标
+		//// 注意：店小二如果这个离开了玩家视野，这个地址需要重新查找，也就是说这个地址要店小二出现在玩家视野中才会出现
+		//SIZE_T regionSize = 0x8;
+		//BYTE* buffer = new BYTE[regionSize];
+		//SIZE_T bytesRead;
+		//pNtReadVirtualMemory(hProcess, (PVOID)(wabaoturenwu_AoB_adr - 0x40), buffer, regionSize, &bytesRead);
+		//auto ptr = *reinterpret_cast<QWORD*>(buffer);
+		//delete[] buffer;
+
+		//if (bytesRead > 0) {
+		//	bytesRead = 0;
+		//	buffer = new BYTE[regionSize];
+		//	pNtReadVirtualMemory(hProcess, (PVOID)(ptr), buffer, regionSize, &bytesRead);
+		//	if (bytesRead > 0) {
+		//		dianxiaoer_pos_addr = ptr + 0x4C;
+		//		log_info("店小二坐标地址:0x%llX", dianxiaoer_pos_addr);
+		//	}
+		//	delete[] buffer;
+		//}
+
+		// 结构特点：2个静态地址+一个动态地址，动态地址开头包含6个指针，第1个指针为静态地址，第5和6的指针为空
+		auto static_addr1 = getRelativeStaticAddressByAoB(
+			hProcess,
+			mhmainDllBase,
+			"48 8D 0D ? ? ? ? 48 89 08 48 8B 53 08 48 89 50 08 48 8B 53 10 48 89 50 10",
+			"xxx????xxxxxxxxxxxxxxxxxxx",
+			3);
+		auto static_addr2 = getRelativeCallAddressByAoB(
+			hProcess,
+			mhmainDllBase,
+			"48 8B 08 48 8D 56 40 48 8D 05 ? ? ? ? 48 89 45 E7",
+			"xxxxxxxxxx????xxxx",
+			10);
+
+		auto static_child_addr1 = getRelativeStaticAddressByAoB(
+			hProcess,
+			mhmainDllBase,
+			"48 8D 05 ? ? ? ? 48 89 03 48 8D 4B 30 E8 ? ? ? ?",
+			"xxx????xxxxxxxx????",
+			3);
+
+		std::string struct_AoB;
+		auto ptr1 = reinterpret_cast<char*>(&static_addr1);
+		for (int i = 0; i < 8; i++) {
+			auto c = *reinterpret_cast<const unsigned char*>(ptr1 + i);
+			char hexStr[3];
+			sprintf(hexStr, "%2X ", c);
+			struct_AoB += hexStr;
+		}
+		auto ptr2 = reinterpret_cast<char*>(&static_addr2);
+		for (int i = 0; i < 8; i++) {
+			auto c = *reinterpret_cast<const unsigned char*>(ptr2 + i);
+			char hexStr[3];
+			sprintf(hexStr, "%2X ", c);
+			struct_AoB += hexStr;
+		}
+		struct_AoB += "? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? 00 00 80 3F 00 00 80 3F";
+		//std::string struct_AoB = "38 E0 D1 30 9D FB 7F 00 00 98 0D 9B 9B FB 7F 00 00 ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? 00 00 80 3F 00 00 80 3F";
+		//struct_AoB = "9D FB 7F 00 00";
+		auto scan_ret = PerformAoBScanEx(
 			hProcess,
 			0,
-			"23 63 38 30 63 30 66 66 CD DA B1 A6 CD BC C8 CE CE F1 00",
-			"xxxxxxxxxxxxxxxxxxx");
-		// 然后结构体上方有个地址指针，指向一个结构，这个结构包含店小二的动态坐标
-		// 注意：店小二如果这个离开了玩家视野，这个地址需要重新查找，也就是说这个地址要店小二出现在玩家视野中才会出现
-		SIZE_T regionSize = 0x8;
-		BYTE* buffer = new BYTE[regionSize];
-		SIZE_T bytesRead;
-		pNtReadVirtualMemory(hProcess, (PVOID)(wabaoturenwu_AoB_adr - 0x40), buffer, regionSize, &bytesRead);
-		auto ptr = *reinterpret_cast<QWORD*>(buffer);
-		delete[] buffer;
-
-		if (bytesRead > 0) {
-			bytesRead = 0;
-			buffer = new BYTE[regionSize];
-			pNtReadVirtualMemory(hProcess, (PVOID)(ptr), buffer, regionSize, &bytesRead);
+			struct_AoB,
+			"xxxxxxxxxxxxxxxx????????????????xxxxxxxx");
+		for (const auto& item : scan_ret) {
+			SIZE_T regionSize = 0x38;
+			BYTE* buffer = new BYTE[regionSize];
+			BYTE* buffer1 = new BYTE[regionSize];
+			SIZE_T bytesRead;
+			pNtReadVirtualMemory(hProcess, (PVOID)(item + 0x10), buffer, regionSize, &bytesRead);  // 动态地址
 			if (bytesRead > 0) {
-				dianxiaoer_pos_addr = ptr + 0x4C;
-				log_info("店小二坐标地址:0x%llX", dianxiaoer_pos_addr);
+				auto heap_add = *reinterpret_cast<QWORD*>(buffer);
+				bytesRead = 0;
+				pNtReadVirtualMemory(hProcess, (PVOID)heap_add, buffer1, regionSize, &bytesRead);
+				if (bytesRead > 0) {
+					auto m_static_child_addr1 = *reinterpret_cast<QWORD*>(buffer1);
+					if (m_static_child_addr1 == static_child_addr1) {
+						auto heap_child_addr5 = *reinterpret_cast<QWORD*>(buffer1 + 0x20);
+						auto heap_child_addr6 = *reinterpret_cast<QWORD*>(buffer1 + 0x28);
+						if (heap_child_addr5 == 0 && heap_child_addr6 == 0) {
+							auto x = *reinterpret_cast<float*>(buffer1 + 0x30);
+							auto y = *reinterpret_cast<float*>(buffer1 + 0x34);
+							// 长安酒店内有自己坐标，酒店老板坐标，店小二坐标 酒店老板坐标(910, 570)
+							update_player_float_pos();
+							if (x != player_x && y != player_y) {
+								// 这个结构包含所有NPC和玩家（包括自己）的坐标，所以要做过滤
+								if (is_dianxiaoer_pos(x, y)) {
+									dianxiaoer_pos_x = x;
+									dianxiaoer_pos_y = y;
+									dianxiaoer_pos_addr = item;
+									log_info("店小二坐标地址:0x%llX", dianxiaoer_pos_addr);
+									break;
+								}
+							}
+						}
+					}
+				}
 			}
+
 			delete[] buffer;
+			delete[] buffer1;
 		}
 		log_info("查找店小二坐标结束:0x%X", hProcess);
 	}
@@ -333,12 +560,12 @@ void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 
 void MyWindowInfo::update_dianxiaoer_pos() {
 	// 读取更新小二坐标
-	SIZE_T regionSize = 0x8;
+	SIZE_T regionSize = 0x24;
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
 	pNtReadVirtualMemory(hProcess, (PVOID)dianxiaoer_pos_addr, buffer, regionSize, &bytesRead);
-	dianxiaoer_pos_x = *reinterpret_cast<float*>(buffer);
-	dianxiaoer_pos_y = *reinterpret_cast<float*>(buffer + 4);
+	dianxiaoer_pos_x = *reinterpret_cast<float*>(buffer + 0x18);
+	dianxiaoer_pos_y = *reinterpret_cast<float*>(buffer + 0x1C);
 	delete[] buffer;
 }
 
@@ -372,31 +599,53 @@ void MyWindowInfo::open_map() {
 	}
 }
 
-void MyWindowInfo::move_to_dianxiaoer() {
-	int x_pixel = 0;
-	int y_pixel = 0;
+POINT MyWindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id) {
+	// 根据坐标计算相对自己在屏幕上的像素
+	POINT px = { 0, 0 };
+	//int x_pixel = 0;
+	//int y_pixel = 0;
 	int center_x = 512;  // 中点坐标 1024 / 2 + x_rim
 	int center_y = 384;  // 中点坐标 768 / 2 + y_rim
-	int x_edge = 510;  // (25 - 1) * 20 + 30 超过这个坐标，人物会在窗口中间
+	int x_edge = 25;  // 超过这个坐标，人物会在窗口中间
+	int y_edge = 19;  // 超过这个坐标，人物会在窗口中间
+	int pixel = 20;	 // 20像素一个坐标点
+
+	auto max_loc = get_map_max_loc(scene_id);
+
+	if (player_pos.x <= x_edge) px.x = dst.x * pixel;
+	else if (max_loc.x - player_pos.x <= x_edge) px.x = 1024 - (max_loc.x - dst.x) * pixel;
+	else px.x = center_x - (player_pos.x - dst.x) * pixel;
+
+	if (player_pos.y <= y_edge) px.y = 768 - dst.y * pixel;
+	else if (max_loc.y - player_pos.y <= y_edge) (max_loc.y - dst.y) * pixel;
+	else px.y = center_y - (player_pos.y - dst.y) * pixel;
+
+	return px;
+}
+
+void MyWindowInfo::move_to_dianxiaoer() {
 	scan_dianxiaoer_addr_pos();
-	update_player_float_pos();
 	update_dianxiaoer_pos();
-	auto max_loc = get_map_max_loc(长安酒店);
+	update_player_float_pos();
 
-	int y_edge = (max_loc.y - 19) * 20 +30;  // (max_y - 19) * 20 + 30 超过这个坐标，人物会在窗口中间
-	if (player_x <= x_edge) x_pixel = player_x;
-	else if (max_loc.x - player_x <= x_edge) x_pixel = 1024 - (max_loc.x - player_x);
-	else x_pixel = center_x - (player_x - dianxiaoer_pos_x);
+	auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
+	auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 
-	if (player_y <= y_edge) y_pixel = player_y;
-	else if (max_loc.y - player_y <= y_edge) y_pixel = 1024 - (max_loc.y - player_y);
-	else y_pixel = center_y - (player_y - dianxiaoer_pos_y);
-
-	hwnd2mat(hwnd);
-	log_info("玩家坐标:%f,%f", player_x, player_y);
+	auto px = compute_pos_pixel(POINT{ dxe_x, dxe_y }, 长安酒店);
+	log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
 	log_info("店小二坐标:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
-	log_info("相对像素:%d,%d", x_pixel, y_pixel);
-	log_info("相对坐标:%d,%d", rect.left + x_pixel, rect.top + y_pixel);
+	log_info("店小二坐标:%d,%d", dxe_x, dxe_y);
+	log_info("相对像素:%d,%d", px.x, px.y);
+	log_info("相对坐标:%d,%d", rect.left + px.x, rect.top + px.y);
+	hwnd2mat(hwnd);
+}
+
+bool MyWindowInfo::is_dianxiaoer_pos(float x, float y) {
+	// 店小二是按照顺时针固定几个坐标的规律移动的,根据坐标判断是否是店小二
+	for (auto& pos : dianxiaoer_pos_list) {
+		if (pos.x == x && pos.y == y) return true;
+	}
+	return false;
 }
 
 POINT MyWindowInfo::get_map_max_loc(unsigned int scene_id) {
@@ -405,7 +654,7 @@ POINT MyWindowInfo::get_map_max_loc(unsigned int scene_id) {
 	{
 	case 长安酒店:
 	{
-		pos = { 66, 42 };
+		pos = { 66, 49 };
 		break;
 	}
 	default:
@@ -419,9 +668,11 @@ int MyWindowInfo::convert_to_map_pos_x(float x) {
 	return (x - 30) / 20 + 1;
 }
 
-int MyWindowInfo::convert_to_map_pos_y(float y, int max_y) {
-	// (max_y - y) * 20 + 30 = player_y  其中y是地图上显示的坐标,max_y是地图y的最大值。例如建邺城y最大值是142
-	return max_y - (y - 30) / 20;
+int MyWindowInfo::convert_to_map_pos_y(float y) {
+	// (max_y - y - 1) * 20 + 30 = player_y  其中y是地图上显示的坐标,max_y是地图y的最大值。例如建邺城y最大值是143
+	update_scene_id();
+	auto pos = get_map_max_loc(m_scene_id);
+	return pos.y - 1 - (y - 30) / 20;
 }
 
 void MyWindowInfo::UpdateWindowRect() {
@@ -475,13 +726,13 @@ void GoodMorning::hook_data() {
 		winfo.mhmainDllBase = getProcessModulesAddress(winfo.hProcess, MHMAIN_DLL);
 
 		// 玩家坐标地址
-		//winfo.player_pos_addr = winfo.getRelativeStaticAddressByAoB(
-		//	winfo.hProcess,
-		//	winfo.mhmainDllBase,
-		//	"83 3D 00 00 00 00 FF 75 DF 0F 57 D2 0F 57 C9 48 8D 0D 00 00 00 00 E8 00 00 00 00 48 8D 0D 00 00 00 00 E8 00 00 00 00",
-		//	"xx????xxxxxxxxxxxx????x????xxx????x????",
-		//	18);
-		//if (winfo.player_pos_addr == 0) log_error("查找玩家坐标地址失败");
+		winfo.player_pos_addr = winfo.getRelativeStaticAddressByAoB(
+			winfo.hProcess,
+			winfo.mhmainDllBase,
+			"83 3D ? ? ? ? FF 75 DF 0F 57 D2 0F 57 C9 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ?",
+			"xx????xxxxxxxxxxxx????x????xxx????x????",
+			18);
+		if (winfo.player_pos_addr == 0) log_error("查找玩家坐标地址失败");
 
 		//log_info("查找场景地址开始:0x%X", winfo.hProcess);
 		//// 场景[100,10] (111,111)
@@ -493,13 +744,13 @@ void GoodMorning::hook_data() {
 
 		// 场景id
 		//48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 ? ? ? ? 44 89 3D ? ? ? ?
-		//winfo.scene_id_addr = winfo.getRelativeStaticAddressByAoB(
-		//	winfo.hProcess,
-		//	winfo.mhmainDllBase,
-		//	"48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 00 00 00 00 44 89 3D 00 00 00 00",
-		//	"xxxxxxxxxxxxxxxxxxxx????xxx????",
-		//	27);
-		//if (winfo.scene_id_addr == 0) log_error("查找场景id地址失败");
+		winfo.scene_id_addr = winfo.getRelativeStaticAddressByAoB(
+			winfo.hProcess,
+			winfo.mhmainDllBase,
+			"48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 ? ? ? ? 44 89 3D ? ? ? ?",
+			"xxxxxxxxxxxxxxxxxxxx????xxx????",
+			27);
+		if (winfo.scene_id_addr == 0) log_error("查找场景id地址失败");
 	}
 }
 
@@ -534,19 +785,20 @@ void GoodMorning::test() {
 	log_info("Mouse position: %d, %d", cursor_pos.x, cursor_pos.y);
 	RECT rect;
 	for (MyWindowInfo& winfo : this->winsInfo) {
-		auto wabaoturenwu_AoB_adr = winfo.PerformAoBScan(
-			winfo.hProcess,
-			0,
-			"20 51 B2 9C FB 7F 00 00 01 00 00 00 01 00 00 00",
-			"xxxxxxxxxxxxxxxx");
+		//auto wabaoturenwu_AoB_adr = winfo.PerformAoBScan(
+		//	winfo.hProcess,
+		//	0,
+		//	"20 51 B2 9C FB 7F 00 00 01 00 00 00 01 00 00 00",
+		//	"xxxxxxxxxxxxxxxx");
 		winfo.scan_dianxiaoer_addr_pos();
 		while (true) {
 			winfo.update_player_float_pos();
 			winfo.update_scene_id();
 
 			//winfo.update_scene();
-			winfo.update_dianxiaoer_pos();
+			//winfo.update_dianxiaoer_pos();
 			winfo.move_to_dianxiaoer();
+			Sleep(3000);
 			printf("\n");
 		}
 
@@ -817,64 +1069,6 @@ uint64_t getCurrentTimeMilliseconds() {
 	// 3. Return the count of milliseconds as an integer
 	return duration_since_epoch.count();
 }
-
-//void init_data() {
-//	DWORD processID = FindPidByName(TARGET_APP_NAME);
-//
-//	hNtdll = GetModuleHandleA("ntdll.dll");
-//	PFN_NtOpenProcess pNtOpenProcess = (PFN_NtOpenProcess)GetProcAddress(hNtdll, "NtOpenProcess");
-//	pNtReadVirtualMemory = (PFN_NtReadVirtualMemory)GetProcAddress(hNtdll, "NtReadVirtualMemory");
-//
-//	OBJECT_ATTRIBUTES OA = { sizeof(OA), NULL };
-//	CLIENT_ID         CID = { (HANDLE)processID, NULL };
-//	NTSTATUS status = pNtOpenProcess(&rProcess, PROCESS_ALL_ACCESS, &OA, &CID);
-//
-//	EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
-//
-//	auto mhmainDllBase = getProcessModulesAddress(rProcess, MHMAIN_DLL);
-//
-//	// 读取玩家坐标
-//	player_pos_addr = getRelativeStaticAddressByAoB(
-//		rProcess,
-//		mhmainDllBase,
-//		"83 3D 00 00 00 00 FF 75 DF 0F 57 D2 0F 57 C9 48 8D 0D 00 00 00 00 E8 00 00 00 00 48 8D 0D 00 00 00 00 E8 00 00 00 00",
-//		"xx????xxxxxxxxxxxx????x????xxx????x????",
-//		18);
-//	if (player_pos_addr > 0) {
-//		SIZE_T regionSize = 0x8;
-//		BYTE* buffer = new BYTE[regionSize];
-//		SIZE_T bytesRead;
-//		pNtReadVirtualMemory(rProcess, (PVOID)player_pos_addr, buffer, regionSize, &bytesRead);
-//		pos_x = *reinterpret_cast<float*>(buffer);
-//		pos_y = *reinterpret_cast<float*>(buffer + 4);
-//		delete[] buffer;
-//	}
-//
-//
-//	// 场景[100,10] (111,111)
-//	// B4 F3 CC C6 B9 FA BE B3 5B 31 39 38 2C 32 33 32 5D 00 B6 FE 28 31 31 31 2C 31 31 31 29 00
-//	auto map_info_AoB_adr = PerformAoBScan(rProcess, 0, "28 31 31 31 2C 31 31 31 29 00", "xxxxxxxxxx");
-//
-//	if (map_info_AoB_adr > 0) {
-//		SIZE_T map_offset = 0x14;
-//		map_info_addr = map_info_AoB_adr - map_offset;
-//		BYTE* buffer = new BYTE[map_offset];
-//		SIZE_T bytesRead;
-//		pNtReadVirtualMemory(rProcess, (PVOID)map_info_addr, buffer, map_offset, &bytesRead);
-//		delete[] buffer;
-//	}
-//
-//	// 店小二坐标
-//	// 0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 00 00 00 00 00 00 00 00 01 F0 AD BA 00 CA 9A 3B FF C9 9A 3B 00 F0 AD BA 00 00 00 00 0D F0 AD BA 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 F0 AD BA ? ? ? ? ? ? ? ?
-//	auto dianxiaoer_AoB_adr = PerformAoBScan(
-//		rProcess,
-//		0,
-//		"0D F0 AD BA 0D F0 AD BA 0D F0 AD BA 00 00 00 00 00 00 00 00 01 F0 AD BA 00 CA 9A 3B FF C9 9A 3B 00 F0 AD BA 00 00 00 00 0D F0 AD BA 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 F0 AD BA",
-//		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-//	if (dianxiaoer_AoB_adr > 0) {
-//		dianxiaoer_pos_addr = dianxiaoer_AoB_adr + 0x58;
-//	}
-//}
 
 void test() {
 	HANDLE hSerial;
@@ -1561,7 +1755,7 @@ POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos) {
 		if (getCurrentTimeMilliseconds() - t_ms > 1500) return tmp_pos;
 		Sleep(5);
 		auto cursor_pos = MatchingRectLeftTop(winfo, winfo->ROI_cursor(pos), img_cursors_cursor, img_cursors_cursor_mask);  // 游戏自身的鼠标
-		if (cursor_pos.x == cursor_pos.y == -1) continue;
+		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y) return tmp_pos;
 		tmp_pos.x = cursor_pos.x;
 		tmp_pos.y = cursor_pos.y;
