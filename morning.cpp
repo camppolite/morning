@@ -560,12 +560,16 @@ void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 
 void MyWindowInfo::update_dianxiaoer_pos() {
 	// 读取更新小二坐标
+	dianxiaoer_pos_x = 0;
+	dianxiaoer_pos_y = 0;
 	SIZE_T regionSize = 0x24;
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
 	pNtReadVirtualMemory(hProcess, (PVOID)dianxiaoer_pos_addr, buffer, regionSize, &bytesRead);
-	dianxiaoer_pos_x = *reinterpret_cast<float*>(buffer + 0x18);
-	dianxiaoer_pos_y = *reinterpret_cast<float*>(buffer + 0x1C);
+	if (bytesRead > 0) {
+		dianxiaoer_pos_x = *reinterpret_cast<float*>(buffer + 0x18);
+		dianxiaoer_pos_y = *reinterpret_cast<float*>(buffer + 0x1C);
+	}
 	delete[] buffer;
 }
 
@@ -631,19 +635,62 @@ void MyWindowInfo::move_to_dianxiaoer() {
 	auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 	auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 
-	auto px = compute_pos_pixel(POINT{ dxe_x, dxe_y }, 长安酒店);
-	log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
-	log_info("店小二坐标:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
-	log_info("店小二坐标:%d,%d", dxe_x, dxe_y);
-	log_info("相对像素:%d,%d", px.x, px.y);
-	log_info("相对坐标:%d,%d", rect.left + px.x, rect.top + px.y);
-	hwnd2mat(hwnd);
+	// A星寻路
+	auto astar_pos = astar(player_pos.x, player_pos.y, dxe_x, dxe_y, m_scene_id, 5, 5);
+	mouse_click_human(this, POINT{ astar_pos.x, astar_pos.y }, 0, 0, 1);
+}
+
+bool MyWindowInfo::talk_to_dianxiaoer() {
+	if (!is_moving() && is_near_dianxiaoer() && is_dianxiaoer_pos(dianxiaoer_pos_x, dianxiaoer_pos_y)) {
+		// 对话店小二
+		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
+		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
+		auto px = compute_pos_pixel(POINT{ dxe_x, dxe_y }, m_scene_id);
+		log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
+		log_info("店小二坐标:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
+		log_info("店小二坐标:%d,%d", dxe_x, dxe_y);
+		log_info("相对像素:%d,%d", px.x, px.y);
+		log_info("相对坐标:%d,%d", rect.left + px.x, rect.top + px.y);
+		hwnd2mat(hwnd);
+		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
+		return true;
+	}
+	return false;
 }
 
 bool MyWindowInfo::is_dianxiaoer_pos(float x, float y) {
 	// 店小二是按照顺时针固定几个坐标的规律移动的,根据坐标判断是否是店小二
 	for (auto& pos : dianxiaoer_pos_list) {
 		if (pos.x == x && pos.y == y) return true;
+	}
+	return false;
+}
+
+bool MyWindowInfo::is_moving() {
+	// 判断自己是否在移动
+	float x0 = 0;
+	float y0 = 0;
+	for (int i = 0; i < 2; i++) {
+		update_player_float_pos();
+		if ((int)player_x % 10 == 0 && (int)player_y % 10 == 0) {
+			// 坐标值都是10的倍数
+			if (x0 == player_x && y0 == player_y) {
+				return false;
+			}
+			x0 = player_x;
+			y0 = player_y;
+		}
+		Sleep(5);
+	}
+	return true;
+}
+
+bool MyWindowInfo::is_near_dianxiaoer() {
+	update_dianxiaoer_pos();
+	auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
+	auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
+	if (abs(dxe_x - player_pos.x) <= 5 && abs(dxe_x - player_pos.x) <= 5) {
+		return true;
 	}
 	return false;
 }
@@ -760,8 +807,18 @@ void GoodMorning::work() {
 			SetForegroundWindow(winfo.hwnd);
 			if (winfo.step.current() == &to_changan_jiudian) {
 				log_info("111111");
+				winfo.step.next();
 			}
-
+			else if (winfo.step.current() == &to_dianxiaoer) {
+				if (!winfo.is_near_dianxiaoer()) {
+					winfo.move_to_dianxiaoer();
+					winfo.step.next();
+				}
+			}
+			else if (winfo.step.current() == &talk_get_baoturenwu) {
+				winfo.move_to_dianxiaoer();
+				winfo.step.next();
+			}
 			//switch (winfo.step)
 			//{
 			//case START:

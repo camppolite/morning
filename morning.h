@@ -113,10 +113,14 @@ public:
 	void open_map();
 	void move_to_dianxiaoer();
 	bool is_dianxiaoer_pos(float x, float y);
+	bool is_moving();
+	bool is_near_dianxiaoer();
+	bool is_dianxiaoer_stop();
 	POINT compute_pos_pixel(POINT dst, unsigned int scene_id);
 	POINT get_map_max_loc(unsigned int scene_id);
 	int convert_to_map_pos_x(float x);
 	int convert_to_map_pos_y(float y);
+	bool talk_to_dianxiaoer();
 
 	void UpdateWindowRect();
 	cv::Rect ROI_cursor(POINT pos);
