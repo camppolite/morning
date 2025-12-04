@@ -10,6 +10,146 @@
 class AStarNode;
 typedef std::shared_ptr<AStarNode> AStarNodePtr;
 
+MAZE get_maze(unsigned int scene_id) {
+	MAZE mz;
+	switch (scene_id)
+	{
+	case 女儿村:
+	{
+		mz = nvercun_maze;
+		break;
+	}
+	case 普陀山:
+	{
+		mz = putuoshan_maze;
+		break;
+	}
+	case 江南野外:
+	{
+		mz = jiangnanyewai_maze;
+		break;
+	}
+	case 大唐境外:
+	{
+		mz = datangjingwai_maze;
+		break;
+	}
+	case 朱紫国:
+	{
+		mz = zhuziguo_maze;
+		break;
+	}
+	case 傲来国:
+	{
+		mz = aolaiguo_maze;
+		break;
+	}
+	case 宝象国:
+	{
+		mz = baoxiangguo_maze;
+		break;
+	}
+	case 建邺城:
+	{
+		mz = jianyecheng_maze;
+		break;
+	}
+	case 五庄观:
+	{
+		mz = wuzhuangguan_maze;
+		break;
+	}
+	case 长寿村:
+	{
+		mz = changshoucun_maze;
+		break;
+	}
+	case 西凉女国:
+	{
+		mz = xiliangnvguo_maze;
+		break;
+	}
+	case 长安酒店:
+	{
+		mz = changanjiudian_maze;
+		break;
+	}
+	//default:
+	//	break;
+	}
+	return mz;
+}
+
+POINT get_map_max_loc(unsigned int scene_id) {
+	POINT pos = { -1, -1 };
+	switch (scene_id)
+	{
+	case 女儿村:
+	{
+		pos = { 126, 142 };
+		break;
+	}
+	case 普陀山:
+	{
+		pos = { 94, 70 };
+		break;
+	}
+	case 江南野外:
+	{
+		pos = { 158, 118 };
+		break;
+	}
+	case 大唐境外:
+	{
+		pos = { 637, 117 };
+		break;
+	}
+	case 朱紫国:
+	{
+		pos = { 190, 118 };
+		break;
+	}
+	case 傲来国:
+	{
+		pos = { 222, 149 };
+		break;
+	}
+	case 宝象国:
+	{
+		pos = { 158, 118 };
+		break;
+	}
+	case 建邺城:
+	{
+		pos = { 286, 143 };
+		break;
+	}
+	case 五庄观:
+	{
+		pos = { 98, 73 };
+		break;
+	}
+	case 长寿村:
+	{
+		pos = { 158, 208 };
+		break;
+	}
+	case 西凉女国:
+	{
+		pos = { 162, 122 };
+		break;
+	}
+	case 长安酒店:
+	{
+		pos = { 66, 49 };
+		break;
+	}
+	default:
+		break;
+	}
+	return pos;
+}
+
 class AStarNode
 {
 public:
@@ -52,7 +192,7 @@ public:
 		//if (y < mz_y_len - 1)
 		//	ret.push_back(AStarNode::makePtr(x, y + 1, g + TILE_COST, copy));
 
-		vector<point> v = { {0, -1}, {0, 1}, {-1, 0}, {1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1} };
+		vector<POINT> v = { {0, -1}, {0, 1}, {-1, 0}, {1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1} };
 		for (auto a = v.begin(); a != v.end(); a++)
 		{
 			int node_x = x + (*a).x;
@@ -88,7 +228,7 @@ bool operator==(const AStarNodePtr& a, const AStarNodePtr& b)
 	return a->x == b->x && a->y == b->y;
 }
 
-point doAStarSearch(int startx, int starty, int endx, int endy, MAZE mz, int mz_x_len, int mz_y_len, int far_x, int far_y)
+POINT doAStarSearch(int startx, int starty, int endx, int endy, MAZE mz, int mz_x_len, int mz_y_len, int far_x, int far_y)
 {
 	std::priority_queue<AStarNodePtr> frontier;
 	std::vector<AStarNodePtr> allNodes;
@@ -96,13 +236,13 @@ point doAStarSearch(int startx, int starty, int endx, int endy, MAZE mz, int mz_
 	auto node = AStarNode::makePtr(startx, starty, 0, nullptr);
 	node->updateScore(endx, endy);
 	allNodes.push_back(node);
-	point pt{ -1, -1 };
+	POINT pt{ -1, -1 };
 	DWORD startTime = GetTickCount();
 	while (true)
 	{
 		if (node->x == endx && node->y == endy)
 		{
-			vector<point> path;
+			vector<POINT> path;
 
 			while (node.get() != nullptr)
 			{
@@ -162,102 +302,11 @@ point doAStarSearch(int startx, int starty, int endx, int endy, MAZE mz, int mz_
 	return pt;
 }
 
-point astar(int startx, int starty, int endx, int endy, int m, int far_x, int far_y) {
-	MAZE mz;
-	int mz_x_len = -1;
-	int mz_y_len = -1;
-	switch (m)
-	{
-		case NVERCUN:
-		{
-			mz = nvercun_maze;
-			mz_x_len = 126;
-			mz_y_len = 142;
-			break;
-		}
-		case PUTUOSHAN:
-		{
-			mz = putuoshan_maze;
-			mz_x_len = 94;
-			mz_y_len = 70;
-			break;
-		}
-		case JIANGNANYEWAI:
-		{
-			mz = jiangnanyewai_maze;
-			mz_x_len = 158;
-			mz_y_len = 118;
-			break;
-		}
-		case DATANGJINGWAI:
-		{
-			mz = datangjingwai_maze;
-			mz_x_len = 637;
-			mz_y_len = 117;
-			break;
-		}
-		case ZHUZIGUO:
-		{
-			mz = zhuziguo_maze;
-			mz_x_len = 190;
-			mz_y_len = 118;
-			break;
-		}
-		case AOLAIGUO:
-		{
-			mz = aolaiguo_maze;
-			mz_x_len = 222;
-			mz_y_len = 149;
-			break;
-		}
-		case BAOXIANGGUO:
-		{
-			mz = baoxiangguo_maze;
-			mz_x_len = 158;
-			mz_y_len = 118;
-			break;
-		}
-		case JIANYECHENG:
-		{
-			mz = jianyecheng_maze;
-			mz_x_len = 286;
-			mz_y_len = 142;
-			break;
-		}
-		case WUZHUANGGUAN:
-		{
-			mz = wuzhuangguan_maze;
-			mz_x_len = 98;
-			mz_y_len = 73;
-			break;
-		}
-		case CHANGSHOUCUN:
-		{
-			mz = changshoucun_maze;
-			mz_x_len = 158;
-			mz_y_len = 208;
-			break;
-		}
-		case XILIANGNVGUO:
-		{
-			mz = xiliangnvguo_maze;
-			mz_x_len = 162;
-			mz_y_len = 122;
-			break;
-		}
-		case 长安酒店:
-		{
-			mz = changanjiudian_maze;
-			mz_x_len = 66;
-			mz_y_len = 42;
-			break;
-		}
-		//default:
-		//	break;
-	}
-	if (mz_x_len != -1)
-		return doAStarSearch(startx, starty, endx, endy, mz, mz_x_len, mz_y_len, far_x, far_y);
-
+POINT astar(int startx, int starty, int endx, int endy, int m, int far_x, int far_y) {
+	MAZE mz = get_maze(m);
+	POINT mz_pt = get_map_max_loc(m);
+	if (mz_pt.x != -1)
+		return doAStarSearch(startx, starty, endx, endy, mz, mz_pt.x, mz_pt.y, far_x, far_y);
 	return { -1, -1 };
 }
 

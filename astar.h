@@ -12,10 +12,10 @@
 #endif
 
 using namespace std;
-typedef struct {
-	int x;
-	int y;
-} point;
+//typedef struct {
+//	int x;
+//	int y;
+//} point;
 typedef struct {
 	int min;
 	int max;
@@ -27,17 +27,17 @@ typedef struct {
 #define 建邺城 1501
 #define 东海湾 1506
 
-#define	NVERCUN 1
-#define	PUTUOSHAN 2
-#define	JIANGNANYEWAI 3
-#define	DATANGJINGWAI 4
-#define	ZHUZIGUO 5
-#define	AOLAIGUO 6
-#define	BAOXIANGGUO 7
-#define	JIANYECHENG 8
-#define	WUZHUANGGUAN 9
-#define	CHANGSHOUCUN 10
-#define	XILIANGNVGUO 11
+#define	女儿村 1
+#define	普陀山 2
+#define	江南野外 3
+#define	大唐境外 4
+#define	朱紫国 5
+#define	傲来国 6
+#define	宝象国 7
+#define	建邺城 8
+#define	五庄观 9
+#define	长寿村 10
+#define	西凉女国 11
 
 typedef map<int, vector<range>> MAZE;
 
@@ -2386,5 +2386,6 @@ const MAZE changanjiudian_maze{
 	{57, {{16, 18}}}
 };
 
-extern "C" ASTARALGO_API point astar(int startx, int starty, int endx, int endy, int m, int far_x=12, int far_y=10);
+POINT get_map_max_loc(unsigned int scene_id);
+extern "C" ASTARALGO_API POINT astar(int startx, int starty, int endx, int endy, int m, int far_x=12, int far_y=10);
 extern "C" ASTARALGO_API char* astar_test();

@@ -52,6 +52,7 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define START 0
 #define LEN_OF_INT64 22  // 21 + 1
 
+#define dianxiaoer_valid_distence 6  // 与店小二对话时的最大有效距离
 //// 场景id
 //#define 长安城 1001
 //#define 长安酒店 1028
@@ -124,7 +125,6 @@ public:
 	bool is_near_dianxiaoer();
 	bool is_dianxiaoer_stop();
 	POINT compute_pos_pixel(POINT dst, unsigned int scene_id);
-	POINT get_map_max_loc(unsigned int scene_id);
 	int convert_to_map_pos_x(float x);
 	int convert_to_map_pos_y(float y);
 	bool talk_to_dianxiaoer();
@@ -133,9 +133,7 @@ public:
 	cv::Rect ROI_cursor(POINT pos);
 	cv::Rect ROI_beibao();
 
-	// (x - 1) * 20 + 30 = player_x  其中x是地图上显示的坐标
 	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
-	// (max_y - y - 1) * 20 + 30 = player_y  其中y是地图上显示的坐标,max_y是地图y的最大值。例如建邺城y最大值是142
 	float player_y = 0;  // 这里的玩家坐标是float值，是内部地图坐标
 	POINT player_pos = { 0, 0 };
 
@@ -145,12 +143,14 @@ public:
 
 	uintptr_t dianxiaoer_pos_addr = 0;
 	std::vector<POINT> dianxiaoer_pos_list;  // 店小二固定移动的几个坐标
-	float dianxiaoer_pos_x = 1;
-	float dianxiaoer_pos_y = 1;
+	float dianxiaoer_pos_x = 0;
+	float dianxiaoer_pos_y = 0;
 
 	uintptr_t scene_id_addr = 0;
 	std::string scene;
 	unsigned int m_scene_id = 0;
+
+	bool moveing = false;
 
 	HANDLE pid;
 	HWND hwnd;

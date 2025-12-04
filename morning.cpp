@@ -538,8 +538,8 @@ void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 
 void MyWindowInfo::update_dianxiaoer_pos() {
 	// 读取更新小二坐标
-	dianxiaoer_pos_x = 1;
-	dianxiaoer_pos_y = 1;
+	dianxiaoer_pos_x = 0;
+	dianxiaoer_pos_y = 0;
 	SIZE_T regionSize = 0x24;
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
@@ -614,14 +614,16 @@ void MyWindowInfo::move_to_dianxiaoer() {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 		// A星寻路
-		auto astar_pos = astar(player_pos.x, player_pos.y, dxe_x, dxe_y, m_scene_id, 6, 6);
-		auto px = compute_pos_pixel(POINT{ astar_pos.x, astar_pos.y }, m_scene_id);
+		auto astar_pos = astar(player_pos.x, player_pos.y, dxe_x, dxe_y, m_scene_id, dianxiaoer_valid_distence, dianxiaoer_valid_distence);
+		log_info("A星寻路结果:%d, %d", astar_pos.x, astar_pos.y);
+		auto px = compute_pos_pixel(astar_pos, m_scene_id);
 		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
+		moveing = true;
 	}
 }
 
 bool MyWindowInfo::talk_to_dianxiaoer() {
-	if (!is_moving() && is_near_dianxiaoer()) {
+	if (is_near_dianxiaoer()) {
 		// 对话店小二
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
@@ -629,8 +631,8 @@ bool MyWindowInfo::talk_to_dianxiaoer() {
 		log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
 		log_info("店小二坐标:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
 		log_info("店小二坐标:%d,%d", dxe_x, dxe_y);
-		log_info("相对像素:%d,%d", px.x, px.y);
-		log_info("相对坐标:%d,%d", rect.left + px.x, rect.top + px.y);
+		//log_info("相对像素:%d,%d", px.x, px.y);
+		//log_info("相对坐标:%d,%d", rect.left + px.x, rect.top + px.y);
 		//hwnd2mat(hwnd);
 		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
 		return true;
@@ -641,7 +643,7 @@ bool MyWindowInfo::talk_to_dianxiaoer() {
 bool MyWindowInfo::is_dianxiaoer_pos(float x, float y) {
 	// 店小二是按照顺时针固定几个坐标的规律移动的,根据坐标判断是否是店小二
 	for (auto& pos : dianxiaoer_pos_list) {
-		if (pos.x == x && pos.y == y) return true;
+		if (x > 0 && y > 0 && pos.x == x && pos.y == y) return true;
 	}
 	return false;
 }
@@ -660,36 +662,21 @@ bool MyWindowInfo::is_moving() {
 			x0 = player_x;
 			y0 = player_y;
 		}
-		Sleep(5);
+		Sleep(300);
 	}
 	return true;
 }
 
 bool MyWindowInfo::is_near_dianxiaoer() {
 	update_dianxiaoer_pos();
-	if ((int)dianxiaoer_pos_x % 10 == 0 && (int)dianxiaoer_pos_x % 10 == 0 && is_dianxiaoer_pos(dianxiaoer_pos_x, dianxiaoer_pos_y)) {
+	if (is_dianxiaoer_pos(dianxiaoer_pos_x, dianxiaoer_pos_y)) {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
-		if (abs(dxe_x - player_pos.x) <= 5 && abs(dxe_x - player_pos.x) <= 5) {
+		if (abs(dxe_x - player_pos.x) <= dianxiaoer_valid_distence && abs(dxe_x - player_pos.x) <= dianxiaoer_valid_distence) {
 			return true;
 		}
 	}
 	return false;
-}
-
-POINT MyWindowInfo::get_map_max_loc(unsigned int scene_id) {
-	POINT pos = {-1, -1};
-	switch (scene_id)
-	{
-	case 长安酒店:
-	{
-		pos = { 66, 49 };
-		break;
-	}
-	default:
-		break;
-	}
-	return pos;
 }
 
 int MyWindowInfo::convert_to_map_pos_x(float x) {
@@ -800,6 +787,11 @@ void GoodMorning::hook_data() {
 void GoodMorning::work() {
 	while (true) {
 		for (MyWindowInfo& winfo : this->winsInfo) {
+			if (winfo.moveing) {
+				if (winfo.is_moving()) continue;
+				else winfo.moveing = false;
+			}
+
 			SetForegroundWindow(winfo.hwnd);
 			if (winfo.step.current == &to_changan_jiudian) {
 				log_info("to_changan_jiudian");
@@ -1863,7 +1855,7 @@ bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode)
 		if (cursor_pos.x < 0) continue;
 		mouse_move_pos = { mouse_move_pos.x + target_pos.x - cursor_pos.x, mouse_move_pos.y + target_pos.y - cursor_pos.y };
 		Sleep(5);
-	} while (abs(target_pos.x - cursor_pos.x) > 7 || abs(target_pos.y - cursor_pos.y) > 7);
+	} while (abs(target_pos.x - cursor_pos.x) > 5 || abs(target_pos.y - cursor_pos.y) > 5);
 	switch (mode)
 	{
 	case 1:
