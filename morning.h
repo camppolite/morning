@@ -52,7 +52,7 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define START 0
 #define LEN_OF_INT64 22  // 21 + 1
 
-#define dianxiaoer_valid_distence 6  // 与店小二对话时的最大有效距离
+#define dianxiaoer_valid_distence 5  // 与店小二对话时的最大有效距离
 //// 场景id
 //#define 长安城 1001
 //#define 长安酒店 1028
@@ -69,6 +69,10 @@ const char* KEY_PRESS = "hkey:%s\n";
 
 const char* img_btn_beibao = "object\\btn\\beibao.png";
 const char* img_btn_package_prop_640 = "object\\btn\\package_prop_640.png";
+const char* img_btn_tingtingwufang = "object\\btn\\tingtingwufang.png";
+
+const char* img_npc_dianxiaoer = "object\\npc\\dianxiaoer.png";
+
 const char* img_cursors_cursor = "object\\cursors\\cursor.png";
 const char* img_cursors_cursor_mask = "object\\cursors\\cursor_mask.png";
 
@@ -129,9 +133,11 @@ public:
 	int convert_to_map_pos_y(float y);
 	bool talk_to_dianxiaoer();
 
+	void from_changancheng_to_changanjiudian();
 	void UpdateWindowRect();
 	cv::Rect ROI_cursor(POINT pos);
 	cv::Rect ROI_beibao();
+	cv::Rect ROI_npc_talk();
 
 	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
 	float player_y = 0;  // 这里的玩家坐标是float值，是内部地图坐标

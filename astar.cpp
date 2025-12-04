@@ -144,6 +144,11 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		pos = { 66, 49 };
 		break;
 	}
+	case ³¤°²³Ç:
+	{
+		pos = { 548, 279 };
+		break;
+	}
 	default:
 		break;
 	}

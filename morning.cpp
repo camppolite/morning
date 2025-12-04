@@ -375,6 +375,7 @@ void MyWindowInfo::update_player_float_pos() {
 	delete[] buffer;
 	player_pos.x = convert_to_map_pos_x(player_x);
 	player_pos.y = convert_to_map_pos_y(player_y);
+	log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
 }
 
 void MyWindowInfo::update_scene() {
@@ -599,8 +600,8 @@ POINT MyWindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id) {
 	else px.x = center_x - (player_pos.x - dst.x) * pixel;
 
 	if (player_pos.y <= y_edge) px.y = 768 - dst.y * pixel;
-	else if (max_loc.y - player_pos.y <= y_edge) (max_loc.y - dst.y) * pixel;
-	else px.y = center_y - (player_pos.y - dst.y) * pixel;
+	else if (max_loc.y - player_pos.y <= y_edge) px.y = (max_loc.y - dst.y) * pixel;
+	else px.y = center_y + (player_pos.y - dst.y) * pixel;
 
 	return px;
 }
@@ -615,11 +616,18 @@ void MyWindowInfo::move_to_dianxiaoer() {
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 		// A星寻路
 		auto astar_pos = astar(player_pos.x, player_pos.y, dxe_x, dxe_y, m_scene_id, dianxiaoer_valid_distence, dianxiaoer_valid_distence);
+		log_info("店小二坐标:%d, %d", dxe_x, dxe_y);
 		log_info("A星寻路结果:%d, %d", astar_pos.x, astar_pos.y);
 		auto px = compute_pos_pixel(astar_pos, m_scene_id);
 		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
 		moveing = true;
 	}
+}
+void MyWindowInfo::from_changancheng_to_changanjiudian() {
+	// 长安酒店入口(464,168)
+	auto px = compute_pos_pixel({ 467, 171 }, m_scene_id);
+	mouse_click_human(this, { rect.left + px.x, rect.top + px.y }, 0, 0, 1);
+	moveing = true;
 }
 
 bool MyWindowInfo::talk_to_dianxiaoer() {
@@ -627,15 +635,21 @@ bool MyWindowInfo::talk_to_dianxiaoer() {
 		// 对话店小二
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
-		auto px = compute_pos_pixel(POINT{ dxe_x, dxe_y }, m_scene_id);
+		auto px = compute_pos_pixel({ dxe_x, dxe_y }, m_scene_id);
 		log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
 		log_info("店小二坐标:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
 		log_info("店小二坐标:%d,%d", dxe_x, dxe_y);
 		//log_info("相对像素:%d,%d", px.x, px.y);
 		//log_info("相对坐标:%d,%d", rect.left + px.x, rect.top + px.y);
 		//hwnd2mat(hwnd);
-		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
-		return true;
+		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);  // 点击与店小二对话
+		auto pos = WaitMatchingRectPos(this, ROI_npc_talk(), img_btn_tingtingwufang);
+		if (pos.x > 0) {
+			// 弹出对话框，接任务
+			mouse_click_human(this, POINT{ rect.left + pos.x, rect.top + pos.y }, 0, 0, 1);
+			ClickMatchImage(this, ROI_npc_talk(), img_npc_dianxiaoer, "", 0.78, cv::TM_CCORR_NORMED, 0, 50, 0, 0, 1, 2000);
+			return true;
+		}
 	}
 	return false;
 }
@@ -672,7 +686,8 @@ bool MyWindowInfo::is_near_dianxiaoer() {
 	if (is_dianxiaoer_pos(dianxiaoer_pos_x, dianxiaoer_pos_y)) {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
-		if (abs(dxe_x - player_pos.x) <= dianxiaoer_valid_distence && abs(dxe_x - player_pos.x) <= dianxiaoer_valid_distence) {
+		if (abs(dxe_x - player_pos.x) <= (dianxiaoer_valid_distence + 1) && abs(dxe_x - player_pos.x) <= (dianxiaoer_valid_distence + 1)) {
+			//  +1是防止鼠标漂移误差
 			return true;
 		}
 	}
@@ -731,6 +746,9 @@ cv::Rect MyWindowInfo::ROI_beibao() {
 	return cv::Rect(400, 180, 250, 200);
 }
 
+cv::Rect MyWindowInfo::ROI_npc_talk() {
+	return cv::Rect(180, 330, 680, 330);
+}
 
 GoodMorning::GoodMorning() {
 
@@ -795,6 +813,9 @@ void GoodMorning::work() {
 			SetForegroundWindow(winfo.hwnd);
 			if (winfo.step.current == &to_changan_jiudian) {
 				log_info("to_changan_jiudian");
+				winfo.update_scene_id();
+				winfo.update_player_float_pos();
+				winfo.from_changancheng_to_changanjiudian();
 				winfo.step.next();
 			}
 			else if (winfo.step.current == &wait_load_scene_changanjiudian) {
@@ -832,7 +853,7 @@ void GoodMorning::work() {
 			//	break;
 			//}
 		}
-		//Sleep(2000);
+		Sleep(500);
 	}
 }
 
@@ -1846,7 +1867,7 @@ bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode)
 	auto t_ms = getCurrentTimeMilliseconds();
 	do {
 		// 因为有鼠标漂移，所以需要多次移动
-		if (getCurrentTimeMilliseconds() - t_ms > 3500) {
+		if (getCurrentTimeMilliseconds() - t_ms > 3000) {
 			log_warn("鼠标点击超时");
 			return false;
 		}
@@ -1875,7 +1896,7 @@ POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos) {
 	auto t_ms = getCurrentTimeMilliseconds();
 	while (true) {
 		// 循环等待鼠标移动停止
-		if (getCurrentTimeMilliseconds() - t_ms > 1500) return tmp_pos;
+		if (getCurrentTimeMilliseconds() - t_ms > 1300) return tmp_pos;
 		Sleep(5);
 		auto cursor_pos = MatchingRectLeftTop(winfo, winfo->ROI_cursor(pos), img_cursors_cursor);  // 游戏自身的鼠标
 		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
