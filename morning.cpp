@@ -1,4 +1,4 @@
-#include "morning.h"
+ï»¿#include "morning.h"
 #include "log.h"
 #include "astar.h"
 
@@ -8,6 +8,9 @@
 
 #include <setupapi.h>
 #include <devguid.h> // For GUID_DEVINTERFACE_COMPORT
+
+#include <io.h>   // Required for Windows _setmode
+#include <fcntl.h> // Required for Windows _O_U8TEXT
 
 //using namespace cv;
 
@@ -97,7 +100,7 @@ std::vector<uintptr_t> MyWindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID
 				//std::cout << i << std::endl;
 				//std::cout << "Pattern match found at address: 0x" << std::hex << matchAddress << std::endl;
 				res.push_back(matchAddress);
-				i += pattern.size(); // Ìø¹ıÒÑ¶Ô±È¹ıµÄ×Ö¶Î
+				i += pattern.size(); // è·³è¿‡å·²å¯¹æ¯”è¿‡çš„å­—æ®µ
 			}
 		}
 	}
@@ -108,8 +111,8 @@ std::vector<uintptr_t> MyWindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID
 
 std::vector<uintptr_t> MyWindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask)
 {
-	// ModuleBase Îª0ÔòÉ¨ÃèPRVÄÚ´æ£¬
-	// all Îªtrue£¬ÔòÉ¨ÃèÈ«²¿Æ¥Åä½á¹û,ÎªfalseÉ¨Ãè·µ»ØµÚÒ»¸ö
+	// ModuleBase ä¸º0åˆ™æ‰«æPRVå†…å­˜ï¼Œ
+	// all ä¸ºtrueï¼Œåˆ™æ‰«æå…¨éƒ¨åŒ¹é…ç»“æœ,ä¸ºfalseæ‰«æè¿”å›ç¬¬ä¸€ä¸ª
 	std::vector<BYTE> aob_byte;
 	int start, end;
 	start = end = 0;
@@ -136,7 +139,7 @@ std::vector<uintptr_t> MyWindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE M
 	LPVOID minimumApplicationAddress = systemInfo.lpMinimumApplicationAddress;
 	LPVOID maximumApplicationAddress = systemInfo.lpMaximumApplicationAddress;
 	if (ModuleBase > 0) {
-		// È«³ÌĞòÄÚ´æÉ¨Ãè
+		// å…¨ç¨‹åºå†…å­˜æ‰«æ
 		DWORD ModuleSize = GetModuleSize(hProcess, ModuleBase);
 		minimumApplicationAddress = ModuleBase;
 		maximumApplicationAddress = ModuleBase + ModuleSize;
@@ -216,8 +219,8 @@ uintptr_t MyWindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, 
 
 uintptr_t MyWindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask)
 {
-	// ModuleBase Îª0ÔòÉ¨ÃèPRVÄÚ´æ£¬
-	// all Îªtrue£¬ÔòÉ¨ÃèÈ«²¿Æ¥Åä½á¹û,ÎªfalseÉ¨Ãè·µ»ØµÚÒ»¸ö
+	// ModuleBase ä¸º0åˆ™æ‰«æPRVå†…å­˜ï¼Œ
+	// all ä¸ºtrueï¼Œåˆ™æ‰«æå…¨éƒ¨åŒ¹é…ç»“æœ,ä¸ºfalseæ‰«æè¿”å›ç¬¬ä¸€ä¸ª
 	std::vector<BYTE> aob_byte;
 	int start, end;
 	start = end = 0;
@@ -244,7 +247,7 @@ uintptr_t MyWindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, cons
 	LPVOID minimumApplicationAddress = systemInfo.lpMinimumApplicationAddress;
 	LPVOID maximumApplicationAddress = systemInfo.lpMaximumApplicationAddress;
 	if (ModuleBase > 0) {
-		// È«³ÌĞòÄÚ´æÉ¨Ãè
+		// å…¨ç¨‹åºå†…å­˜æ‰«æ
 		DWORD ModuleSize = GetModuleSize(hProcess, ModuleBase);
 		minimumApplicationAddress = ModuleBase;
 		maximumApplicationAddress = ModuleBase + ModuleSize;
@@ -324,7 +327,7 @@ POINT MyWindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, s
 	//Drawing shapes on a black canvas
 	//Thresholding an existing image
 
-	// cv2.TM_CCORR_NORMED  # Õâ¸ö¶ÔÑÕÉ«Ãô¸Ğ¶È¸ß
+	// cv2.TM_CCORR_NORMED  # è¿™ä¸ªå¯¹é¢œè‰²æ•æ„Ÿåº¦é«˜
 	POINT pos = {-1, -1};
 
 	auto image = hwnd2mat(hwnd);
@@ -365,7 +368,7 @@ POINT MyWindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, s
 }
 
 void MyWindowInfo::update_player_float_pos() {
-	// ¶ÁÈ¡¸üĞÂÍæ¼Ò×ø±ê
+	// è¯»å–æ›´æ–°ç©å®¶åæ ‡
 	SIZE_T regionSize = 0x8;
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
@@ -375,11 +378,11 @@ void MyWindowInfo::update_player_float_pos() {
 	delete[] buffer;
 	player_pos.x = convert_to_map_pos_x(player_x);
 	player_pos.y = convert_to_map_pos_y(player_y);
-	log_info("Íæ¼Ò×ø±ê:%d,%d", player_pos.x, player_pos.y);
+	log_info("ç©å®¶åæ ‡:%d,%d", player_pos.x, player_pos.y);
 }
 
 void MyWindowInfo::update_scene() {
-	// µÃµ½µÄstringÄÚÈİÎª"½¨Úş³Ç[25,88]"£¬¿ÉÒÔ·Ö½âÎª³¡¾°Ãû+Íæ¼Ò×ø±ê
+	// å¾—åˆ°çš„stringå†…å®¹ä¸º"å»ºé‚ºåŸ[25,88]"ï¼Œå¯ä»¥åˆ†è§£ä¸ºåœºæ™¯å+ç©å®¶åæ ‡
 	BYTE* buffer = new BYTE[map_offset];
 	SIZE_T bytesRead;
 	pNtReadVirtualMemory(hProcess, (PVOID)map_info_addr, buffer, map_offset, &bytesRead);
@@ -410,7 +413,7 @@ void MyWindowInfo::update_scene() {
 }
 
 void MyWindowInfo::update_scene_id() {
-	// ¶ÁÈ¡¸üĞÂ³¡¾°id
+	// è¯»å–æ›´æ–°åœºæ™¯id
 	SIZE_T regionSize = 0x8;
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
@@ -421,18 +424,18 @@ void MyWindowInfo::update_scene_id() {
 
 void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 	if (dianxiaoer_pos_addr == 0) {
-		log_info("²éÕÒµêĞ¡¶ş×ø±ê¿ªÊ¼:0x%X", hProcess);
+		log_info("æŸ¥æ‰¾åº—å°äºŒåæ ‡å¼€å§‹:0x%X", hProcess);
 		dianxiaoer_pos_x = 0;
 		dianxiaoer_pos_y = 0;
-		// Õâ¸ö½á¹¹²»ÊÇÃ¿´Î¶¼»á³öÏÖµÄ£¬Èç¹ûÕÒ²»µ½£¬¿ÉÒÔÏÈ³öÈ¥ÔÙ½øÀ´£¬ÖØ¸´ÊÔ¼¸´ÎÒ»°ã¶¼»á²úÉúÕâ¸öÄÚ´æ½á¹¹
-		// ÏÈÕÒµ½ #c80c0ffÍÚ±¦Í¼ÈÎÎñ Õâ¸öµØÖ·
+		// è¿™ä¸ªç»“æ„ä¸æ˜¯æ¯æ¬¡éƒ½ä¼šå‡ºç°çš„ï¼Œå¦‚æœæ‰¾ä¸åˆ°ï¼Œå¯ä»¥å…ˆå‡ºå»å†è¿›æ¥ï¼Œé‡å¤è¯•å‡ æ¬¡ä¸€èˆ¬éƒ½ä¼šäº§ç”Ÿè¿™ä¸ªå†…å­˜ç»“æ„
+		// å…ˆæ‰¾åˆ° #c80c0ffæŒ–å®å›¾ä»»åŠ¡ è¿™ä¸ªåœ°å€
 		//auto wabaoturenwu_AoB_adr = PerformAoBScan(
 		//	hProcess,
 		//	0,
 		//	"23 63 38 30 63 30 66 66 CD DA B1 A6 CD BC C8 CE CE F1 00",
 		//	"xxxxxxxxxxxxxxxxxxx");
-		//// È»ºó½á¹¹ÌåÉÏ·½ÓĞ¸öµØÖ·Ö¸Õë£¬Ö¸ÏòÒ»¸ö½á¹¹£¬Õâ¸ö½á¹¹°üº¬µêĞ¡¶şµÄ¶¯Ì¬×ø±ê
-		//// ×¢Òâ£ºµêĞ¡¶şÈç¹ûÕâ¸öÀë¿ªÁËÍæ¼ÒÊÓÒ°£¬Õâ¸öµØÖ·ĞèÒªÖØĞÂ²éÕÒ£¬Ò²¾ÍÊÇËµÕâ¸öµØÖ·ÒªµêĞ¡¶ş³öÏÖÔÚÍæ¼ÒÊÓÒ°ÖĞ²Å»á³öÏÖ
+		//// ç„¶åç»“æ„ä½“ä¸Šæ–¹æœ‰ä¸ªåœ°å€æŒ‡é’ˆï¼ŒæŒ‡å‘ä¸€ä¸ªç»“æ„ï¼Œè¿™ä¸ªç»“æ„åŒ…å«åº—å°äºŒçš„åŠ¨æ€åæ ‡
+		//// æ³¨æ„ï¼šåº—å°äºŒå¦‚æœè¿™ä¸ªç¦»å¼€äº†ç©å®¶è§†é‡ï¼Œè¿™ä¸ªåœ°å€éœ€è¦é‡æ–°æŸ¥æ‰¾ï¼Œä¹Ÿå°±æ˜¯è¯´è¿™ä¸ªåœ°å€è¦åº—å°äºŒå‡ºç°åœ¨ç©å®¶è§†é‡ä¸­æ‰ä¼šå‡ºç°
 		//SIZE_T regionSize = 0x8;
 		//BYTE* buffer = new BYTE[regionSize];
 		//SIZE_T bytesRead;
@@ -446,12 +449,12 @@ void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 		//	pNtReadVirtualMemory(hProcess, (PVOID)(ptr), buffer, regionSize, &bytesRead);
 		//	if (bytesRead > 0) {
 		//		dianxiaoer_pos_addr = ptr + 0x4C;
-		//		log_info("µêĞ¡¶ş×ø±êµØÖ·:0x%llX", dianxiaoer_pos_addr);
+		//		log_info("åº—å°äºŒåæ ‡åœ°å€:0x%llX", dianxiaoer_pos_addr);
 		//	}
 		//	delete[] buffer;
 		//}
 
-		// ½á¹¹ÌØµã£º2¸ö¾²Ì¬µØÖ·+Ò»¸ö¶¯Ì¬µØÖ·£¬¶¯Ì¬µØÖ·¿ªÍ·°üº¬6¸öÖ¸Õë£¬µÚ1¸öÖ¸ÕëÎª¾²Ì¬µØÖ·£¬µÚ5ºÍ6µÄÖ¸ÕëÎª¿Õ
+		// ç»“æ„ç‰¹ç‚¹ï¼š2ä¸ªé™æ€åœ°å€+ä¸€ä¸ªåŠ¨æ€åœ°å€ï¼ŒåŠ¨æ€åœ°å€å¼€å¤´åŒ…å«6ä¸ªæŒ‡é’ˆï¼Œç¬¬1ä¸ªæŒ‡é’ˆä¸ºé™æ€åœ°å€ï¼Œç¬¬5å’Œ6çš„æŒ‡é’ˆä¸ºç©º
 		auto static_addr1 = getRelativeStaticAddressByAoB(
 			hProcess,
 			mhmainDllBase,
@@ -500,7 +503,7 @@ void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 			BYTE* buffer = new BYTE[regionSize];
 			BYTE* buffer1 = new BYTE[regionSize];
 			SIZE_T bytesRead;
-			pNtReadVirtualMemory(hProcess, (PVOID)(item + 0x10), buffer, regionSize, &bytesRead);  // ¶¯Ì¬µØÖ·
+			pNtReadVirtualMemory(hProcess, (PVOID)(item + 0x10), buffer, regionSize, &bytesRead);  // åŠ¨æ€åœ°å€
 			if (bytesRead > 0) {
 				auto heap_add = *reinterpret_cast<QWORD*>(buffer);
 				bytesRead = 0;
@@ -513,15 +516,15 @@ void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 						if (heap_child_addr5 == 0 && heap_child_addr6 == 0) {
 							auto x = *reinterpret_cast<float*>(buffer1 + 0x30);
 							auto y = *reinterpret_cast<float*>(buffer1 + 0x34);
-							// ³¤°²¾ÆµêÄÚÓĞ×Ô¼º×ø±ê£¬¾ÆµêÀÏ°å×ø±ê£¬µêĞ¡¶ş×ø±ê ¾ÆµêÀÏ°å×ø±ê(910, 570)
+							// é•¿å®‰é…’åº—å†…æœ‰è‡ªå·±åæ ‡ï¼Œé…’åº—è€æ¿åæ ‡ï¼Œåº—å°äºŒåæ ‡ é…’åº—è€æ¿åæ ‡(910, 570)
 							update_player_float_pos();
 							if (x != player_x && y != player_y) {
-								// Õâ¸ö½á¹¹°üº¬ËùÓĞNPCºÍÍæ¼Ò£¨°üÀ¨×Ô¼º£©µÄ×ø±ê£¬ËùÒÔÒª×ö¹ıÂË
+								// è¿™ä¸ªç»“æ„åŒ…å«æ‰€æœ‰NPCå’Œç©å®¶ï¼ˆåŒ…æ‹¬è‡ªå·±ï¼‰çš„åæ ‡ï¼Œæ‰€ä»¥è¦åšè¿‡æ»¤
 								if (is_dianxiaoer_pos(x, y)) {
 									dianxiaoer_pos_x = x;
 									dianxiaoer_pos_y = y;
 									dianxiaoer_pos_addr = item;
-									log_info("µêĞ¡¶ş×ø±êµØÖ·:0x%llX", dianxiaoer_pos_addr);
+									log_info("åº—å°äºŒåæ ‡åœ°å€:0x%llX", dianxiaoer_pos_addr);
 									break;
 								}
 							}
@@ -533,12 +536,12 @@ void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 			delete[] buffer;
 			delete[] buffer1;
 		}
-		log_info("²éÕÒµêĞ¡¶ş×ø±ê½áÊø:0x%X", hProcess);
+		log_info("æŸ¥æ‰¾åº—å°äºŒåæ ‡ç»“æŸ:0x%X", hProcess);
 	}
 }
 
 void MyWindowInfo::update_dianxiaoer_pos() {
-	// ¶ÁÈ¡¸üĞÂĞ¡¶ş×ø±ê
+	// è¯»å–æ›´æ–°å°äºŒåæ ‡
 	dianxiaoer_pos_x = 0;
 	dianxiaoer_pos_y = 0;
 	SIZE_T regionSize = 0x24;
@@ -583,15 +586,15 @@ void MyWindowInfo::open_map() {
 }
 
 POINT MyWindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id) {
-	// ¸ù¾İ×ø±ê¼ÆËãÏà¶Ô×Ô¼ºÔÚÆÁÄ»ÉÏµÄÏñËØ
+	// æ ¹æ®åæ ‡è®¡ç®—ç›¸å¯¹è‡ªå·±åœ¨å±å¹•ä¸Šçš„åƒç´ 
 	POINT px = { 0, 0 };
 	//int x_pixel = 0;
 	//int y_pixel = 0;
-	int center_x = 512;  // ÖĞµã×ø±ê 1024 / 2 + x_rim
-	int center_y = 384;  // ÖĞµã×ø±ê 768 / 2 + y_rim
-	int x_edge = 25;  // ³¬¹ıÕâ¸ö×ø±ê£¬ÈËÎï»áÔÚ´°¿ÚÖĞ¼ä
-	int y_edge = 19;  // ³¬¹ıÕâ¸ö×ø±ê£¬ÈËÎï»áÔÚ´°¿ÚÖĞ¼ä
-	int pixel = 20;	 // 20ÏñËØÒ»¸ö×ø±êµã
+	int center_x = 512;  // ä¸­ç‚¹åæ ‡ 1024 / 2 + x_rim
+	int center_y = 384;  // ä¸­ç‚¹åæ ‡ 768 / 2 + y_rim
+	int x_edge = 25;  // è¶…è¿‡è¿™ä¸ªåæ ‡ï¼Œäººç‰©ä¼šåœ¨çª—å£ä¸­é—´
+	int y_edge = 19;  // è¶…è¿‡è¿™ä¸ªåæ ‡ï¼Œäººç‰©ä¼šåœ¨çª—å£ä¸­é—´
+	int pixel = 20;	 // 20åƒç´ ä¸€ä¸ªåæ ‡ç‚¹
 
 	auto max_loc = get_map_max_loc(scene_id);
 
@@ -614,17 +617,17 @@ void MyWindowInfo::move_to_dianxiaoer() {
 	if (!is_near_dianxiaoer()) {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
-		// AĞÇÑ°Â·
+		// Aæ˜Ÿå¯»è·¯
 		auto astar_pos = astar(player_pos.x, player_pos.y, dxe_x, dxe_y, m_scene_id, dianxiaoer_valid_distence, dianxiaoer_valid_distence);
-		log_info("µêĞ¡¶ş×ø±ê:%d, %d", dxe_x, dxe_y);
-		log_info("AĞÇÑ°Â·½á¹û:%d, %d", astar_pos.x, astar_pos.y);
+		log_info("åº—å°äºŒåæ ‡:%d, %d", dxe_x, dxe_y);
+		log_info("Aæ˜Ÿå¯»è·¯ç»“æœ:%d, %d", astar_pos.x, astar_pos.y);
 		auto px = compute_pos_pixel(astar_pos, m_scene_id);
 		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
 		moveing = true;
 	}
 }
 void MyWindowInfo::from_changancheng_to_changanjiudian() {
-	// ³¤°²¾ÆµêÈë¿Ú(464,168)
+	// é•¿å®‰é…’åº—å…¥å£(464,168)
 	auto px = compute_pos_pixel({ 467, 171 }, m_scene_id);
 	mouse_click_human(this, { rect.left + px.x, rect.top + px.y }, 0, 0, 1);
 	moveing = true;
@@ -632,20 +635,20 @@ void MyWindowInfo::from_changancheng_to_changanjiudian() {
 
 bool MyWindowInfo::talk_to_dianxiaoer() {
 	if (is_near_dianxiaoer()) {
-		// ¶Ô»°µêĞ¡¶ş
+		// å¯¹è¯åº—å°äºŒ
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 		auto px = compute_pos_pixel({ dxe_x, dxe_y }, m_scene_id);
-		log_info("Íæ¼Ò×ø±ê:%d,%d", player_pos.x, player_pos.y);
-		log_info("µêĞ¡¶ş×ø±ê:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
-		log_info("µêĞ¡¶ş×ø±ê:%d,%d", dxe_x, dxe_y);
-		//log_info("Ïà¶ÔÏñËØ:%d,%d", px.x, px.y);
-		//log_info("Ïà¶Ô×ø±ê:%d,%d", rect.left + px.x, rect.top + px.y);
+		log_info("ç©å®¶åæ ‡:%d,%d", player_pos.x, player_pos.y);
+		log_info("åº—å°äºŒåæ ‡:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
+		log_info("åº—å°äºŒåæ ‡:%d,%d", dxe_x, dxe_y);
+		//log_info("ç›¸å¯¹åƒç´ :%d,%d", px.x, px.y);
+		//log_info("ç›¸å¯¹åæ ‡:%d,%d", rect.left + px.x, rect.top + px.y);
 		//hwnd2mat(hwnd);
-		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);  // µã»÷ÓëµêĞ¡¶ş¶Ô»°
+		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);  // ç‚¹å‡»ä¸åº—å°äºŒå¯¹è¯
 		auto pos = WaitMatchingRectPos(this, ROI_npc_talk(), img_btn_tingtingwufang);
 		if (pos.x > 0) {
-			// µ¯³ö¶Ô»°¿ò£¬½ÓÈÎÎñ
+			// å¼¹å‡ºå¯¹è¯æ¡†ï¼Œæ¥ä»»åŠ¡
 			mouse_click_human(this, POINT{ rect.left + pos.x, rect.top + pos.y }, 0, 0, 1);
 			ClickMatchImage(this, ROI_npc_talk(), img_npc_dianxiaoer, "", 0.78, cv::TM_CCORR_NORMED, 0, 50, 0, 0, 1, 2000);
 			return true;
@@ -655,7 +658,7 @@ bool MyWindowInfo::talk_to_dianxiaoer() {
 }
 
 bool MyWindowInfo::is_dianxiaoer_pos(float x, float y) {
-	// µêĞ¡¶şÊÇ°´ÕÕË³Ê±Õë¹Ì¶¨¼¸¸ö×ø±êµÄ¹æÂÉÒÆ¶¯µÄ,¸ù¾İ×ø±êÅĞ¶ÏÊÇ·ñÊÇµêĞ¡¶ş
+	// åº—å°äºŒæ˜¯æŒ‰ç…§é¡ºæ—¶é’ˆå›ºå®šå‡ ä¸ªåæ ‡çš„è§„å¾‹ç§»åŠ¨çš„,æ ¹æ®åæ ‡åˆ¤æ–­æ˜¯å¦æ˜¯åº—å°äºŒ
 	for (auto& pos : dianxiaoer_pos_list) {
 		if (x > 0 && y > 0 && pos.x == x && pos.y == y) return true;
 	}
@@ -663,13 +666,13 @@ bool MyWindowInfo::is_dianxiaoer_pos(float x, float y) {
 }
 
 bool MyWindowInfo::is_moving() {
-	// ÅĞ¶Ï×Ô¼ºÊÇ·ñÔÚÒÆ¶¯
+	// åˆ¤æ–­è‡ªå·±æ˜¯å¦åœ¨ç§»åŠ¨
 	float x0 = 0;
 	float y0 = 0;
 	for (int i = 0; i < 2; i++) {
 		update_player_float_pos();
 		if ((int)player_x % 10 == 0 && (int)player_y % 10 == 0) {
-			// ×ø±êÖµ¶¼ÊÇ10µÄ±¶Êı
+			// åæ ‡å€¼éƒ½æ˜¯10çš„å€æ•°
 			if (x0 == player_x && y0 == player_y) {
 				return false;
 			}
@@ -687,7 +690,7 @@ bool MyWindowInfo::is_near_dianxiaoer() {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 		if (abs(dxe_x - player_pos.x) <= (dianxiaoer_valid_distence + 1) && abs(dxe_x - player_pos.x) <= (dianxiaoer_valid_distence + 1)) {
-			//  +1ÊÇ·ÀÖ¹Êó±êÆ¯ÒÆÎó²î
+			//  +1æ˜¯é˜²æ­¢é¼ æ ‡æ¼‚ç§»è¯¯å·®
 			return true;
 		}
 	}
@@ -695,20 +698,83 @@ bool MyWindowInfo::is_near_dianxiaoer() {
 }
 
 int MyWindowInfo::convert_to_map_pos_x(float x) {
-	// (x - 1) * 20 + 30 = player_x  ÆäÖĞxÊÇµØÍ¼ÉÏÏÔÊ¾µÄ×ø±ê
+	// (x - 1) * 20 + 30 = player_x  å…¶ä¸­xæ˜¯åœ°å›¾ä¸Šæ˜¾ç¤ºçš„åæ ‡
 	return (x - 30) / 20 + 1;
 }
 
 int MyWindowInfo::convert_to_map_pos_y(float y) {
-	// (max_y - y - 1) * 20 + 30 = player_y  ÆäÖĞyÊÇµØÍ¼ÉÏÏÔÊ¾µÄ×ø±ê,max_yÊÇµØÍ¼yµÄ×î´óÖµ¡£ÀıÈç½¨Úş³Çy×î´óÖµÊÇ143
+	// (max_y - y - 1) * 20 + 30 = player_y  å…¶ä¸­yæ˜¯åœ°å›¾ä¸Šæ˜¾ç¤ºçš„åæ ‡,max_yæ˜¯åœ°å›¾yçš„æœ€å¤§å€¼ã€‚ä¾‹å¦‚å»ºé‚ºåŸyæœ€å¤§å€¼æ˜¯143
 	update_scene_id();
 	auto pos = get_map_max_loc(m_scene_id);
 	return pos.y - 1 - (y - 30) / 20;
 }
 
+void MyWindowInfo::parse_baotu_task_info() {
+	log_info("å¼€å§‹è§£æå®å›¾ä»»åŠ¡å†…å®¹:0x%X", hProcess);
+	// å®å›¾å†…å®¹æ ¼å¼ï¼šâ—†xxxx(ä»Šå¤©å·²é¢†å–xæ¬¡)
+	// â—†:C6 25
+	auto baotu_task_symbol = PerformAoBScan(
+		hProcess,
+		0,
+		"28 00 CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 ? ? 00 23 00 42 00 21 6B 29 00",  // (ä»Šå¤©å·²é¢†å–#R1#Bæ¬¡)
+		"xxxxxxxxxxxxxxxx??xxxxxxxxx");
+	int symbol_len = 26;
+	std::wstring content;
+	std::wstring today_times;
+	if (baotu_task_symbol > 0) {
+		SIZE_T regionSize = 0x140; // å®å›¾ä»»åŠ¡çš„å†…å®¹é•¿åº¦ï¼Œè¿™ä¸ªé•¿åº¦åº”è¯¥å¤Ÿç”¨äº†
+		BYTE* buffer = new BYTE[regionSize];
+		SIZE_T bytesRead;
+		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol - regionSize + symbol_len), buffer, regionSize, &bytesRead);
+		if (bytesRead > 0) {
+			today_times = bytes_to_wstring(&buffer[baotu_task_symbol], symbol_len);
+			for (int i = 0; i < bytesRead - 1; i++) {
+				if (buffer[i] == 0xC6 && buffer[i + 1] == 0x25) {
+					content = bytes_to_wstring(&buffer[baotu_task_symbol - bytesRead + i], bytesRead - i);
+					break;
+				}
+			}
+		}
+		if (!content.empty()) {
+			auto tag_wstr1 = findContentBetweenTags(content, L"#K", L"#B");
+			for(auto& wstr : tag_wstr1)
+			{
+				baotu_target_scene_id = get_scene_id_by_name(wstr);
+			}
+			if (baotu_target_scene_id < 0) {
+				auto tag_wstr2 = findContentBetweenTags(content, L"#R", L"#B");
+				for (auto& wstr : tag_wstr1)
+				{
+					baotu_target_scene_id = get_scene_id_by_name(wstr);
+				}
+			}
+			auto tag_wstr3 = findContentBetweenTags(today_times, L"(ä»Šå¤©å·²é¢†å–#R", L"#Bæ¬¡)");
+			baotu_task_count = std::stoi(tag_wstr3.at(0));
+		}
+	}
+}
+
+unsigned int MyWindowInfo::get_scene_id_by_name(std::wstring name) {
+	unsigned int scene_id = 0;
+	if (name == L"ç‹®é©¼å²­") {
+		scene_id = ç‹®é©¼å²­;
+	}
+	else if (name == L"å»ºé‚ºåŸ") {
+		scene_id = å»ºé‚ºåŸ;
+	}
+	else if (name == L"å»ºé‚ºæ‚è´§åº—") {
+		scene_id = å»ºé‚ºæ‚è´§åº—;
+	}
+	else if (name == L"å¥³å„¿æ‘") {
+		scene_id = å¥³å„¿æ‘;
+	}
+
+	return scene_id;
+}
+
 void MyWindowInfo::UpdateWindowRect() {
 	GetWindowRect(hwnd, &rect);
-	// ºóÌ¨½ØÍ¼£¬´°¿ÚÓÒÆ«7ÏñËØ£¬´°¿Ú±êÌâ31ÏñËØ
+	// åå°æˆªå›¾ï¼Œçª—å£å³å7åƒç´ ï¼Œçª—å£æ ‡é¢˜31åƒç´ 
 	rect.left += 7;
 	rect.bottom += 31;
 }
@@ -773,24 +839,24 @@ void GoodMorning::hook_data() {
 
 		winfo.mhmainDllBase = getProcessModulesAddress(winfo.hProcess, MHMAIN_DLL);
 
-		// Íæ¼Ò×ø±êµØÖ·
+		// ç©å®¶åæ ‡åœ°å€
 		winfo.player_pos_addr = winfo.getRelativeStaticAddressByAoB(
 			winfo.hProcess,
 			winfo.mhmainDllBase,
 			"83 3D ? ? ? ? FF 75 DF 0F 57 D2 0F 57 C9 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ?",
 			"xx????xxxxxxxxxxxx????x????xxx????x????",
 			18);
-		if (winfo.player_pos_addr == 0) log_error("²éÕÒÍæ¼Ò×ø±êµØÖ·Ê§°Ü");
+		if (winfo.player_pos_addr == 0) log_error("æŸ¥æ‰¾ç©å®¶åæ ‡åœ°å€å¤±è´¥");
 
-		//log_info("²éÕÒ³¡¾°µØÖ·¿ªÊ¼:0x%X", winfo.hProcess);
-		//// ³¡¾°[100,10] (111,111)
+		//log_info("æŸ¥æ‰¾åœºæ™¯åœ°å€å¼€å§‹:0x%X", winfo.hProcess);
+		//// åœºæ™¯[100,10] (111,111)
 		//// B4 F3 CC C6 B9 FA BE B3 5B 31 39 38 2C 32 33 32 5D 00 B6 FE 28 31 31 31 2C 31 31 31 29 00
 		//auto map_info_AoB_adr = winfo.PerformAoBScan(winfo.hProcess, 0, "28 31 31 31 2C 31 31 31 29 00", "xxxxxxxxxx");
-		//if (map_info_AoB_adr == 0) log_error("²éÕÒ³¡¾°µØÖ·Ê§°Ü");
+		//if (map_info_AoB_adr == 0) log_error("æŸ¥æ‰¾åœºæ™¯åœ°å€å¤±è´¥");
 		//else winfo.map_info_addr = map_info_AoB_adr - winfo.map_offset;
-		//log_info("²éÕÒ³¡¾°µØÖ·½áÊø:0x%X", winfo.hProcess);
+		//log_info("æŸ¥æ‰¾åœºæ™¯åœ°å€ç»“æŸ:0x%X", winfo.hProcess);
 
-		// ³¡¾°id
+		// åœºæ™¯id
 		//48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 ? ? ? ? 44 89 3D ? ? ? ?
 		winfo.scene_id_addr = winfo.getRelativeStaticAddressByAoB(
 			winfo.hProcess,
@@ -798,7 +864,7 @@ void GoodMorning::hook_data() {
 			"48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 ? ? ? ? 44 89 3D ? ? ? ?",
 			"xxxxxxxxxxxxxxxxxxxx????xxx????",
 			27);
-		if (winfo.scene_id_addr == 0) log_error("²éÕÒ³¡¾°idµØÖ·Ê§°Ü");
+		if (winfo.scene_id_addr == 0) log_error("æŸ¥æ‰¾åœºæ™¯idåœ°å€å¤±è´¥");
 	}
 }
 
@@ -821,7 +887,7 @@ void GoodMorning::work() {
 			else if (winfo.step.current == &wait_load_scene_changanjiudian) {
 				log_info("wait_load_scene_changanjiudian");
 				winfo.update_scene_id();
-				if (winfo.m_scene_id == ³¤°²¾Æµê)
+				if (winfo.m_scene_id == é•¿å®‰é…’åº—)
 				{
 					winfo.dianxiaoer_pos_addr = 0;
 					winfo.step.next();
@@ -866,13 +932,14 @@ void GoodMorning::test() {
 	RECT rect;
 	for (MyWindowInfo& winfo : this->winsInfo) {
 		//cv::Rect roi_test(450, 338, 300, 300);
-		cv::Rect roi_test;
-		MatchingRectPos(roi_test, "2025-12-04 01-57-10-r8312.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
+		//cv::Rect roi_test;
+		//MatchingRectPos(roi_test, "2025-12-04 01-57-10-r8312.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
 		//auto wabaoturenwu_AoB_adr = winfo.PerformAoBScan(
 		//	winfo.hProcess,
 		//	0,
 		//	"20 51 B2 9C FB 7F 00 00 01 00 00 00 01 00 00 00",
 		//	"xxxxxxxxxxxxxxxx");
+
 		winfo.scan_dianxiaoer_addr_pos();
 		while (true) {
 			winfo.update_player_float_pos();
@@ -966,7 +1033,7 @@ std::vector<DWORD> FindPidsByName(const wchar_t* name)
 		//printf("szExeFile: %ws\n", singleProcess.szExeFile);
 		if (_wcsicmp(singleProcess.szExeFile, name) == 0)
 		{
-			// ²»Çø·Ö´óĞ¡Ğ´±È½Ï
+			// ä¸åŒºåˆ†å¤§å°å†™æ¯”è¾ƒ
 			DWORD pid = singleProcess.th32ProcessID;
 			pids.push_back(pid);
 		}
@@ -994,8 +1061,8 @@ HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName)
 			GetModuleBaseName(hProcess, hMods[i], lpBaseName, sizeof(lpBaseName) / sizeof(TCHAR));
 
 			if (_wcsicmp(lpBaseName, moduleName) == 0) {
-				// ²»Çø·Ö´óĞ¡Ğ´±È½Ï
-				return *(HMODULE*)&hMods[i];  // 64Î»ĞèÒª×ªµØÖ·²ÅÕıÈ·
+				// ä¸åŒºåˆ†å¤§å°å†™æ¯”è¾ƒ
+				return *(HMODULE*)&hMods[i];  // 64ä½éœ€è¦è½¬åœ°å€æ‰æ­£ç¡®
 			}
 		}
 	}
@@ -1013,15 +1080,6 @@ DWORD GetModuleSize(HANDLE hProcess, HMODULE hModule)
 	return remoteProcessModuleInfo.SizeOfImage;
 }
 
-//uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset) {
-//	// adr_offset = rav_offset - 1
-//	// opcode_adr = AoB_adr + adr_offset
-//	// StaticAddress - opcode_adr - 5 = rav
-//	auto AoB_adr = PerformAoBScan(hProcess, ModuleBase, AoB, mask);
-//	auto rav = *reinterpret_cast<long*>(AoB_adr + offset);
-//	return rav + 5 + AoB_adr + offset - 1;
-//}
-
 cv::Mat hwnd2mat(HWND hwnd) {
 
 	HDC hwindowDC, hwindowCompatibleDC;
@@ -1033,7 +1091,7 @@ cv::Mat hwnd2mat(HWND hwnd) {
 
 	hwindowDC = GetDC(hwnd);
 	hwindowCompatibleDC = CreateCompatibleDC(hwindowDC);
-	// HALFTONE ÓëÆäËûÈıÖÖÄ£Ê½Ïà±È£¬HALFTONE Ä£Ê½½ÏÂı£¬ĞèÒª¶ÔÔ´Í¼Ïñ½øĞĞ¸ü¶àµÄ´¦Àí;µ«»áÉú³É¸ü¸ßÖÊÁ¿µÄÍ¼Ïñ¡£ ÁíÇë×¢Òâ£¬ÔÚÉèÖÃ HALFTONE Ä£Ê½ºó£¬±ØĞëµ÷ÓÃ SetBrushOrgEx £¬ÒÔ±ÜÃâ»­±Ê´íÎ»¡£
+	// HALFTONE ä¸å…¶ä»–ä¸‰ç§æ¨¡å¼ç›¸æ¯”ï¼ŒHALFTONE æ¨¡å¼è¾ƒæ…¢ï¼Œéœ€è¦å¯¹æºå›¾åƒè¿›è¡Œæ›´å¤šçš„å¤„ç†;ä½†ä¼šç”Ÿæˆæ›´é«˜è´¨é‡çš„å›¾åƒã€‚ å¦è¯·æ³¨æ„ï¼Œåœ¨è®¾ç½® HALFTONE æ¨¡å¼åï¼Œå¿…é¡»è°ƒç”¨ SetBrushOrgEx ï¼Œä»¥é¿å…ç”»ç¬”é”™ä½ã€‚
 	//SetStretchBltMode(hwindowDC, HALFTONE);
 	//SetBrushOrgEx(hwindowDC, 16, 16, nullptr);
 
@@ -1103,11 +1161,11 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 		// For example, you could store it in a global variable or a vector
 		// and return FALSE to stop enumeration if you only need one HWND.
 		// If you need all HWNDs, return TRUE to continue.
-		// ÃÎ»ÃÓĞºÃ¼¸¸ö´°¿Ú£¬ĞèÒª¹ıÂËÒ»ÏÂ
-		// "ÃÎ»ÃÎ÷ÓÎ ONLINE - "
+		// æ¢¦å¹»æœ‰å¥½å‡ ä¸ªçª—å£ï¼Œéœ€è¦è¿‡æ»¤ä¸€ä¸‹
+		// "æ¢¦å¹»è¥¿æ¸¸ ONLINE - "
 		int cTxtLen = 100;
-		std::string gametitle = "ÃÎ»ÃÎ÷ÓÎ ONLINE";
-		//std::string gametitle = "ÃÎ»ÃÎ÷ÓÎ ONLINE - ";
+		std::string gametitle = "æ¢¦å¹»è¥¿æ¸¸ ONLINE";
+		//std::string gametitle = "æ¢¦å¹»è¥¿æ¸¸ ONLINE - ";
 		// Allocate memory for the string and copy 
 		// the string into the memory. 
 		auto pszMem = (PSTR)VirtualAlloc((LPVOID)NULL,
@@ -1118,7 +1176,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 			//printf("111111111\n");
 			//hwnd2mat(hwnd);
 			//win_hwnd = hwnd;
-			// Èç¹ûÊÇ¶à±êÇ©Ä£Ê½,Ö»ÓĞmhtab.exeÓĞ´°¿Ú
+			// å¦‚æœæ˜¯å¤šæ ‡ç­¾æ¨¡å¼,åªæœ‰mhtab.exeæœ‰çª—å£
 			//SetForegroundWindow(hwnd);
 			VirtualFree(
 				pszMem,       // Base address of block
@@ -1127,7 +1185,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 			MyWindowInfo winfo((HANDLE)targetProcessId);
 			winfo.hwnd = hwnd;
 			gm.winsInfo.push_back(winfo);
-			printf("´°¿Ú¾ä±ú»Øµ÷³É¹¦£º%s\n", gametitle.c_str());
+			printf("çª—å£å¥æŸ„å›è°ƒæˆåŠŸï¼š%s\n", gametitle.c_str());
 			return FALSE;
 		}
 		VirtualFree(
@@ -1370,7 +1428,7 @@ cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string
 	//Drawing shapes on a black canvas
 	//Thresholding an existing image
 
-	// cv2.TM_CCORR_NORMED  # Õâ¸ö¶ÔÑÕÉ«Ãô¸Ğ¶È¸ß
+	// cv2.TM_CCORR_NORMED  # è¿™ä¸ªå¯¹é¢œè‰²æ•æ„Ÿåº¦é«˜
 	cv::Point pos(-1, -1);
 
 	auto image = cv::imread((current_path / image_path).string(), cv::IMREAD_COLOR);
@@ -1459,7 +1517,7 @@ cv::Point WaitMatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::strin
 		if (pos.x > 0) return pos;
 		if (timeout == 0) break;
 		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
-			log_info("³¬Ê±: %s", templ_path.c_str());
+			log_info("è¶…æ—¶: %s", templ_path.c_str());
 			return cv::Point(-1, -1);
 		}
 		Sleep(5);
@@ -1473,7 +1531,7 @@ bool WaitMatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int 
 		if (match) return true;
 		if (timeout == 0) break;
 		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
-			log_info("³¬Ê±: %s", templ_path.c_str());
+			log_info("è¶…æ—¶: %s", templ_path.c_str());
 			return false;
 		}
 		Sleep(5);
@@ -1493,7 +1551,7 @@ cv::Point MatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string te
 	//Drawing shapes on a black canvas
 	//Thresholding an existing image
 
-	// cv2.TM_CCORR_NORMED  # Õâ¸ö¶ÔÑÕÉ«Ãô¸Ğ¶È¸ß
+	// cv2.TM_CCORR_NORMED  # è¿™ä¸ªå¯¹é¢œè‰²æ•æ„Ÿåº¦é«˜
 	cv::Point pos(-1, -1);
 
 	auto image = hwnd2mat(winfo->hwnd);
@@ -1541,7 +1599,7 @@ cv::Point MatchingRectLeftTop(MyWindowInfo* winfo, cv::Rect roi_rect, std::strin
 	//Drawing shapes on a black canvas
 	//Thresholding an existing image
 
-	// cv2.TM_CCORR_NORMED  # Õâ¸ö¶ÔÑÕÉ«Ãô¸Ğ¶È¸ß
+	// cv2.TM_CCORR_NORMED  # è¿™ä¸ªå¯¹é¢œè‰²æ•æ„Ÿåº¦é«˜
 	cv::Point pos(-1, -1);
 
 	auto image = hwnd2mat(winfo->hwnd);
@@ -1590,7 +1648,7 @@ bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::str
 	//Drawing shapes on a black canvas
 	//Thresholding an existing image
 
-	// cv2.TM_CCORR_NORMED  # Õâ¸ö¶ÔÑÕÉ«Ãô¸Ğ¶È¸ß
+	// cv2.TM_CCORR_NORMED  # è¿™ä¸ªå¯¹é¢œè‰²æ•æ„Ÿåº¦é«˜
 	auto image = hwnd2mat(hwnd);
 	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
 	if (image.empty() || templ.empty())
@@ -1639,7 +1697,7 @@ cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double thresh
 	//Drawing shapes on a black canvas
 	//Thresholding an existing image
 
-	// cv2.TM_CCORR_NORMED  # Õâ¸ö¶ÔÑÕÉ«Ãô¸Ğ¶È¸ß
+	// cv2.TM_CCORR_NORMED  # è¿™ä¸ªå¯¹é¢œè‰²æ•æ„Ÿåº¦é«˜
 	cv::Mat result;
 	if (image.empty() || templ.empty())
 	{
@@ -1700,11 +1758,11 @@ void ThresholdinginRange()
 	// Convert from BGR to HSV colorspace
 	cv::cvtColor(frame, frame_HSV, cv::COLOR_BGR2HSV);
 	// Detect the object based on HSV Range Values
-	// É«µ÷H£¨Hue£©£ºÓÃ½Ç¶È¶ÈÁ¿£¬È¡Öµ·¶Î§Îª0¡ã~360¡ã£¬´ÓºìÉ«¿ªÊ¼°´ÄæÊ±Õë·½Ïò¼ÆËã£¬ºìÉ«Îª0¡ã£¬ÂÌÉ«Îª120¡ã,À¶É«Îª240¡ã¡£
-	// ±¥ºÍ¶ÈS£¨Saturation£©£ºÈ¡Öµ·¶Î§Îª0.0~1.0£¬ÖµÔ½´ó£¬ÑÕÉ«Ô½±¥ºÍ¡£ÓÃ¾àVÖáµÄ¾àÀëÀ´¶ÈÁ¿ 
-	// Ã÷¶ÈV£¨Value£©£ºÈ¡Öµ·¶Î§Îª0(ºÚÉ«)~1(°×É«)¡£ÖáV=0¶ËÎªºÚÉ«£¬ÖáV=1¶ËÎª°×É«¡£
+	// è‰²è°ƒHï¼ˆHueï¼‰ï¼šç”¨è§’åº¦åº¦é‡ï¼Œå–å€¼èŒƒå›´ä¸º0Â°~360Â°ï¼Œä»çº¢è‰²å¼€å§‹æŒ‰é€†æ—¶é’ˆæ–¹å‘è®¡ç®—ï¼Œçº¢è‰²ä¸º0Â°ï¼Œç»¿è‰²ä¸º120Â°,è“è‰²ä¸º240Â°ã€‚
+	// é¥±å’Œåº¦Sï¼ˆSaturationï¼‰ï¼šå–å€¼èŒƒå›´ä¸º0.0~1.0ï¼Œå€¼è¶Šå¤§ï¼Œé¢œè‰²è¶Šé¥±å’Œã€‚ç”¨è·Vè½´çš„è·ç¦»æ¥åº¦é‡ 
+	// æ˜åº¦Vï¼ˆValueï¼‰ï¼šå–å€¼èŒƒå›´ä¸º0(é»‘è‰²)~1(ç™½è‰²)ã€‚è½´V=0ç«¯ä¸ºé»‘è‰²ï¼Œè½´V=1ç«¯ä¸ºç™½è‰²ã€‚
 	//The mask will have 255 (white) for pixels within the range, and 0 (black)otherwise.
-	cv::inRange(frame_HSV, cv::Scalar(30, 100, 100), cv::Scalar(110, 255, 255), frame_threshold);  // Êó±ê
+	cv::inRange(frame_HSV, cv::Scalar(30, 100, 100), cv::Scalar(110, 255, 255), frame_threshold);  // é¼ æ ‡
 	auto current_path = fs::current_path();
 	current_path /= "mask.png";
 	cv::imwrite(current_path.string(), frame_threshold);
@@ -1716,7 +1774,7 @@ int Serial() {
 	auto comPortName = getArduinoLeonardoComPort();
 	if (comPortName.empty())
 	{
-		log_error("Ã»ÕÒµ½com");
+		log_error("æ²¡æ‰¾åˆ°com");
 		return 1;
 	}
 	DCB dcbSerialParams = { 0 };
@@ -1802,11 +1860,11 @@ void serial_move_human(POINT pos, int mode) {
 	POINT mouse_pos;
 	GetCursorPos(&mouse_pos);
 	int64_t snp_len = strlen(MS_MOVE_HUMAN_SYMBOL) + LEN_OF_INT64 + LEN_OF_INT64 + LEN_OF_INT64 + LEN_OF_INT64 + LEN_OF_INT64 + 1;
-	// ÔÚ¶ÑÉÏ·ÖÅäÄÚ´æ
+	// åœ¨å †ä¸Šåˆ†é…å†…å­˜
 	char* data_buf = new char[snp_len];
 	snprintf(data_buf, snp_len, MS_MOVE_HUMAN_SYMBOL, mouse_pos.x, mouse_pos.y, pos.x, pos.y, mode);
 	SerialWrite(data_buf);
-	// Ê¹ÓÃÍê±Ïºó£¬±ØĞëÊÖ¶¯ÊÍ·ÅÄÚ´æ£¬·ÀÖ¹ÄÚ´æĞ¹Â©
+	// ä½¿ç”¨å®Œæ¯•åï¼Œå¿…é¡»æ‰‹åŠ¨é‡Šæ”¾å†…å­˜ï¼Œé˜²æ­¢å†…å­˜æ³„æ¼
 	delete[] data_buf;
 	SerialRead();
 	//Sleep(50);
@@ -1819,11 +1877,11 @@ void serial_click_cur() {
 
 void input_alt_xxx(const char* data) {
 	int64_t snp_len = strlen(KEY_ALT_xxx) + strlen(data) + 1;
-	// ÔÚ¶ÑÉÏ·ÖÅäÄÚ´æ
+	// åœ¨å †ä¸Šåˆ†é…å†…å­˜
 	char* data_buf = new char[snp_len];
 	snprintf(data_buf, snp_len, KEY_ALT_xxx, data);
 	SerialWrite(data_buf);
-	// Ê¹ÓÃÍê±Ïºó£¬±ØĞëÊÖ¶¯ÊÍ·ÅÄÚ´æ£¬·ÀÖ¹ÄÚ´æĞ¹Â©
+	// ä½¿ç”¨å®Œæ¯•åï¼Œå¿…é¡»æ‰‹åŠ¨é‡Šæ”¾å†…å­˜ï¼Œé˜²æ­¢å†…å­˜æ³„æ¼
 	delete[] data_buf;
 	SerialRead();
 }
@@ -1838,11 +1896,11 @@ void input_alt_e() {
 
 void input_key_xxx(const char* data) {
 	int64_t snp_len = strlen(KEY_PRESS) + strlen(data) + 1;
-	// ÔÚ¶ÑÉÏ·ÖÅäÄÚ´æ
+	// åœ¨å †ä¸Šåˆ†é…å†…å­˜
 	char* data_buf = new char[snp_len];
 	snprintf(data_buf, snp_len, KEY_PRESS, data);
 	SerialWrite(data_buf);
-	// Ê¹ÓÃÍê±Ïºó£¬±ØĞëÊÖ¶¯ÊÍ·ÅÄÚ´æ£¬·ÀÖ¹ÄÚ´æĞ¹Â©
+	// ä½¿ç”¨å®Œæ¯•åï¼Œå¿…é¡»æ‰‹åŠ¨é‡Šæ”¾å†…å­˜ï¼Œé˜²æ­¢å†…å­˜æ³„æ¼
 	delete[] data_buf;
 	SerialRead();
 }
@@ -1852,7 +1910,7 @@ void input_tab() {
 }
 
 bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode) {
-	// mode:0²»µã»÷£¬1×ó¼ü£¬2ÓÒ¼ü£¬5ctrl+×ó¼ü, 6alt+a¹¥»÷
+	// mode:0ä¸ç‚¹å‡»ï¼Œ1å·¦é”®ï¼Œ2å³é”®ï¼Œ5ctrl+å·¦é”®, 6alt+aæ”»å‡»
 	POINT target_pos = pos;
 	POINT mouse_move_pos = { pos.x + xs, pos.y + ys };
 	POINT cursor_pos;
@@ -1866,9 +1924,9 @@ bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode)
 
 	auto t_ms = getCurrentTimeMilliseconds();
 	do {
-		// ÒòÎªÓĞÊó±êÆ¯ÒÆ£¬ËùÒÔĞèÒª¶à´ÎÒÆ¶¯
+		// å› ä¸ºæœ‰é¼ æ ‡æ¼‚ç§»ï¼Œæ‰€ä»¥éœ€è¦å¤šæ¬¡ç§»åŠ¨
 		if (getCurrentTimeMilliseconds() - t_ms > 3000) {
-			log_warn("Êó±êµã»÷³¬Ê±");
+			log_warn("é¼ æ ‡ç‚¹å‡»è¶…æ—¶");
 			return false;
 		}
 		serial_move_human(mouse_move_pos, 0);
@@ -1891,14 +1949,14 @@ bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode)
 }
 
 POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos) {
-	// »ñÈ¡Êó±êÆ¯ÒÆÁ¿
+	// è·å–é¼ æ ‡æ¼‚ç§»é‡
 	POINT tmp_pos = {-1, -1};
 	auto t_ms = getCurrentTimeMilliseconds();
 	while (true) {
-		// Ñ­»·µÈ´ıÊó±êÒÆ¶¯Í£Ö¹
+		// å¾ªç¯ç­‰å¾…é¼ æ ‡ç§»åŠ¨åœæ­¢
 		if (getCurrentTimeMilliseconds() - t_ms > 1300) return tmp_pos;
 		Sleep(5);
-		auto cursor_pos = MatchingRectLeftTop(winfo, winfo->ROI_cursor(pos), img_cursors_cursor);  // ÓÎÏ·×ÔÉíµÄÊó±ê
+		auto cursor_pos = MatchingRectLeftTop(winfo, winfo->ROI_cursor(pos), img_cursors_cursor);  // æ¸¸æˆè‡ªèº«çš„é¼ æ ‡
 		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
 		{
@@ -1918,11 +1976,48 @@ bool ClickMatchImage(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_p
 	return mouse_click_human(winfo, pos, xs, ys, mode);
 }
 
+std::wstring bytes_to_wstring(const unsigned char* buffer, size_t size) {
+	std::vector<unsigned char> raw_bytes(size);
+	memcpy(raw_bytes.data(), buffer, size);
+
+	// 1. Reinterpret the unsigned char* data as a const wchar_t*
+	const wchar_t* reconstructed_data_ptr = reinterpret_cast<const wchar_t*>(raw_bytes.data());
+
+	// 2. Use the std::wstring constructor that takes a pointer and a character count
+	// NOTE: The constructor expects the length in *characters* (wchar_t units), not bytes.
+	size_t character_length = size / sizeof(wchar_t);
+	std::wstring wstr(reconstructed_data_ptr);
+	// Resize to fit exact content end with null terminate
+	wstr.resize(character_length);
+	return wstr;
+}
+
+std::vector<std::wstring> findContentBetweenTags(
+	const std::wstring& source,
+	const std::wstring& startTag,
+	const std::wstring& endTag) {
+	std::vector<std::wstring> res;
+	size_t pos = 0; // Start search from the beginning
+
+	// Loop until find() returns std::wstring::npos (not found)
+	while ((pos = source.find(startTag, pos)) != std::wstring::npos) {
+		// è®¡ç®—å®é™…å†…å®¹çš„èµ·å§‹ç´¢å¼•ï¼šèµ·å§‹æ ‡è®°çš„ä½ç½® + èµ·å§‹æ ‡è®°çš„é•¿åº¦
+		size_t contentStartIdx = pos + startTag.length();
+		size_t endPos = source.find(endTag, contentStartIdx);
+		// æ£€æŸ¥æ˜¯å¦æ‰¾åˆ°äº†ç»“æŸæ ‡è®°
+		if (endPos != std::wstring::npos) {
+			// substr() çš„ç¬¬äºŒä¸ªå‚æ•°æ˜¯éœ€è¦æå–çš„é•¿åº¦ï¼Œè€Œä¸æ˜¯ç»“æŸç´¢å¼•ã€‚
+			size_t length = endPos - contentStartIdx;
+			res.push_back(source.substr(contentStartIdx, length));
+		}
+	}
+	return res;
+}
 
 int main(int argc, const char** argv)
 {
 	init_log();
-	//log_info("ÈÕÖ¾Êä³ö²âÊÔ");
+	//log_info("æ—¥å¿—è¾“å‡ºæµ‹è¯•");
 
 	// SEED the generator ONCE at the start of the program
 	std::srand(static_cast<unsigned int>(time(nullptr)));
@@ -1950,8 +2045,16 @@ int main(int argc, const char** argv)
 
 	//ThresholdinginRange();
 	//MatchingMethod();
+	_setmode(_fileno(stdout), _O_U8TEXT);
 
-	
+	size_t byte_length = 24;
+	//const unsigned char buffer[8] = { 0xC6, 0x25, 0xAB, 0x88, 0x98, 0x5B, 0x9C, 0x5E };
+
+	const unsigned char buffer[26] = { 0x28, 0x00, 0xCA, 0x4E, 0x29, 0x59, 0xF2, 0x5D, 0x86, 0x98, 0xD6, 0x53, 0x23, 0x00, 0x52, 0x00, 0x23, 0x00, 0x42, 0x00, 0x21, 0x6B, 0x29, 0x00, 0x29, 0x00 };
+	auto wstr3 = bytes_to_wstring(buffer, byte_length);
+	std::wcout << wstr3 << std::endl;
+	return 0;
+
 	Serial();
 	//test();
 	//SerialWrite(STOP_MP3);
@@ -1964,12 +2067,12 @@ int main(int argc, const char** argv)
 	for (auto processID : FindPidsByName(TARGET_APP_NAME)) {
 		EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
 	}
-	Sleep(50);  // µÈÒ»ÏÂÃ¶¾Ù´°¿Ú¾ä±ú»Øµ÷Íê³ÉÔÙÖ´ĞĞ
+	Sleep(50);  // ç­‰ä¸€ä¸‹æšä¸¾çª—å£å¥æŸ„å›è°ƒå®Œæˆå†æ‰§è¡Œ
 
 	gm.init();
 	gm.hook_data();
-	gm.work();
-	//gm.test();
+	//gm.work();
+	gm.test();
 	return 0;
 }
 

@@ -132,9 +132,12 @@ public:
 	int convert_to_map_pos_x(float x);
 	int convert_to_map_pos_y(float y);
 	bool talk_to_dianxiaoer();
+	void parse_baotu_task_info();
 
 	void from_changancheng_to_changanjiudian();
 	void UpdateWindowRect();
+	unsigned int get_scene_id_by_name(std::wstring name);
+
 	cv::Rect ROI_cursor(POINT pos);
 	cv::Rect ROI_beibao();
 	cv::Rect ROI_npc_talk();
@@ -151,6 +154,8 @@ public:
 	std::vector<POINT> dianxiaoer_pos_list;  // 店小二固定移动的几个坐标
 	float dianxiaoer_pos_x = 0;
 	float dianxiaoer_pos_y = 0;
+	unsigned int baotu_target_scene_id = 0;
+	unsigned int baotu_task_count = 0;  // 今日领取第几次任务
 
 	uintptr_t scene_id_addr = 0;
 	std::string scene;
@@ -199,6 +204,8 @@ cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method, int wi
 cv::Point WaitMatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
 bool WaitMatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
 uint64_t getCurrentTimeMilliseconds();
+std::wstring bytes_to_wstring(const unsigned char* buffer, size_t size);
+std::vector<std::wstring> findContentBetweenTags(const std::wstring& source, const std::wstring& startTag, const std::wstring& endTag);
 
 //uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
