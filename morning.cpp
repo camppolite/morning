@@ -549,8 +549,12 @@ void MyWindowInfo::update_dianxiaoer_pos() {
 	SIZE_T bytesRead;
 	pNtReadVirtualMemory(hProcess, (PVOID)dianxiaoer_pos_addr, buffer, regionSize, &bytesRead);
 	if (bytesRead > 0) {
-		dianxiaoer_pos_x = *reinterpret_cast<float*>(buffer + 0x18);
-		dianxiaoer_pos_y = *reinterpret_cast<float*>(buffer + 0x1C);
+		auto x = *reinterpret_cast<float*>(buffer + 0x18);
+		auto y = *reinterpret_cast<float*>(buffer + 0x1C);
+		if (is_dianxiaoer_pos(x, y)) {
+			dianxiaoer_pos_x = x;
+			dianxiaoer_pos_y = y;
+		}
 	}
 	delete[] buffer;
 }
@@ -614,7 +618,7 @@ void MyWindowInfo::move_to_dianxiaoer() {
 	update_dianxiaoer_pos();
 	update_player_float_pos();
 
-	if (!is_near_dianxiaoer()) {
+	if (!is_near_dianxiaoer() && dianxiaoer_pos_x > 0) {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 		// A星寻路
@@ -646,7 +650,7 @@ bool MyWindowInfo::talk_to_dianxiaoer() {
 		//log_info("相对坐标:%d,%d", rect.left + px.x, rect.top + px.y);
 		//hwnd2mat(hwnd);
 		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);  // 点击与店小二对话
-		auto pos = WaitMatchingRectPos(this, ROI_npc_talk(), img_btn_tingtingwufang);
+		auto pos = WaitMatchingRectPos(hwnd, ROI_npc_talk(), img_btn_tingtingwufang);
 		if (pos.x > 0) {
 			// 弹出对话框，接任务
 			mouse_click_human(this, POINT{ rect.left + pos.x, rect.top + pos.y }, 0, 0, 1);
@@ -686,7 +690,7 @@ bool MyWindowInfo::is_moving() {
 
 bool MyWindowInfo::is_near_dianxiaoer() {
 	update_dianxiaoer_pos();
-	if (is_dianxiaoer_pos(dianxiaoer_pos_x, dianxiaoer_pos_y)) {
+	if (dianxiaoer_pos_x > 0) {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 		if (abs(dxe_x - player_pos.x) <= (dianxiaoer_valid_distence + 1) && abs(dxe_x - player_pos.x) <= (dianxiaoer_valid_distence + 1)) {
@@ -727,31 +731,37 @@ void MyWindowInfo::parse_baotu_task_info() {
 		SIZE_T bytesRead;
 		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol - regionSize + symbol_len), buffer, regionSize, &bytesRead);
 		if (bytesRead > 0) {
-			today_times = bytes_to_wstring(&buffer[baotu_task_symbol], symbol_len);
+			today_times = bytes_to_wstring(&buffer[regionSize - symbol_len], symbol_len);
 			for (int i = 0; i < bytesRead - 1; i++) {
 				if (buffer[i] == 0xC6 && buffer[i + 1] == 0x25) {
-					content = bytes_to_wstring(&buffer[baotu_task_symbol - bytesRead + i], bytesRead - i);
+					content = bytes_to_wstring(&buffer[i], bytesRead - i - symbol_len);
 					break;
 				}
 			}
 		}
 		if (!content.empty()) {
+			std::vector<std::wstring> all_tags_wstr;
 			auto tag_wstr1 = findContentBetweenTags(content, L"#K", L"#B");
-			for(auto& wstr : tag_wstr1)
+			auto tag_wstr2 = findContentBetweenTags(content, L"#R", L"#B");
+			all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr1.begin(), tag_wstr1.end());
+			all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr2.begin(), tag_wstr2.end());
+			for(auto& wstr : all_tags_wstr)
 			{
-				baotu_target_scene_id = get_scene_id_by_name(wstr);
-			}
-			if (baotu_target_scene_id < 0) {
-				auto tag_wstr2 = findContentBetweenTags(content, L"#R", L"#B");
-				for (auto& wstr : tag_wstr1)
-				{
-					baotu_target_scene_id = get_scene_id_by_name(wstr);
+				if (baotu_target_scene_id <= 0) baotu_target_scene_id = get_scene_id_by_name(wstr);
+				if (baotu_target_pos.x <= 0) {
+					size_t pos = wstr.find(L"，", 0);
+					if (pos != std::wstring::npos) {
+						baotu_target_pos.x = std::stoi(wstr.substr(0, pos));
+						baotu_target_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
+					}
 				}
 			}
 			auto tag_wstr3 = findContentBetweenTags(today_times, L"(今天已领取#R", L"#B次)");
 			baotu_task_count = std::stoi(tag_wstr3.at(0));
+			log_info("今天已领取:%d次", baotu_task_count);
 		}
 	}
+	log_info("结束解析宝图任务内容:0x%X", hProcess);
 }
 
 unsigned int MyWindowInfo::get_scene_id_by_name(std::wstring name) {
@@ -939,15 +949,16 @@ void GoodMorning::test() {
 		//	0,
 		//	"20 51 B2 9C FB 7F 00 00 01 00 00 00 01 00 00 00",
 		//	"xxxxxxxxxxxxxxxx");
-
-		winfo.scan_dianxiaoer_addr_pos();
+		//hwnd2mat(winfo.hwnd);
+		//winfo.scan_dianxiaoer_addr_pos();
 		while (true) {
-			winfo.update_player_float_pos();
-			winfo.update_scene_id();
+			//winfo.update_player_float_pos();
+			//winfo.update_scene_id();
 
 			//winfo.update_scene();
 			//winfo.update_dianxiaoer_pos();
 			winfo.move_to_dianxiaoer();
+			winfo.parse_baotu_task_info();
 			Sleep(3000);
 			printf("\n");
 		}
@@ -1134,7 +1145,7 @@ cv::Mat hwnd2mat(HWND hwnd) {
 	// 2. Use cvtColor with the COLOR_BGRA2BGR conversion code
 	cv::cvtColor(src, image_bgr, cv::COLOR_BGRA2BGR);
 
-	auto current_path = fs::current_path();
+	auto save_path = fs::current_path() / "screenshot";
 	//fs::path filename = "data.txt";
 	//fs::path full_path = current_path / filename;
 	time_t t = time(nullptr);
@@ -1142,8 +1153,8 @@ cv::Mat hwnd2mat(HWND hwnd) {
 	char filename[35];
 	filename[strftime(filename, sizeof(filename), "%Y-%m-%d %H-%M-%S-", lt)] = '\0';
 	//log_info("rand:%d", rand());
-	current_path /= filename + std::string("r") + std::to_string(rand()) + ".png";
-	cv::imwrite(current_path.string().c_str(), image_bgr);
+	save_path /= filename + std::string("r") + std::to_string(rand()) + ".png";
+	cv::imwrite(save_path.string().c_str(), image_bgr);
 
 	return image_bgr;
 }
@@ -1510,10 +1521,10 @@ cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string
 	return getMatchLoc(result, threshold, match_method, templ.cols, templ.rows);
 }
 
-cv::Point WaitMatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, int timeout, std::string mask_path, double threshold, int match_method) {
+cv::Point WaitMatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout, std::string mask_path, double threshold, int match_method) {
 	auto t_ms = getCurrentTimeMilliseconds();
 	while (true) {
-		auto pos = MatchingRectPos(winfo, roi_rect, templ_path, mask_path, threshold, match_method);
+		auto pos = MatchingRectPos(hwnd, roi_rect, templ_path, mask_path, threshold, match_method);
 		if (pos.x > 0) return pos;
 		if (timeout == 0) break;
 		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
@@ -1538,7 +1549,7 @@ bool WaitMatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int 
 	}
 }
 
-cv::Point MatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
+cv::Point MatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
 	// Mask image(M) : The mask, a grayscale image that masks the template
 	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
 	// The mask must have the same dimensions as the template
@@ -1554,7 +1565,7 @@ cv::Point MatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string te
 	// cv2.TM_CCORR_NORMED  # 这个对颜色敏感度高
 	cv::Point pos(-1, -1);
 
-	auto image = hwnd2mat(winfo->hwnd);
+	auto image = hwnd2mat(hwnd);
 	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
 	if (image.empty() || templ.empty())
 	{
@@ -1586,7 +1597,7 @@ cv::Point MatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string te
 	return getMatchLoc(result, threshold, match_method, templ.cols, templ.rows);
 }
 
-cv::Point MatchingRectLeftTop(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
+cv::Point MatchingRectLeftTop(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
 	// Mask image(M) : The mask, a grayscale image that masks the template
 	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
 	// The mask must have the same dimensions as the template
@@ -1602,7 +1613,7 @@ cv::Point MatchingRectLeftTop(MyWindowInfo* winfo, cv::Rect roi_rect, std::strin
 	// cv2.TM_CCORR_NORMED  # 这个对颜色敏感度高
 	cv::Point pos(-1, -1);
 
-	auto image = hwnd2mat(winfo->hwnd);
+	auto image = hwnd2mat(hwnd);
 	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
 	if (image.empty() || templ.empty())
 	{
@@ -1956,7 +1967,7 @@ POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos) {
 		// 循环等待鼠标移动停止
 		if (getCurrentTimeMilliseconds() - t_ms > 1300) return tmp_pos;
 		Sleep(5);
-		auto cursor_pos = MatchingRectLeftTop(winfo, winfo->ROI_cursor(pos), img_cursors_cursor);  // 游戏自身的鼠标
+		auto cursor_pos = MatchingRectLeftTop(winfo->hwnd, winfo->ROI_cursor(pos), img_cursors_cursor);  // 游戏自身的鼠标
 		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
 		{
@@ -1970,7 +1981,7 @@ POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos) {
 }
 
 bool ClickMatchImage(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int x_fix, int y_fix, int xs, int ys, int mode, int timeout) {
-	auto cv_pos = WaitMatchingRectPos(winfo, roi_rect, templ_path, timeout, mask_path, threshold, match_method);
+	auto cv_pos = WaitMatchingRectPos(winfo->hwnd, roi_rect, templ_path, timeout, mask_path, threshold, match_method);
 	if (cv_pos.x < 0) return false;
 	POINT pos = { cv_pos.x + x_fix, cv_pos.y + y_fix };
 	return mouse_click_human(winfo, pos, xs, ys, mode);
@@ -2009,6 +2020,7 @@ std::vector<std::wstring> findContentBetweenTags(
 			// substr() 的第二个参数是需要提取的长度，而不是结束索引。
 			size_t length = endPos - contentStartIdx;
 			res.push_back(source.substr(contentStartIdx, length));
+			pos = endPos + endTag.length();
 		}
 	}
 	return res;
@@ -2021,6 +2033,10 @@ int main(int argc, const char** argv)
 
 	// SEED the generator ONCE at the start of the program
 	std::srand(static_cast<unsigned int>(time(nullptr)));
+	struct stat st = { 0 };
+	if (stat("screenshot", &st) == -1) {
+		_mkdir("screenshot");
+	}
 
 	//src = imread("111.png", IMREAD_COLOR); // Load an image
 	//if (src.empty())
@@ -2045,15 +2061,8 @@ int main(int argc, const char** argv)
 
 	//ThresholdinginRange();
 	//MatchingMethod();
-	_setmode(_fileno(stdout), _O_U8TEXT);
 
-	size_t byte_length = 24;
-	//const unsigned char buffer[8] = { 0xC6, 0x25, 0xAB, 0x88, 0x98, 0x5B, 0x9C, 0x5E };
-
-	const unsigned char buffer[26] = { 0x28, 0x00, 0xCA, 0x4E, 0x29, 0x59, 0xF2, 0x5D, 0x86, 0x98, 0xD6, 0x53, 0x23, 0x00, 0x52, 0x00, 0x23, 0x00, 0x42, 0x00, 0x21, 0x6B, 0x29, 0x00, 0x29, 0x00 };
-	auto wstr3 = bytes_to_wstring(buffer, byte_length);
-	std::wcout << wstr3 << std::endl;
-	return 0;
+	//_setmode(_fileno(stdout), _O_U8TEXT);
 
 	Serial();
 	//test();

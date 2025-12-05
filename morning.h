@@ -155,6 +155,7 @@ public:
 	float dianxiaoer_pos_x = 0;
 	float dianxiaoer_pos_y = 0;
 	unsigned int baotu_target_scene_id = 0;
+	POINT baotu_target_pos = { 0, 0 };
 	unsigned int baotu_task_count = 0;  // 今日领取第几次任务
 
 	uintptr_t scene_id_addr = 0;
@@ -196,12 +197,12 @@ HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);
 DWORD GetModuleSize(HANDLE hProcess, HMODULE hModule);
 cv::Mat hwnd2mat(HWND hwnd);
 cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-cv::Point MatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-cv::Point MatchingRectLeftTop(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+cv::Point MatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+cv::Point MatchingRectLeftTop(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
 bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
 cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double threshold, int match_method);
 cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method, int width, int height);
-cv::Point WaitMatchingRectPos(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+cv::Point WaitMatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
 bool WaitMatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
 uint64_t getCurrentTimeMilliseconds();
 std::wstring bytes_to_wstring(const unsigned char* buffer, size_t size);
