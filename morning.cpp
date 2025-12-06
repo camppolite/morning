@@ -58,7 +58,7 @@ GoodMorning gm;
 auto current_path = fs::current_path();
 
 
-MyWindowInfo::MyWindowInfo(HANDLE processID) {
+WindowInfo::WindowInfo(HANDLE processID) {
 	pid = processID;
 	dianxiaoer_pos_list.push_back(POINT{ 450, 850 });
 	dianxiaoer_pos_list.push_back(POINT{ 710, 710 });
@@ -70,9 +70,19 @@ MyWindowInfo::MyWindowInfo(HANDLE processID) {
 	dianxiaoer_pos_list.push_back(POINT{ 470, 650 });
 	dianxiaoer_pos_list.push_back(POINT{ 750, 610 });
 	dianxiaoer_pos_list.push_back(POINT{ 650, 790 });
+	init();
 }
 
-std::vector<uintptr_t> MyWindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
+void WindowInfo::init() {
+	dianxiaoer_pos_addr = 0;
+	dianxiaoer_pos_x = 0;
+	dianxiaoer_pos_y = 0;
+	baotu_target_scene_id = 0;
+	baotu_target_pos = { 0, 0 };
+	step.reset();
+}
+
+std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
 {
 	std::vector<uintptr_t> res;
 	BYTE* buffer = new BYTE[regionSize];
@@ -109,7 +119,7 @@ std::vector<uintptr_t> MyWindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID
 	return res;
 }
 
-std::vector<uintptr_t> MyWindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask)
+std::vector<uintptr_t> WindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask)
 {
 	// ModuleBase 为0则扫描PRV内存，
 	// all 为true，则扫描全部匹配结果,为false扫描返回第一个
@@ -179,7 +189,7 @@ std::vector<uintptr_t> MyWindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE M
 	return res;
 }
 
-uintptr_t MyWindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
+uintptr_t WindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
 {
 	uintptr_t matchAddress = 0;
 	BYTE* buffer = new BYTE[regionSize];
@@ -217,7 +227,7 @@ uintptr_t MyWindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, 
 	return matchAddress;
 }
 
-uintptr_t MyWindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask)
+uintptr_t WindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask)
 {
 	// ModuleBase 为0则扫描PRV内存，
 	// all 为true，则扫描全部匹配结果,为false扫描返回第一个
@@ -282,7 +292,7 @@ uintptr_t MyWindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, cons
 	return matchAddress;
 }
 
-uintptr_t MyWindowInfo::getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset) {
+uintptr_t WindowInfo::getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset) {
 	// adr_offset = rav_offset - 3
 	// opcode_adr = AoB_adr + adr_offset
 	// StaticAddress - opcode_adr - 7 = rav
@@ -298,7 +308,7 @@ uintptr_t MyWindowInfo::getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE M
 	return rav + 7 + AoB_adr + offset - 3;
 }
 
-uintptr_t MyWindowInfo::getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset) {
+uintptr_t WindowInfo::getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset) {
 	// adr_offset = rav_offset - 1
 	// opcode_adr = AoB_adr + adr_offset
 	// StaticAddress - opcode_adr - 5 = rav
@@ -314,7 +324,7 @@ uintptr_t MyWindowInfo::getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE Mod
 	return rav + 5 + AoB_adr + offset - 1;
 }
 
-POINT MyWindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
+POINT WindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
 	// Mask image(M) : The mask, a grayscale image that masks the template
 	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
 	// The mask must have the same dimensions as the template
@@ -367,7 +377,7 @@ POINT MyWindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, s
 	return pos;
 }
 
-void MyWindowInfo::update_player_float_pos() {
+void WindowInfo::update_player_float_pos() {
 	// 读取更新玩家坐标
 	SIZE_T regionSize = 0x8;
 	BYTE* buffer = new BYTE[regionSize];
@@ -381,7 +391,7 @@ void MyWindowInfo::update_player_float_pos() {
 	log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
 }
 
-void MyWindowInfo::update_scene() {
+void WindowInfo::update_scene() {
 	// 得到的string内容为"建邺城[25,88]"，可以分解为场景名+玩家坐标
 	BYTE* buffer = new BYTE[map_offset];
 	SIZE_T bytesRead;
@@ -412,7 +422,7 @@ void MyWindowInfo::update_scene() {
 	delete[] buffer;
 }
 
-void MyWindowInfo::update_scene_id() {
+void WindowInfo::update_scene_id() {
 	// 读取更新场景id
 	SIZE_T regionSize = 0x8;
 	BYTE* buffer = new BYTE[regionSize];
@@ -422,7 +432,7 @@ void MyWindowInfo::update_scene_id() {
 	delete[] buffer;
 }
 
-void MyWindowInfo::scan_dianxiaoer_addr_pos() {
+void WindowInfo::scan_dianxiaoer_addr_pos() {
 	if (dianxiaoer_pos_addr == 0) {
 		log_info("查找店小二坐标开始:0x%X", hProcess);
 		dianxiaoer_pos_x = 0;
@@ -540,7 +550,7 @@ void MyWindowInfo::scan_dianxiaoer_addr_pos() {
 	}
 }
 
-void MyWindowInfo::update_dianxiaoer_pos() {
+void WindowInfo::update_dianxiaoer_pos() {
 	// 读取更新小二坐标
 	dianxiaoer_pos_x = 0;
 	dianxiaoer_pos_y = 0;
@@ -559,37 +569,40 @@ void MyWindowInfo::update_dianxiaoer_pos() {
 	delete[] buffer;
 }
 
-void MyWindowInfo::move_cursor_center_top() {
-	POINT pos = { rect.left + 515, rect.top + 150 };
-	serial_move_human(pos, 0);
+void WindowInfo::move_cursor_center_top() {
+	serial_move_human({ rect.left + 515, rect.top + 150 }, 0);
 }
 
-void MyWindowInfo::open_beibao() {
+void WindowInfo::move_cursor_center_bottom() {
+	serial_move_human({ rect.left + 515, rect.top - 100 }, 0);
+}
+
+void WindowInfo::open_beibao() {
 	move_cursor_center_top();
 	for (int i = 0; i < 5; i++) {
 		input_alt_e();
 		if (WaitMatchingRect(hwnd, ROI_beibao(), img_btn_beibao, 2000)) {
-			if (MatchingRect(hwnd, ROI_beibao(), img_btn_package_prop_640)) {
-				ClickMatchImage(this, ROI_beibao(), img_btn_package_prop_640);
+			if (MatchingRect(hwnd, ROI_beibao(), img_btn_package_prop)) {
+				ClickMatchImage(ROI_beibao(), img_btn_package_prop);
 			}
 			break;
 		}
 	}
 }
 
-void MyWindowInfo::open_map() {
+void WindowInfo::open_map() {
 	for (int i = 0; i < 5; i++) {
 		input_tab();
 		if (WaitMatchingRect(hwnd, ROI_beibao(), img_btn_beibao, 2000)) {
-			if (MatchingRect(hwnd, ROI_beibao(), img_btn_package_prop_640)) {
-				ClickMatchImage(this, ROI_beibao(), img_btn_package_prop_640);
+			if (MatchingRect(hwnd, ROI_beibao(), img_btn_package_prop)) {
+				ClickMatchImage(ROI_beibao(), img_btn_package_prop);
 			}
 			break;
 		}
 	}
 }
 
-POINT MyWindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id) {
+POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id) {
 	// 根据坐标计算相对自己在屏幕上的像素
 	POINT px = { 0, 0 };
 	//int x_pixel = 0;
@@ -613,7 +626,7 @@ POINT MyWindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id) {
 	return px;
 }
 
-void MyWindowInfo::move_to_dianxiaoer() {
+void WindowInfo::move_to_dianxiaoer() {
 	scan_dianxiaoer_addr_pos();
 	update_dianxiaoer_pos();
 	update_player_float_pos();
@@ -626,18 +639,335 @@ void MyWindowInfo::move_to_dianxiaoer() {
 		log_info("店小二坐标:%d, %d", dxe_x, dxe_y);
 		log_info("A星寻路结果:%d, %d", astar_pos.x, astar_pos.y);
 		auto px = compute_pos_pixel(astar_pos, m_scene_id);
-		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
+		mouse_click_human(POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
 		moveing = true;
 	}
 }
-void MyWindowInfo::from_changancheng_to_changanjiudian() {
+void WindowInfo::from_changancheng_to_changanjiudian() {
 	// 长安酒店入口(464,168)
+	update_scene_id();
+	update_player_float_pos();
+	if (!(abs(player_pos.x - 467) <= 20 && abs(player_pos.x - 171) <= 20)) {
+		// 不在酒店门口，使用飞行棋
+		fly_to_changanjiudian();
+		update_player_float_pos();
+	}
 	auto px = compute_pos_pixel({ 467, 171 }, m_scene_id);
-	mouse_click_human(this, { rect.left + px.x, rect.top + px.y }, 0, 0, 1);
+	mouse_click_human({ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
 	moveing = true;
 }
 
-bool MyWindowInfo::talk_to_dianxiaoer() {
+void WindowInfo::fly_to_changanjiudian() {
+	use_changan777(ROI_changan777_changanjiudian());
+}
+
+void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
+	log_info("飞到宝图场景");
+	bool turn = false;
+	switch (scene_id)
+	{
+	case 长寿村:
+	{
+		if ((x <= 86 && y <= 13) || (x <= 62 && y <= 84) || (x <= 76 && 14 <= y && y <= 18)) use_changshoucun777(ROI_changshoucun777_taibaijinxing(), false, turn);
+		else if ((87 <= x && y <= 32) || (79 <= x && 12 <= y  && y <= 19) || (62 <= x && 20 <= y && y <= 26)) use_changshoucun777(ROI_changshoucun777_changshoujiaowai(), false, turn);
+		else if ((x <= 73 && 85 <= y && y <= 127) || (x <= 82 && 128 <= y && y <= 135)) use_changshoucun777(ROI_changshoucun777_dangpu(), false, turn);
+		else if (117 <= x && 124 <= y && y <= 162) use_changshoucun777(ROI_changshoucun777_lucheng_n_qiangzhuan(), true, turn);
+		else if (x <= 77 && 136 <= y) use_changshoucun777(ROI_changshoucun777_zhongshusheng(), false, turn);
+		else if (78 <= x && 163 <= y) use_changshoucun777(ROI_changshoucun777_fangcunshan(), false, turn);
+		else if ((62 <= x && 33 <= y && y <= 76) || (113 <= x && 77 <= y && y <= 87)) {
+			input_alt_e();
+			use_feixingfu(scene_id);
+		}
+		else use_changshoucun777(ROI_changshoucun777_lucheng_n_qiangzhuan(), true, turn);
+		break;
+	}
+	case 傲来国:
+	{
+		if ((x <= 74 && y <= 38) || (x <= 65 && 39 <= y && y <= 60) || (x <= 93 && y <= 30)) use_aolaiguo777(ROI_aolaiguo777_yaodian(), false, turn);
+		else if ((121 <= x && y <= 34) || (188 <= x && 35 <= y && y <= 37)) use_aolaiguo777(ROI_aolaiguo777_donghaiwan(), true, turn);
+		else if ((143 <= x && 38 <= y && y <= 71) || (170 <= x && 72 <= y && y <= 89)) use_aolaiguo777(ROI_aolaiguo777_dangpu(), true, turn);
+		else if (167 <= x && 94 <= y) use_aolaiguo777(ROI_aolaiguo777_huaguoshan(), true, turn);
+		else if (71 <= x && x <= 166 && 72 <= y) {
+			input_alt_e();
+			use_feixingfu(scene_id);
+		}
+		else if ((x <= 62 && 61 <= y && y <= 112) || (63 <= x && x <= 70 && 75 <= y && y <= 112)) use_aolaiguo777(ROI_aolaiguo777_penglaixiandao(), false, turn);
+		else if (x <= 70 && 113 <= y) use_aolaiguo777(ROI_aolaiguo777_nvercun(), false, turn);
+		else use_aolaiguo777(ROI_aolaiguo777_qianzhuang(), true, turn);
+		break;
+	}
+	case 朱紫国:
+	{
+		if (x <= 43  && y <= 22) use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false, turn);
+		else if (44 <= x && x <= 111 && y <= 24) use_zhuziguo777(ROI_zhuziguo777_duanmuniangzi(), true, turn);
+		else if ((112 <= x && y <= 26) || (90 <= x && x <= 111 && 17 <= y && y <= 32)) use_zhuziguo777(ROI_zhuziguo777_sichouzhilu(), true, turn);
+		else if ((112 <= x && 27 <= y && y <= 65) || (104 <= x && x <= 111 && 33 <= y && y <= 65)) use_zhuziguo777(ROI_zhuziguo777_yaodian(), true, turn);
+		else if ((107 <= x && 66 <= y && y <= 107) || (114 <= x && 108 <= y)) {
+			input_alt_e();
+			use_feixingfu(scene_id);
+		}
+		else if ((39 <= x && x <= 106 && 73 <= y) || (107 <= x && x <= 113 && 107 <= y)) use_zhuziguo777(ROI_zhuziguo777_shenjidaozhang(), false, turn);
+		else if (x <= 38 && 71 <= y) use_zhuziguo777(ROI_zhuziguo777_qilinshan(), false, turn);
+		else use_zhuziguo777(ROI_zhuziguo777_jiudian(), false, turn);
+		break;
+	}
+	case 西凉女国:
+	{
+		// 西凉女国：1.飞行符 2.合成旗-朱紫国驿站-西凉女国(这条路复杂而且慢)
+		input_alt_e();
+		use_feixingfu(scene_id);
+		break;
+	}
+	case 宝象国:
+	{
+		input_alt_e();
+		use_feixingfu(scene_id);
+		break;
+	}
+	case 建邺城:
+	{
+		// 建邺城：1.飞行符 2.合成旗-傲来东海湾驿站-东海湾-建邺城
+		input_alt_e();
+		use_feixingfu(scene_id);
+		break;
+	}
+	case 大唐境外:
+	{
+		// 大唐境外：1.合成旗-朱紫国左下角-大唐境外 2.合成旗-罗道人旁的驿站老板-传送大唐国境-大唐境外
+		bool zhuziguo = true;
+		break;
+	}
+	case 江南野外:
+	{
+		// 江南野外:1.合成旗-长安右下角-江南野外 2.飞行符-建邺城-江南野外
+		break;
+	}
+	case 女儿村:
+	{
+		// 女儿村：合成旗-傲来国左上角-女儿村
+		break;
+	}
+	case 普陀山:
+	{
+		// 普陀山：合成旗-长安左下角-大唐国境-普陀接引仙女
+		break;
+	}
+	case 五庄观:
+	{
+		// 五庄观:合成旗-长安城驿站老板-大唐国境-大唐境外-五庄观
+		break;
+	}
+	default:
+		break;
+	}
+}
+void WindowInfo::fly_to_baotu_scene() {
+	POINT dst = { 0, 0 };
+	fly_to_scene(dst.x, dst.y, baotu_target_scene_id);
+	switch (baotu_target_scene_id)
+	{
+	case 长寿村:
+	{
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+void WindowInfo::use_beibao_prop(const char* image, bool turn, bool keep) {
+	if (turn) open_beibao();
+	ClickMatchImage(ROI_beibao_props(), image, "", mThreshold, mMatchMethod, 0, 0, 0, 0, 2, 3000);
+	if (!keep) {
+		Sleep(150);
+		input_alt_e();
+	}
+}
+
+void WindowInfo::use_changan777(cv::Rect roi, bool move, bool turn, bool keep) {
+	log_info("使用长安合成旗");
+	use_beibao_prop(img_props_red_777, turn, keep);
+	if (move) move_cursor_center_bottom();
+	auto flag_loc = WaitMatchingRectPos(hwnd, roi, img_btn_flag_loc, 5000, "", 0.85);
+	mouse_click_human({flag_loc.x, flag_loc.y});
+	wait_scene_change(长安城);
+}
+
+void WindowInfo::use_zhuziguo777(cv::Rect roi, bool move, bool turn, bool keep) {
+	log_info("使用朱紫国合成旗");
+	use_beibao_prop(img_props_white_777, turn, keep);
+	if (move) move_cursor_center_bottom();
+	auto flag_loc = WaitMatchingRectPos(hwnd, roi, img_btn_flag_loc, 4000, "", 0.85);
+	mouse_click_human({ flag_loc.x, flag_loc.y });
+	wait_scene_change(朱紫国);
+}
+
+void WindowInfo::use_changshoucun777(cv::Rect roi, bool move, bool turn, bool keep) {
+	log_info("使用长寿村合成旗");
+	use_beibao_prop(img_props_green_777, turn, keep);
+	if (move) move_cursor_center_bottom();
+	auto flag_loc = WaitMatchingRectPos(hwnd, roi, img_btn_flag_loc, 4000, "", 0.85);
+	mouse_click_human({ flag_loc.x, flag_loc.y });
+	wait_scene_change(长寿村);
+}
+
+void WindowInfo::use_aolaiguo777(cv::Rect roi, bool move, bool turn, bool keep) {
+	log_info("使用傲来国合成旗");
+	use_beibao_prop(img_props_yellow_777, turn, keep);
+	if (move) move_cursor_center_bottom();
+	auto flag_loc = WaitMatchingRectPos(hwnd, roi, img_btn_flag_loc, 4000, "", 0.85);
+	if (flag_loc.x < 0) {
+		if (roi == ROI_aolaiguo777_qianzhuang()) flag_loc = WaitMatchingRectPos(hwnd, ROI_aolaiguo777_yaodian(), img_btn_flag_loc, 0, "", 0.85);
+	}
+	mouse_click_human({ flag_loc.x, flag_loc.y });
+	wait_scene_change(傲来国);
+}
+
+void WindowInfo::use_feixingfu(unsigned int scene_id) {
+	log_info("使用飞行符");
+	move_cursor_center_bottom();
+	input_f1();
+	cv::Rect roi;
+	const char* flag_image = nullptr;
+	switch (scene_id)
+	{
+	case 建邺城:
+	{
+		flag_image = img_symbol_feixingfu_jianyecheng;
+		roi = ROI_feixingfu_jianyecheng();
+		break;
+	}
+	case 西凉女国:
+	{
+		flag_image = img_symbol_feixingfu_xiliangnvguo;
+		roi = ROI_feixingfu_xiliangnvguo();
+		break;
+	}
+	case 宝象国:
+	{
+		flag_image = img_symbol_feixingfu_baoxiangguo;
+		roi = ROI_feixingfu_baoxiangguo();
+		break;
+	}
+	case 长寿村:
+	{
+		flag_image = img_symbol_feixingfu_changshoucun;
+		roi = ROI_feixingfu_changshoucun();
+		break;
+	}
+	case 傲来国:
+	{
+		flag_image = img_symbol_feixingfu_aolaiguo;
+		roi = ROI_feixingfu_aolaiguo();
+		break;
+	}
+	case 朱紫国:
+	{
+		flag_image = img_symbol_feixingfu_zhuziguo;
+		roi = ROI_feixingfu_zhuziguo();
+		break;
+	}
+	default:
+		return;
+	}
+	auto flag_loc = WaitMatchingRectPos(hwnd, roi, flag_image, 3000, "", 0.85);
+	if (flag_loc.x < 0) {
+		for (int i = 0;i < 3;i++) {
+			input_f1();
+			flag_loc = WaitMatchingRectPos(hwnd, roi, flag_image, 1000, "", 0.85);
+			if (flag_loc.x > 0) break;
+		}
+	}
+	mouse_click_human({ flag_loc.x, flag_loc.y });
+	wait_scene_change(scene_id);
+}
+
+bool WindowInfo::wait_scene_change(unsigned int scene_id, int timeout) {
+	auto t_ms = getCurrentTimeMilliseconds();
+	while (true) {
+		update_scene_id();
+		if (m_scene_id == scene_id) return true;
+		if (timeout == 0) break;
+		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
+			log_info("wait_scene_change超时");
+			return false;
+		}
+		Sleep(5);
+	}
+}
+
+bool WindowInfo::close_npc_talk() {
+	if (!ClickMatchImage(ROI_npc_talk(), img_btn_npc_talk_close)) serial_move_human({rect.left + 670, rect.top + 530});
+}
+
+bool WindowInfo::mouse_click_human(POINT pos, int xs, int ys, int mode) {
+	// mode:0不点击，1左键，2右键，5ctrl+左键, 6alt+a攻击
+	POINT target_pos = pos;
+	POINT mouse_move_pos = { pos.x + xs, pos.y + ys };
+	POINT cursor_pos;
+
+	if (mode == 6) {
+		mode = 1;
+		input_alt_a();
+		target_pos.x += 25;
+		target_pos.y -= 15;
+	}
+
+	auto t_ms = getCurrentTimeMilliseconds();
+	do {
+		// 因为有鼠标漂移，所以需要多次移动
+		if (getCurrentTimeMilliseconds() - t_ms > 3000) {
+			log_warn("鼠标点击超时");
+			return false;
+		}
+		serial_move_human(mouse_move_pos, 0);
+		cursor_pos = get_cursor_pos(mouse_move_pos);
+		if (cursor_pos.x < 0) continue;
+		mouse_move_pos = { mouse_move_pos.x + target_pos.x - cursor_pos.x, mouse_move_pos.y + target_pos.y - cursor_pos.y };
+		Sleep(5);
+	} while (abs(target_pos.x - cursor_pos.x) > 5 || abs(target_pos.y - cursor_pos.y) > 5);
+	switch (mode)
+	{
+	case 1:
+	{
+		serial_click_cur();
+		break;
+	}
+	default:
+		break;
+	}
+	return true;
+}
+
+POINT WindowInfo::get_cursor_pos(POINT pos) {
+	// 获取鼠标漂移量
+	POINT tmp_pos = { -1, -1 };
+	auto t_ms = getCurrentTimeMilliseconds();
+	while (true) {
+		// 循环等待鼠标移动停止
+		if (getCurrentTimeMilliseconds() - t_ms > 1300) return tmp_pos;
+		Sleep(5);
+		auto cursor_pos = MatchingRectLeftTop(hwnd, ROI_cursor(pos), img_cursors_cursor);  // 游戏自身的鼠标
+		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
+		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
+		{
+			tmp_pos.x += rect.left;
+			tmp_pos.y += rect.top;
+			return tmp_pos;
+		}
+		tmp_pos.x = cursor_pos.x;
+		tmp_pos.y = cursor_pos.y;
+	}
+}
+
+bool WindowInfo::ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int x_fix, int y_fix, int xs, int ys, int mode, int timeout) {
+	auto cv_pos = WaitMatchingRectPos(hwnd, roi_rect, templ_path, timeout, mask_path, threshold, match_method);
+	if (cv_pos.x < 0) return false;
+	POINT pos = { cv_pos.x + x_fix, cv_pos.y + y_fix };
+	return mouse_click_human(pos, xs, ys, mode);
+}
+
+bool WindowInfo::talk_to_dianxiaoer() {
 	if (is_near_dianxiaoer()) {
 		// 对话店小二
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
@@ -649,19 +979,20 @@ bool MyWindowInfo::talk_to_dianxiaoer() {
 		//log_info("相对像素:%d,%d", px.x, px.y);
 		//log_info("相对坐标:%d,%d", rect.left + px.x, rect.top + px.y);
 		//hwnd2mat(hwnd);
-		mouse_click_human(this, POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);  // 点击与店小二对话
+		mouse_click_human(POINT{ rect.left + px.x, rect.top + px.y }, 0, 0, 1);  // 点击与店小二对话
 		auto pos = WaitMatchingRectPos(hwnd, ROI_npc_talk(), img_btn_tingtingwufang);
 		if (pos.x > 0) {
-			// 弹出对话框，接任务
-			mouse_click_human(this, POINT{ rect.left + pos.x, rect.top + pos.y }, 0, 0, 1);
-			ClickMatchImage(this, ROI_npc_talk(), img_npc_dianxiaoer, "", 0.78, cv::TM_CCORR_NORMED, 0, 50, 0, 0, 1, 2000);
+			mouse_click_human(POINT{ rect.left + pos.x, rect.top + pos.y }, 0, 0, 1);			// 弹出对话框，接任务
+			close_npc_talk();
+			//ClickMatchImage(ROI_npc_talk(), img_npc_dianxiaoer, "", 0.78, cv::TM_CCORR_NORMED, 0, 50, 0, 0, 1, 2000);  // 接任务后关闭对话窗
+			parse_baotu_task_info();
 			return true;
 		}
 	}
 	return false;
 }
 
-bool MyWindowInfo::is_dianxiaoer_pos(float x, float y) {
+bool WindowInfo::is_dianxiaoer_pos(float x, float y) {
 	// 店小二是按照顺时针固定几个坐标的规律移动的,根据坐标判断是否是店小二
 	for (auto& pos : dianxiaoer_pos_list) {
 		if (x > 0 && y > 0 && pos.x == x && pos.y == y) return true;
@@ -669,7 +1000,7 @@ bool MyWindowInfo::is_dianxiaoer_pos(float x, float y) {
 	return false;
 }
 
-bool MyWindowInfo::is_moving() {
+bool WindowInfo::is_moving() {
 	// 判断自己是否在移动
 	float x0 = 0;
 	float y0 = 0;
@@ -688,7 +1019,7 @@ bool MyWindowInfo::is_moving() {
 	return true;
 }
 
-bool MyWindowInfo::is_near_dianxiaoer() {
+bool WindowInfo::is_near_dianxiaoer() {
 	update_dianxiaoer_pos();
 	if (dianxiaoer_pos_x > 0) {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
@@ -701,19 +1032,19 @@ bool MyWindowInfo::is_near_dianxiaoer() {
 	return false;
 }
 
-int MyWindowInfo::convert_to_map_pos_x(float x) {
+int WindowInfo::convert_to_map_pos_x(float x) {
 	// (x - 1) * 20 + 30 = player_x  其中x是地图上显示的坐标
 	return (x - 30) / 20 + 1;
 }
 
-int MyWindowInfo::convert_to_map_pos_y(float y) {
+int WindowInfo::convert_to_map_pos_y(float y) {
 	// (max_y - y - 1) * 20 + 30 = player_y  其中y是地图上显示的坐标,max_y是地图y的最大值。例如建邺城y最大值是143
 	update_scene_id();
 	auto pos = get_map_max_loc(m_scene_id);
 	return pos.y - 1 - (y - 30) / 20;
 }
 
-void MyWindowInfo::parse_baotu_task_info() {
+void WindowInfo::parse_baotu_task_info() {
 	log_info("开始解析宝图任务内容:0x%X", hProcess);
 	// 宝图内容格式：◆xxxx(今天已领取x次)
 	// ◆:C6 25
@@ -764,7 +1095,24 @@ void MyWindowInfo::parse_baotu_task_info() {
 	log_info("结束解析宝图任务内容:0x%X", hProcess);
 }
 
-unsigned int MyWindowInfo::get_scene_id_by_name(std::wstring name) {
+void WindowInfo::goto_scene(POINT dst, unsigned int scene_id) {
+	if (m_scene_id == scene_id) {
+		// 已处在目的场景，走路过去
+		return;
+	}
+	// 跨地图，需要用飞行棋或走路
+	switch (scene_id)
+	{
+	case 建邺城:
+	{
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+unsigned int WindowInfo::get_scene_id_by_name(std::wstring name) {
 	unsigned int scene_id = 0;
 	if (name == L"狮驼岭") {
 		scene_id = 狮驼岭;
@@ -782,14 +1130,14 @@ unsigned int MyWindowInfo::get_scene_id_by_name(std::wstring name) {
 	return scene_id;
 }
 
-void MyWindowInfo::UpdateWindowRect() {
+void WindowInfo::UpdateWindowRect() {
 	GetWindowRect(hwnd, &rect);
 	// 后台截图，窗口右偏7像素，窗口标题31像素
 	rect.left += 7;
 	rect.bottom += 31;
 }
 
-cv::Rect MyWindowInfo::ROI_cursor(POINT pos) {
+cv::Rect WindowInfo::ROI_cursor(POINT pos) {
 	int len = 150;
 	long left = pos.x - rect.left - len;
 	long top = pos.y - rect.top - len;
@@ -818,26 +1166,175 @@ cv::Rect MyWindowInfo::ROI_cursor(POINT pos) {
 	return roi;
 }
 
-cv::Rect MyWindowInfo::ROI_beibao() {
+cv::Rect WindowInfo::ROI_beibao() {
 	return cv::Rect(400, 180, 250, 200);
 }
 
-cv::Rect MyWindowInfo::ROI_npc_talk() {
+cv::Rect WindowInfo::ROI_npc_talk() {
 	return cv::Rect(180, 330, 680, 330);
 }
+
+cv::Rect WindowInfo::ROI_beibao_props() {
+	return cv::Rect(100, 100, 850, 650);
+}
+
+cv::Rect WindowInfo::ROI_changan777_changanjiudian() {
+	log_info("长安合成旗-长安酒店");
+	return cv::Rect(495, 515, 45, 40); //TODO
+}
+
+cv::Rect WindowInfo::ROI_changan777_yizhan_laoban() {
+	log_info("长安合成旗-驿站老板");
+	return cv::Rect(495, 515, 45, 40);
+}
+
+cv::Rect WindowInfo::ROI_changan777_datangguojing() {
+	log_info("长安合成旗-大唐国境");
+	return cv::Rect(237, 555, 33, 32);
+}
+cv::Rect WindowInfo::ROI_changan777_jiangnanyewai() {
+	log_info("长安合成旗-江南野外");
+	return cv::Rect(750, 555, 48, 32);
+}
+cv::Rect WindowInfo::ROI_changshoucun777_lucheng_n_qiangzhuan() {
+	// 落地坐标:125,110 钱庄
+	// 落地坐标:144,141 鲁成
+	log_info("长寿村合成旗-鲁成+钱庄");
+	return cv::Rect(550, 340, 100, 130);
+}
+cv::Rect WindowInfo::ROI_changshoucun777_fangcunshan() {
+	// 落地坐标:108,203
+	log_info("长寿村合成旗-方寸山");
+	return cv::Rect(515, 250, 135, 95);
+}
+cv::Rect WindowInfo::ROI_changshoucun777_zhongshusheng() {
+	// 落地坐标:45,160
+	log_info("长寿村合成旗-钟书生");
+	return cv::Rect(385, 265, 130, 120);
+}
+cv::Rect WindowInfo::ROI_changshoucun777_dangpu() {
+	// 落地坐标:25,112
+	log_info("长寿村合成旗-当铺");
+	return cv::Rect(385, 385, 115, 125);
+}
+cv::Rect WindowInfo::ROI_changshoucun777_taibaijinxing() {
+	// 落地坐标:44,23
+	log_info("长寿村合成旗-太白金星");
+	return cv::Rect(385, 510, 135, 115);
+}
+cv::Rect WindowInfo::ROI_changshoucun777_changshoujiaowai() {
+	// 落地坐标:144,6
+	log_info("长寿村合成旗-长寿郊外");
+	return cv::Rect(520, 510, 130, 115);
+}
+cv::Rect WindowInfo::ROI_aolaiguo777_nvercun() {
+	// 落地坐标:8,141
+	log_info("傲来国合成旗-女儿村");
+	return cv::Rect(305, 295, 55, 55);
+}
+cv::Rect WindowInfo::ROI_aolaiguo777_qianzhuang() {
+	// 落地坐标:105,55
+	log_info("傲来国合成旗-钱庄");
+	return cv::Rect(440, 430, 135, 105);
+}
+cv::Rect WindowInfo::ROI_aolaiguo777_penglaixiandao() {
+	// 落地坐标:24,97
+	log_info("傲来国合成旗-蓬莱仙岛");
+	return cv::Rect(305, 370, 145, 90);
+}
+cv::Rect WindowInfo::ROI_aolaiguo777_yaodian() {
+	// 落地坐标:48,28
+	log_info("傲来国合成旗-药店");
+	return cv::Rect(305, 460, 145, 120);
+}
+cv::Rect WindowInfo::ROI_aolaiguo777_donghaiwan() {
+	// 落地坐标:165,14
+	log_info("傲来国合成旗-东海湾");
+	return cv::Rect(550, 500, 180, 80);
+}
+cv::Rect WindowInfo::ROI_aolaiguo777_dangpu() {
+	// 落地坐标:185,62
+	log_info("傲来国合成旗-当铺");
+	return cv::Rect(550, 405, 180, 95);
+}
+cv::Rect WindowInfo::ROI_aolaiguo777_huaguoshan() {
+	// 落地坐标:215,143
+	log_info("傲来国合成旗-花果山");
+	return cv::Rect(630, 280, 100, 130);
+}
+cv::Rect WindowInfo::ROI_zhuziguo777_datangjingwai() {
+	// 落地坐标:6,3
+	log_info("朱紫国合成旗-大唐境外");
+	return cv::Rect(290, 545, 60, 40);
+}
+cv::Rect WindowInfo::ROI_zhuziguo777_qilinshan() {
+	// 落地坐标:4,110
+	log_info("朱紫国合成旗-麒麟山");
+	return cv::Rect(285, 300, 95, 100);
+}
+cv::Rect WindowInfo::ROI_zhuziguo777_shenjidaozhang() {
+	// 落地坐标:72,98
+	log_info("朱紫国合成旗-神机道人");
+	return cv::Rect(380, 300, 235, 115);
+}
+cv::Rect WindowInfo::ROI_zhuziguo777_jiudian() {
+	// 落地坐标:53,42
+	log_info("朱紫国合成旗-酒店");
+	return cv::Rect(300, 415, 240, 105);
+}
+cv::Rect WindowInfo::ROI_zhuziguo777_duanmuniangzi() {
+	// 落地坐标:84,9
+	log_info("朱紫国合成旗-端木娘子");
+	return cv::Rect(430, 510, 120, 75);
+}
+cv::Rect WindowInfo::ROI_zhuziguo777_yaodian() {
+	// 落地坐标:147,43
+	log_info("朱紫国合成旗-药店");
+	return cv::Rect(540, 410, 200, 110);
+}
+cv::Rect WindowInfo::ROI_zhuziguo777_sichouzhilu() {
+	// 落地坐标:151,12
+	log_info("朱紫国合成旗-丝绸之路");
+	return cv::Rect(560, 510, 180, 75);
+}
+cv::Rect WindowInfo::ROI_feixingfu_baoxiangguo() {
+	log_info("飞行符-宝象国");
+	return cv::Rect(385, 450, 45, 45);
+}
+cv::Rect WindowInfo::ROI_feixingfu_xiliangnvguo() {
+	log_info("飞行符-西凉女国");
+	return cv::Rect(395, 370, 40, 40);
+}
+cv::Rect WindowInfo::ROI_feixingfu_jianyecheng() {
+	log_info("飞行符-建邺城");
+	return cv::Rect(620, 470, 55, 50);
+}
+cv::Rect WindowInfo::ROI_feixingfu_changshoucun() {
+	log_info("飞行符-长寿村");
+	return cv::Rect(400, 300, 40, 50);
+}
+cv::Rect WindowInfo::ROI_feixingfu_zhuziguo() {
+	log_info("飞行符-朱紫国");
+	return cv::Rect(450, 510, 35, 45);
+}
+cv::Rect WindowInfo::ROI_feixingfu_aolaiguo() {
+	log_info("飞行符-傲来国");
+	return cv::Rect(765, 525, 60, 55);
+}
+
 
 GoodMorning::GoodMorning() {
 
 }
 
 void GoodMorning::init() {
-	for (MyWindowInfo& winfo : this->winsInfo) {
+	for (WindowInfo& winfo : this->winsInfo) {
 		GetWindowRect(winfo.hwnd, &winfo.rect);
 	}
 }
 
 void GoodMorning::hook_data() {
-	for (MyWindowInfo& winfo : this->winsInfo) {
+	for (WindowInfo& winfo : this->winsInfo) {
 
 		winfo.hNtdll = GetModuleHandleA("ntdll.dll");
 		PFN_NtOpenProcess pNtOpenProcess = (PFN_NtOpenProcess)GetProcAddress(winfo.hNtdll, "NtOpenProcess");
@@ -880,7 +1377,7 @@ void GoodMorning::hook_data() {
 
 void GoodMorning::work() {
 	while (true) {
-		for (MyWindowInfo& winfo : this->winsInfo) {
+		for (WindowInfo& winfo : this->winsInfo) {
 			if (winfo.moveing) {
 				if (winfo.is_moving()) continue;
 				else winfo.moveing = false;
@@ -889,8 +1386,6 @@ void GoodMorning::work() {
 			SetForegroundWindow(winfo.hwnd);
 			if (winfo.step.current == &to_changan_jiudian) {
 				log_info("to_changan_jiudian");
-				winfo.update_scene_id();
-				winfo.update_player_float_pos();
 				winfo.from_changancheng_to_changanjiudian();
 				winfo.step.next();
 			}
@@ -917,17 +1412,6 @@ void GoodMorning::work() {
 					winfo.step.set_current(&to_dianxiaoer);
 				}
 			}
-			//switch (winfo.step)
-			//{
-			//case START:
-			//{
-			//	SetForegroundWindow(winfo.hwnd);
-			//	break;
-			//}
-
-			//default:
-			//	break;
-			//}
 		}
 		Sleep(500);
 	}
@@ -940,7 +1424,7 @@ void GoodMorning::test() {
 	GetCursorPos(&cursor_pos);
 	log_info("Mouse position: %d, %d", cursor_pos.x, cursor_pos.y);
 	RECT rect;
-	for (MyWindowInfo& winfo : this->winsInfo) {
+	for (WindowInfo& winfo : this->winsInfo) {
 		//cv::Rect roi_test(450, 338, 300, 300);
 		//cv::Rect roi_test;
 		//MatchingRectPos(roi_test, "2025-12-04 01-57-10-r8312.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
@@ -973,7 +1457,7 @@ void GoodMorning::test() {
 		//MatchingRectPos(ROI_NULL(), "2025-11-26 16-28-51-r15605.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
 		//hwnd2mat(winfo.hwnd);
 
-		bool res = ClickMatchImage(&winfo, ROI_NULL(), "object\\test.png", "", 0.78, cv::TM_CCORR_NORMED, 0, 0, 0, 0, 1);
+		bool res = winfo.ClickMatchImage(ROI_NULL(), "object\\test.png", "", 0.78, cv::TM_CCORR_NORMED, 0, 0, 0, 0, 1);
 	}
 	//hwnd2mat(sc);
 	printf("\n");
@@ -1193,7 +1677,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 				pszMem,       // Base address of block
 				0,             // Bytes of committed pages
 				MEM_RELEASE);  // Decommit the pages
-			MyWindowInfo winfo((HANDLE)targetProcessId);
+			WindowInfo winfo((HANDLE)targetProcessId);
 			winfo.hwnd = hwnd;
 			gm.winsInfo.push_back(winfo);
 			printf("窗口句柄回调成功：%s\n", gametitle.c_str());
@@ -1920,72 +2404,10 @@ void input_tab() {
 	input_key_xxx("TAB");
 }
 
-bool mouse_click_human(MyWindowInfo* winfo, POINT pos, int xs, int ys, int mode) {
-	// mode:0不点击，1左键，2右键，5ctrl+左键, 6alt+a攻击
-	POINT target_pos = pos;
-	POINT mouse_move_pos = { pos.x + xs, pos.y + ys };
-	POINT cursor_pos;
-
-	if (mode == 6) {
-		mode = 1;
-		input_alt_a();
-		target_pos.x += 25;
-		target_pos.y -= 15;
-	}
-
-	auto t_ms = getCurrentTimeMilliseconds();
-	do {
-		// 因为有鼠标漂移，所以需要多次移动
-		if (getCurrentTimeMilliseconds() - t_ms > 3000) {
-			log_warn("鼠标点击超时");
-			return false;
-		}
-		serial_move_human(mouse_move_pos, 0);
-		cursor_pos = get_cursor_pos(winfo, mouse_move_pos);
-		if (cursor_pos.x < 0) continue;
-		mouse_move_pos = { mouse_move_pos.x + target_pos.x - cursor_pos.x, mouse_move_pos.y + target_pos.y - cursor_pos.y };
-		Sleep(5);
-	} while (abs(target_pos.x - cursor_pos.x) > 5 || abs(target_pos.y - cursor_pos.y) > 5);
-	switch (mode)
-	{
-	case 1:
-	{
-		serial_click_cur();
-		break;
-	}
-	default:
-		break;
-	}
-	return true;
+void input_f1() {
+	input_key_xxx("F1");
 }
 
-POINT get_cursor_pos(MyWindowInfo* winfo, POINT pos) {
-	// 获取鼠标漂移量
-	POINT tmp_pos = {-1, -1};
-	auto t_ms = getCurrentTimeMilliseconds();
-	while (true) {
-		// 循环等待鼠标移动停止
-		if (getCurrentTimeMilliseconds() - t_ms > 1300) return tmp_pos;
-		Sleep(5);
-		auto cursor_pos = MatchingRectLeftTop(winfo->hwnd, winfo->ROI_cursor(pos), img_cursors_cursor);  // 游戏自身的鼠标
-		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
-		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
-		{
-			tmp_pos.x += winfo->rect.left;
-			tmp_pos.y += winfo->rect.top;
-			return tmp_pos;
-		}
-		tmp_pos.x = cursor_pos.x;
-		tmp_pos.y = cursor_pos.y;
-	}
-}
-
-bool ClickMatchImage(MyWindowInfo* winfo, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int x_fix, int y_fix, int xs, int ys, int mode, int timeout) {
-	auto cv_pos = WaitMatchingRectPos(winfo->hwnd, roi_rect, templ_path, timeout, mask_path, threshold, match_method);
-	if (cv_pos.x < 0) return false;
-	POINT pos = { cv_pos.x + x_fix, cv_pos.y + y_fix };
-	return mouse_click_human(winfo, pos, xs, ys, mode);
-}
 
 std::wstring bytes_to_wstring(const unsigned char* buffer, size_t size) {
 	std::vector<unsigned char> raw_bytes(size);

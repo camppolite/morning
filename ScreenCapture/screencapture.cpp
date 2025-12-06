@@ -16,9 +16,9 @@ namespace fs = std::filesystem;
 
 //std::map<HANDLE, MyWindowInfo> proccess;
 
-class MyWindowInfo {
+class WindowInfo {
 public:
-	MyWindowInfo(HANDLE processID);
+	WindowInfo(HANDLE processID);
 
 	HANDLE pid;
 	HWND hwnd;
@@ -28,14 +28,14 @@ class ScreenShot {
 public:
 	ScreenShot();
 
-	std::vector<MyWindowInfo> winsInfo;
+	std::vector<WindowInfo> winsInfo;
 };
 
 ScreenShot::ScreenShot() {
 
 }
 
-MyWindowInfo::MyWindowInfo(HANDLE processID) {
+WindowInfo::WindowInfo(HANDLE processID) {
 	pid = processID;
 }
 
@@ -200,7 +200,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 				pszMem,       // Base address of block
 				0,             // Bytes of committed pages
 				MEM_RELEASE);  // Decommit the pages
-			MyWindowInfo winfo((HANDLE)targetProcessId);
+			WindowInfo winfo((HANDLE)targetProcessId);
 			winfo.hwnd = hwnd;
 			sc.winsInfo.push_back(winfo);
 			printf("窗口句柄回调成功：%s\n", gametitle.c_str());
