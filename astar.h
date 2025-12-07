@@ -29,7 +29,7 @@ typedef struct {
 #define 建邺衙门 1537
 #define 建邺杂货店 155555
 #define 东海湾 1506
-
+#define 大唐国境 9999
 #define 狮驼岭 9999
 
 #define	女儿村 1
@@ -39,7 +39,6 @@ typedef struct {
 #define	朱紫国 5
 #define	傲来国 6
 #define	宝象国 7
-#define	建邺城 8
 #define	五庄观 9
 #define	长寿村 10
 #define	西凉女国 11
