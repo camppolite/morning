@@ -475,7 +475,7 @@ POINT WindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std
 
 		// 2. Access the ROI using the Mat operator()
 		// 'image_roi' is a new Mat header pointing to the data in 'image'
-		cv::Mat image_roi = image(roi_rect);
+		image_roi = image(roi_rect);
 	}
 
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
@@ -774,7 +774,7 @@ void WindowInfo::goto_changanjiudian() {
 void WindowInfo::move_to_changanjidian_center() {
 	// 有时候离店小二太远，店小二会消失看不见，移动到酒店中间，就不存在这个问题
 	if (dianxiaoer_pos_addr == 0) {
-		click_position({ 10,10 });  //TODO
+		click_position({ 23,13 });
 		moving = true;
 	}
 }
@@ -920,7 +920,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 		// 江南野外:1.合成旗-长安右下角-江南野外 2.飞行符-建邺城-江南野外
 		log_info("从长安到江南野外");
 		use_changan777(ROI_changan777_jiangnanyewai(), false, false);
-		click_position_at_edge({ 10, 10 }, -32, -32); // TODO
+		click_position_at_edge({ 542, 2 }, -32, -32);
 		wait_scene_change(江南野外);
 		update_player_float_pos();
 		break;
@@ -1163,7 +1163,7 @@ bool WindowInfo::wait_scene_change(unsigned int scene_id, int timeout) {
 	}
 }
 
-bool WindowInfo::close_npc_talk() {
+void WindowInfo::close_npc_talk() {
 	if (!ClickMatchImage(ROI_npc_talk(), img_btn_npc_talk_close)) serial_move_human({rect.left + 670, rect.top + 530});
 }
 
@@ -1657,7 +1657,7 @@ cv::Rect WindowInfo::ROI_feixingfu_aolaiguo() {
 	return cv::Rect(765, 525, 60, 55);
 }
 cv::Rect WindowInfo::ROI_fighting() {
-	return cv::Rect(994, 150, 30, 320);
+	return cv::Rect(994, 110, 30, 100);
 }
 
 
@@ -1745,10 +1745,13 @@ void GoodMorning::test() {
 	GetCursorPos(&cursor_pos);
 	log_info("Mouse position: %d, %d", cursor_pos.x, cursor_pos.y);
 	RECT rect;
+	cv::Rect roi_test;
+	//MatchingRectPos(roi_test, "screenshot\\2025-12-09 01-11-22-r30319.png", "object\\btn\\tingtingwufang.png","",0.78);
 	for (WindowInfo& winfo : this->winsInfo) {
 		//cv::Rect roi_test(450, 338, 300, 300);
-		//cv::Rect roi_test;
-		//MatchingRectPos(roi_test, "2025-12-04 01-57-10-r8312.png", "object\\cursors\\cursor.png", "object\\cursors\\cursor_mask.png");
+		cv::Rect roi_test;
+		//MatchingRectPos(roi_test, "screenshot\\2025-12-09 01-11-22-r30319.png", "object\\btn\\tingtingwufang.png");
+		auto cursor_pos = MatchingRectLeftTop(winfo.hwnd, ROI_NULL(), img_btn_tingtingwufang, "", 0.78, cv::TM_CCOEFF_NORMED);  // 游戏自身的鼠标
 		//auto wabaoturenwu_AoB_adr = winfo.PerformAoBScan(
 		//	winfo.hProcess,
 		//	0,
@@ -2276,57 +2279,10 @@ cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string
 
 		// 2. Access the ROI using the Mat operator()
 		// 'image_roi' is a new Mat header pointing to the data in 'image'
-		cv::Mat image_roi = image(roi_rect);
+		image_roi = image(roi_rect);
 	}
-	cv::Mat result;
-	if (image.empty() || templ.empty())
-	{
-		log_error("Can't read one of the images\n");
-		//return result;
-	}
-
-	int result_cols = image.cols - templ.cols + 1;
-	int result_rows = image.rows - templ.rows + 1;
-
-	result.create(result_rows, result_cols, CV_32FC1);
-
-	bool method_accepts_mask = (cv::TM_SQDIFF == match_method || match_method == cv::TM_CCORR_NORMED);
-	try {
-		if (!mask.empty() && method_accepts_mask)
-		{
-			matchTemplate(image, templ, result, match_method, mask);
-		}
-		else
-		{
-			matchTemplate(image, templ, result, match_method);
-		}
-	}
-	catch (cv::Exception& e) {
-		log_error(e.what());
-		//return result;
-	}
-	cv::normalize(result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat());
-	cv::Point matchLoc(-1, -1);
-	double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
-
-	minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat());
-	if (match_method == cv::TM_SQDIFF || match_method == cv::TM_SQDIFF_NORMED)
-	{
-		matchLoc = minLoc;
-	}
-	else
-	{
-		log_info("maxVal:%f", maxVal);
-		if (maxVal >= threshold)
-		{
-			matchLoc = maxLoc;
-			//int height = image.rows;
-			//int width = image.cols;
-
-			log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
-		}
-	}
-	result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
+	
+	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
 	return getMatchLoc(result, threshold, match_method, templ.cols, templ.rows);
 }
 
@@ -2412,7 +2368,7 @@ cv::Point MatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, 
 
 		// 2. Access the ROI using the Mat operator()
 		// 'image_roi' is a new Mat header pointing to the data in 'image'
-		cv::Mat image_roi = image(roi_rect);
+		image_roi = image(roi_rect);
 	}
 
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
@@ -2460,7 +2416,7 @@ cv::Point MatchingRectLeftTop(HWND hwnd, cv::Rect roi_rect, std::string templ_pa
 
 		// 2. Access the ROI using the Mat operator()
 		// 'image_roi' is a new Mat header pointing to the data in 'image'
-		cv::Mat image_roi = image(roi_rect);
+		image_roi = image(roi_rect);
 	}
 	//log_info("roi_rect:%d, %d, %d, %d", roi_rect.x, roi_rect.y, roi_rect.width, roi_rect.height);
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
@@ -2507,11 +2463,10 @@ bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::str
 
 		// 2. Access the ROI using the Mat operator()
 		// 'image_roi' is a new Mat header pointing to the data in 'image'
-		cv::Mat image_roi = image(roi_rect);
+		image_roi = image(roi_rect);
 	}
 
 	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	RECT rect{ 0, 0, 0, 0 };
 	auto matchLoc = getMatchLoc(result, threshold, match_method, 0, 0);
 	return matchLoc.x > -1;
 }

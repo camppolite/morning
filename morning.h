@@ -188,7 +188,7 @@ public:
 	void handle_sheyaoxiang_time();
 
 	bool wait_scene_change(unsigned int scene_id, int timeout = 1700);
-	bool close_npc_talk();
+	void close_npc_talk();
 
 	unsigned int get_scene_id_by_name(std::wstring name);
 
