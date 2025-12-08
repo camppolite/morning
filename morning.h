@@ -12,7 +12,8 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include <opencv2/highgui/highgui.hpp>
 
-
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
 
 typedef struct _UNICODE_STRING {
 	USHORT Length;
@@ -71,6 +72,7 @@ const char* img_props_red_777 = "object\\props\\red_777.png";
 const char* img_props_white_777 = "object\\props\\white_777.png";
 const char* img_props_green_777 = "object\\props\\green_777.png";
 const char* img_props_yellow_777 = "object\\props\\yellow_777.png";
+const char* img_props_sheyaoxiang = "object\\props\\sheyaoxiang.png";
 const char* img_npc_dianxiaoer = "object\\npc\\dianxiaoer.png";
 
 const char* img_fight_fighting = "object\\fight\\fighting.png";
@@ -92,13 +94,17 @@ std::string talk_get_baoturenwu("talk_get_baoturenwu");
 std::string parse_baotu_task("parse_baotu_task");
 std::string goto_target_scene("goto_target_scene");
 std::string attack_qiangdao("attack_qiangdao");
+std::string handle_qiangdao("handle_qiangdao");
+std::string baotu_end("baotu_end");
 std::vector<std::string*> datu_step = {
 	&to_changan_jiudian,
 	&to_dianxiaoer, 
 	&talk_get_baoturenwu,
 	&parse_baotu_task,
 	&goto_target_scene,
-	&attack_qiangdao
+	&attack_qiangdao,
+	&handle_qiangdao,
+	&baotu_end
 };
 
 
@@ -121,6 +127,8 @@ class WindowInfo {
 public:
 	WindowInfo(HANDLE processID);
 	void init();
+	void hook_init();
+	void datu();
 
 	std::vector<uintptr_t> ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask);
 	std::vector<uintptr_t> PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask);
@@ -130,10 +138,11 @@ public:
 	uintptr_t getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 	uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 	POINT MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+	
+	void scan_dianxiaoer_addr_pos();
 	void update_player_float_pos();
 	void update_scene();
 	void update_scene_id();
-	void scan_dianxiaoer_addr_pos();
 	void update_dianxiaoer_pos();
 
 	void move_cursor_center_top();
@@ -150,30 +159,33 @@ public:
 	bool is_near_dianxiaoer();
 	bool wait_fighting();
 	bool is_fighting();
+	void handle_datu_fight();
 	POINT compute_pos_pixel(POINT dst, unsigned int scene_id);
 	int convert_to_map_pos_x(float x);
 	int convert_to_map_pos_y(float y);
 	bool talk_to_dianxiaoer();
 	void parse_baotu_task_info();
-	void goto_scene(POINT dst, unsigned int scene_id);
+	bool goto_scene(POINT dst, unsigned int scene_id);
 	void move_to_position(POINT dst, long active_x = dianxiaoer_valid_distence, long active_y = dianxiaoer_valid_distence);
 	void move_via_map(POINT dst);
 	bool click_position(POINT dst, int xs = 0, int ys = 0, int mode = 1);
 	void click_position_at_edge(POINT dst, int xs = 0, int ys = 0);
-	void attack_npc(POINT dst);
+	bool attack_npc(POINT dst);
 	void goto_changanjiudian();
 	void from_changan_fly_to_datangguojing();
+	void from_datangguojing_to_datangjingwai();
 	void move_to_changanjidian_center();
 	void fly_to_changanjiudian();
 	void fly_to_scene(long x, long y, unsigned int scene_id);
 	void UpdateWindowRect();
+	void SplitTitleAsPlayerId();
 	void use_beibao_prop(const char* image, bool turn = true, bool keep = false);
 	void use_changan777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false);
 	void use_zhuziguo777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false);
 	void use_changshoucun777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false);
 	void use_aolaiguo777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false);
 	void use_feixingfu(unsigned int scene_id);
-
+	void handle_sheyaoxiang_time();
 
 	bool wait_scene_change(unsigned int scene_id, int timeout = 1700);
 	bool close_npc_talk();
@@ -185,8 +197,6 @@ public:
 	cv::Rect ROI_map();
 	cv::Rect ROI_npc_talk();
 	cv::Rect ROI_beibao_props();
-
-
 	cv::Rect ROI_changan777_changanjiudian();
 	cv::Rect ROI_changan777_yizhan_laoban();
 	cv::Rect ROI_changan777_datangguojing();
@@ -229,6 +239,9 @@ public:
 	uintptr_t map_info_addr = 0;
 	SIZE_T map_offset = 0x14;
 
+	uintptr_t dianxiaoer_first_static_addr = 0;
+	uintptr_t dianxiaoer_second_static_addr = 0;
+	uintptr_t dianxiaoer_dynamic_addr_third_child_first_static_addr = 0;
 	uintptr_t dianxiaoer_pos_addr = 0;
 	std::vector<POINT> dianxiaoer_pos_list;  // 店小二固定移动的几个坐标
 	float dianxiaoer_pos_x = 0;
@@ -241,10 +254,13 @@ public:
 	uintptr_t scene_id_addr = 0;
 	std::string scene;
 	unsigned int m_scene_id = 0;
-
-	bool moveing = false;
+	std::string player_name;  // 梦幻西游 ONLINE - (四川1区[嘉陵江] - Ⅻ闵Ξ青[16705567])
+	std::string player_id;
+	bool moving = false;
+	bool fail = false;
 	double mThreshold = 0.78;  // 默认值
 	int mMatchMethod = cv::TM_CCORR_NORMED;  // 默认值
+	bool mp3_playing = false;
 
 	HANDLE pid;
 	HWND hwnd;
@@ -276,7 +292,10 @@ public:
 	void work();
 	void test();
 	void time_pawn_update();
+	void update_db();
 
+	const char* dbFile = "database";
+	json db;
 	bool waiting = false;
 	std::vector<WindowInfo> winsInfo;
 	HANDLE hSerial;
@@ -303,6 +322,7 @@ bool WaitMatchingRectDisapper(HWND hwnd, cv::Rect roi_rect, std::string templ_pa
 uint64_t getCurrentTimeMilliseconds();
 std::wstring bytes_to_wstring(const unsigned char* buffer, size_t size);
 std::vector<std::wstring> findContentBetweenTags(const std::wstring& source, const std::wstring& startTag, const std::wstring& endTag);
+std::string AnsiToUtf8(const std::string& ansiStr);
 POINT get_map_max_pixel(unsigned int scene_id);
 
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);

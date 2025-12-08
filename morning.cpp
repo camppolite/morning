@@ -2,6 +2,7 @@
 #include "log.h"
 #include "astar.h"
 
+#include <fstream> 
 #include <filesystem>
 #include <cstdlib> // For rand() and srand()
 #include <chrono>
@@ -71,7 +72,128 @@ void WindowInfo::init() {
 	baotu_target_pos = { 0, 0 };
 	step.reset();
 }
+void WindowInfo::hook_init() {
+	hNtdll = GetModuleHandleA("ntdll.dll");
+	PFN_NtOpenProcess pNtOpenProcess = (PFN_NtOpenProcess)GetProcAddress(hNtdll, "NtOpenProcess");
+	pNtReadVirtualMemory = (PFN_NtReadVirtualMemory)GetProcAddress(hNtdll, "NtReadVirtualMemory");
 
+	OBJECT_ATTRIBUTES OA = { sizeof(OA), NULL };
+	CLIENT_ID         CID = { (HANDLE)pid, NULL };
+	NTSTATUS status = pNtOpenProcess(&hProcess, PROCESS_ALL_ACCESS, &OA, &CID);
+
+	mhmainDllBase = getProcessModulesAddress(hProcess, MHMAIN_DLL);
+
+	// 玩家坐标地址
+	player_pos_addr = getRelativeStaticAddressByAoB(
+		hProcess,
+		mhmainDllBase,
+		"83 3D ? ? ? ? FF 75 DF 0F 57 D2 0F 57 C9 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ?",
+		"xx????xxxxxxxxxxxx????x????xxx????x????",
+		18);
+	if (player_pos_addr == 0) log_error("查找玩家坐标地址失败");
+
+	//log_info("查找场景地址开始:0x%X", winfo.hProcess);
+	//// 场景[100,10] (111,111)
+	//// B4 F3 CC C6 B9 FA BE B3 5B 31 39 38 2C 32 33 32 5D 00 B6 FE 28 31 31 31 2C 31 31 31 29 00
+	//auto map_info_AoB_adr = winfo.PerformAoBScan(winfo.hProcess, 0, "28 31 31 31 2C 31 31 31 29 00", "xxxxxxxxxx");
+	//if (map_info_AoB_adr == 0) log_error("查找场景地址失败");
+	//else winfo.map_info_addr = map_info_AoB_adr - winfo.map_offset;
+	//log_info("查找场景地址结束:0x%X", winfo.hProcess);
+
+	// 场景id
+	//48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 ? ? ? ? 44 89 3D ? ? ? ?
+	scene_id_addr = getRelativeStaticAddressByAoB(
+		hProcess,
+		mhmainDllBase,
+		"48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 ? ? ? ? 44 89 3D ? ? ? ?",
+		"xxxxxxxxxxxxxxxxxxxx????xxx????",
+		27);
+	if (scene_id_addr == 0) log_error("查找场景id地址失败");
+
+	// 店小二结构体静态地址
+	dianxiaoer_first_static_addr = getRelativeStaticAddressByAoB(
+		hProcess,
+		mhmainDllBase,
+		"48 8D 0D ? ? ? ? 48 89 08 48 8B 53 08 48 89 50 08 48 8B 53 10 48 89 50 10",
+		"xxx????xxxxxxxxxxxxxxxxxxx",
+		3);
+	dianxiaoer_second_static_addr = getRelativeCallAddressByAoB(
+		hProcess,
+		mhmainDllBase,
+		"48 8B 08 48 8D 56 40 48 8D 05 ? ? ? ? 48 89 45 E7",
+		"xxxxxxxxxx????xxxx",
+		10);
+
+	dianxiaoer_dynamic_addr_third_child_first_static_addr = getRelativeStaticAddressByAoB(
+		hProcess,
+		mhmainDllBase,
+		"48 8D 05 ? ? ? ? 48 89 03 48 8D 4B 30 E8 ? ? ? ?",
+		"xxx????xxxxxxxx????",
+		3);
+}
+void WindowInfo::datu() {
+	if (fail) return;
+	if (moving) {
+		if (is_moving()) return;
+	}
+	if (is_fighting()) {
+		handle_datu_fight();
+		return;
+	}
+	SetForegroundWindow(hwnd);
+	if (step.current == &to_changan_jiudian) {
+		log_info("to_changan_jiudian");
+		goto_changanjiudian();
+		step.next();
+	}
+	else if (step.current == &to_dianxiaoer) {
+		log_info("to_dianxiaoer");
+		update_scene_id();
+		if (m_scene_id != 长安酒店) step.set_current(&to_changan_jiudian);
+		else {
+			move_to_dianxiaoer();
+			step.next();
+		}
+	}
+	else if (step.current == &talk_get_baoturenwu) {
+		log_info("talk_get_baoturenwu");
+		if (talk_to_dianxiaoer()) {
+			step.next();
+		}
+		else {
+			move_to_changanjidian_center();
+			step.set_current(&to_dianxiaoer);
+		}
+	}
+	else if (step.current == &parse_baotu_task) {
+		log_info("parse_baotu_task");
+		close_npc_talk();
+		//ClickMatchImage(ROI_npc_talk(), img_npc_dianxiaoer, "", 0.78, cv::TM_CCORR_NORMED, 0, 50, 0, 0, 1, 2000);  // 接任务后关闭对话窗
+		parse_baotu_task_info();
+		if (baotu_target_scene_id <= 0 || baotu_target_pos.x <= 0) {
+			log_info("解析宝图任务失败，需要手动处理");
+			mp3_playing = true;
+			fail = true;
+		}
+		else step.next();
+	}
+	else if (step.current == &goto_target_scene) {
+		if (goto_scene(baotu_target_pos, baotu_target_scene_id)) {
+			step.next();
+		}
+	}
+	else if (step.current == &attack_qiangdao) {
+		attack_npc(baotu_target_pos);
+		step.next();
+	}
+	else if (step.current == &handle_qiangdao) {
+		wait_fighting();
+		step.next();
+	}
+	else if (step.current == &baotu_end) {
+		init();
+	}
+}
 std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
 {
 	std::vector<uintptr_t> res;
@@ -117,8 +239,7 @@ std::vector<uintptr_t> WindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE Mod
 	int start, end;
 	start = end = 0;
 	char dl = ' ';
-	while ((start = pattern.find_first_not_of(dl, end))
-		!= std::string::npos) {
+	while ((start = pattern.find_first_not_of(dl, end)) != std::string::npos) {
 		// str.find(dl, start) will return the index of dl
 		// from start index
 		end = pattern.find(dl, start);
@@ -225,8 +346,7 @@ uintptr_t WindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const 
 	int start, end;
 	start = end = 0;
 	char dl = ' ';
-	while ((start = pattern.find_first_not_of(dl, end))
-		!= std::string::npos) {
+	while ((start = pattern.find_first_not_of(dl, end)) != std::string::npos) {
 		// str.find(dl, start) will return the index of dl
 		// from start index
 		end = pattern.find(dl, start);
@@ -455,35 +575,15 @@ void WindowInfo::scan_dianxiaoer_addr_pos() {
 		//}
 
 		// 结构特点：2个静态地址+一个动态地址，动态地址开头包含6个指针，第1个指针为静态地址，第5和6的指针为空
-		auto static_addr1 = getRelativeStaticAddressByAoB(
-			hProcess,
-			mhmainDllBase,
-			"48 8D 0D ? ? ? ? 48 89 08 48 8B 53 08 48 89 50 08 48 8B 53 10 48 89 50 10",
-			"xxx????xxxxxxxxxxxxxxxxxxx",
-			3);
-		auto static_addr2 = getRelativeCallAddressByAoB(
-			hProcess,
-			mhmainDllBase,
-			"48 8B 08 48 8D 56 40 48 8D 05 ? ? ? ? 48 89 45 E7",
-			"xxxxxxxxxx????xxxx",
-			10);
-
-		auto static_child_addr1 = getRelativeStaticAddressByAoB(
-			hProcess,
-			mhmainDllBase,
-			"48 8D 05 ? ? ? ? 48 89 03 48 8D 4B 30 E8 ? ? ? ?",
-			"xxx????xxxxxxxx????",
-			3);
-
 		std::string struct_AoB;
-		auto ptr1 = reinterpret_cast<char*>(&static_addr1);
+		auto ptr1 = reinterpret_cast<char*>(&dianxiaoer_first_static_addr);
 		for (int i = 0; i < 8; i++) {
 			auto c = *reinterpret_cast<const unsigned char*>(ptr1 + i);
 			char hexStr[3];
 			sprintf(hexStr, "%2X ", c);
 			struct_AoB += hexStr;
 		}
-		auto ptr2 = reinterpret_cast<char*>(&static_addr2);
+		auto ptr2 = reinterpret_cast<char*>(&dianxiaoer_second_static_addr);
 		for (int i = 0; i < 8; i++) {
 			auto c = *reinterpret_cast<const unsigned char*>(ptr2 + i);
 			char hexStr[3];
@@ -510,7 +610,7 @@ void WindowInfo::scan_dianxiaoer_addr_pos() {
 				pNtReadVirtualMemory(hProcess, (PVOID)heap_add, buffer1, regionSize, &bytesRead);
 				if (bytesRead > 0) {
 					auto m_static_child_addr1 = *reinterpret_cast<QWORD*>(buffer1);
-					if (m_static_child_addr1 == static_child_addr1) {
+					if (m_static_child_addr1 == dianxiaoer_dynamic_addr_third_child_first_static_addr) {
 						auto heap_child_addr5 = *reinterpret_cast<QWORD*>(buffer1 + 0x20);
 						auto heap_child_addr6 = *reinterpret_cast<QWORD*>(buffer1 + 0x28);
 						if (heap_child_addr5 == 0 && heap_child_addr6 == 0) {
@@ -549,11 +649,18 @@ void WindowInfo::update_dianxiaoer_pos() {
 	SIZE_T bytesRead;
 	pNtReadVirtualMemory(hProcess, (PVOID)dianxiaoer_pos_addr, buffer, regionSize, &bytesRead);
 	if (bytesRead > 0) {
-		auto x = *reinterpret_cast<float*>(buffer + 0x18);
-		auto y = *reinterpret_cast<float*>(buffer + 0x1C);
-		if (is_dianxiaoer_pos(x, y)) {
-			dianxiaoer_pos_x = x;
-			dianxiaoer_pos_y = y;
+		auto first_static_addr = *reinterpret_cast<uintptr_t*>(buffer);
+		if (dianxiaoer_first_static_addr == first_static_addr) {
+			auto x = *reinterpret_cast<float*>(buffer + 0x18);
+			auto y = *reinterpret_cast<float*>(buffer + 0x1C);
+			if (is_dianxiaoer_pos(x, y)) {
+				dianxiaoer_pos_x = x;
+				dianxiaoer_pos_y = y;
+			}
+		}
+		else {
+			// 店小二消失，内存释放后，结构体变了
+			dianxiaoer_pos_addr = 0;
 		}
 	}
 	delete[] buffer;
@@ -655,23 +762,42 @@ void WindowInfo::goto_changanjiudian() {
 	// 长安酒店入口(464,168)
 	update_scene_id();
 	update_player_float_pos();
-	if (!(abs(player_pos.x - 467) <= 20 && abs(player_pos.x - 171) <= 20)) {
+	if (!(abs(player_pos.x - 467) <= 22 && abs(player_pos.x - 171) <= 17)) {
 		// 不在酒店门口，使用飞行棋
 		fly_to_changanjiudian();
 		update_player_float_pos();
 	}
 	auto px = compute_pos_pixel({ 467, 171 }, m_scene_id);
 	mouse_click_human({ rect.left + px.x, rect.top + px.y }, 0, 0, 1);
-	dianxiaoer_pos_addr = 0;
-	moveing = true;
+	moving = true;
 }
 void WindowInfo::move_to_changanjidian_center() {
 	// 有时候离店小二太远，店小二会消失看不见，移动到酒店中间，就不存在这个问题
-
+	if (dianxiaoer_pos_addr == 0) {
+		click_position({ 10,10 });  //TODO
+		moving = true;
+	}
 }
 void WindowInfo::from_changan_fly_to_datangguojing() {
-	log_info("从长安飞到大唐国境");
+	log_info("从长安长安驿站老板飞到大唐国境");
+	//update_dianxiaoer_pos();
+	//update_player_float_pos();
 
+	//if (!is_near_dianxiaoer() && dianxiaoer_pos_x > 0) {
+	//	auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
+	//	auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
+	//	// A星寻路
+	//	auto astar_pos = astar(player_pos.x, player_pos.y, dxe_x, dxe_y, m_scene_id, dianxiaoer_valid_distence, dianxiaoer_valid_distence);
+	//	log_info("店小二坐标:%d, %d", dxe_x, dxe_y);
+	//	log_info("A星寻路结果:%d, %d", astar_pos.x, astar_pos.y);
+	//	click_position(astar_pos);
+	//	wait_moving_stop(5000);
+	//}
+}
+void WindowInfo::from_datangguojing_to_datangjingwai() {
+	log_info("从大唐国境到大唐境外");
+	handle_sheyaoxiang_time();
+	moving = true;
 }
 void WindowInfo::fly_to_changanjiudian() {
 	use_changan777(ROI_changan777_changanjiudian());
@@ -756,7 +882,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			update_player_float_pos();
 		}
 		else if (m_scene_id != 大唐国境) {
-			//from_datangguojing_to_datangjingwai();
+			from_datangguojing_to_datangjingwai();
 		}
 		else {
 			bool via_zhuziguo = true;
@@ -812,23 +938,61 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 	case 普陀山:
 	{
 		// 普陀山：合成旗-长安左下角-大唐国境-普陀接引仙女
+		if (m_scene_id == 大唐国境) {
+			if (1) {//TODO
+				log_info("从大唐国境到普陀山");
+				handle_sheyaoxiang_time();
+				move_via_map({ 20,20 });  //TODO
+				close_beibao_smart();
+				moving = true;
+			}
+			else {
+				log_info("和普陀接引仙女对话");
+				//TODO
+				wait_scene_change(普陀山);
+				update_player_float_pos();
+			}
+		
+		}
+		else {
+			log_info("从长安到大唐国境");
+			use_changan777(ROI_changan777_datangguojing(), false, false);
+			click_position_at_edge({ 10,10 }, 30, -30);  // TODO
+			wait_scene_change(大唐国境);
+			update_player_float_pos();
+		}
 		break;
 	}
 	case 五庄观:
 	{
 		// 五庄观:合成旗-长安城驿站老板-大唐国境-大唐境外-五庄观
+		if (m_scene_id == 大唐国境) {
+			from_datangguojing_to_datangjingwai();
+		}
+		else if (m_scene_id == 大唐境外) {
+			log_info("从大唐境外到五庄观");
+			handle_sheyaoxiang_time();
+			move_via_map({ 20,20 });  //TODO
+			close_beibao_smart();
+			moving = true;
+		}
+		else {
+			use_changan777(ROI_changan777_yizhan_laoban(), false, false);
+			from_changan_fly_to_datangguojing();
+		}
 		break;
 	}
 	default:
 		break;
 	}
 }
-void WindowInfo::goto_scene(POINT dst, unsigned int scene_id) {
+bool WindowInfo::goto_scene(POINT dst, unsigned int scene_id) {
+	update_scene_id();
 	if (m_scene_id == scene_id) {
 		// 已处在目的场景，走路过去
 		move_to_position(dst);
 		close_beibao_smart();
-		return;
+		return true;
 	}
 	// 跨地图，需要用飞行棋或走路
 	fly_to_scene(dst.x, dst.y, scene_id);
@@ -860,6 +1024,7 @@ void WindowInfo::goto_scene(POINT dst, unsigned int scene_id) {
 	//default:
 	//	break;
 	//}
+	return false;
 }
 void WindowInfo::use_beibao_prop(const char* image, bool close, bool keep) {
 	if (close) open_beibao(); // 这里的动作是：用完道具后是否关闭背包。打开背包使用飞行旗的时候，背包自动关闭了，不需要再关闭背包
@@ -972,7 +1137,18 @@ void WindowInfo::use_feixingfu(unsigned int scene_id) {
 	wait_scene_change(scene_id);
 	update_player_float_pos();
 }
-
+void WindowInfo::handle_sheyaoxiang_time() {
+	log_info("检查摄妖香时间");
+	time_t old_time = 0;
+	if (gm.db[player_id].contains("摄妖香")) old_time = gm.db[player_id]["摄妖香"];
+	time_t now_time = time(NULL);
+	if (now_time - old_time >= 1770) {
+		log_info("摄妖香已过时，使用摄妖香");
+		use_beibao_prop(img_props_sheyaoxiang);
+		gm.db[player_id]["摄妖香"] = now_time;
+		gm.update_db();
+	}
+}
 bool WindowInfo::wait_scene_change(unsigned int scene_id, int timeout) {
 	auto t_ms = getCurrentTimeMilliseconds();
 	while (true) {
@@ -1090,9 +1266,10 @@ bool WindowInfo::is_moving() {
 	float y0 = 0;
 	for (int i = 0; i < 2; i++) {
 		update_player_float_pos();
-		if ((int)player_x % 10 == 0 && (int)player_y % 10 == 0) {
+		if (player_x != 0 && player_y != 0 && (int)player_x % 10 == 0 && (int)player_y % 10 == 0) {
 			// 坐标值都是10的倍数
 			if (x0 == player_x && y0 == player_y) {
+				moving = false;
 				return false;
 			}
 			x0 = player_x;
@@ -1128,8 +1305,11 @@ bool WindowInfo::is_near_dianxiaoer() {
 bool WindowInfo::wait_fighting() {
 	return WaitMatchingRect(hwnd, ROI_fighting(), img_fight_fighting, 3500,"",0.85);
 }
-bool WindowInfo::wait_fighting() {
+bool WindowInfo::is_fighting() {
 	return MatchingRect(hwnd, ROI_fighting(), img_fight_fighting, "", 0.85);
+}
+void WindowInfo::handle_datu_fight() {
+
 }
 int WindowInfo::convert_to_map_pos_x(float x) {
 	// (x - 1) * 20 + 30 = player_x  其中x是地图上显示的坐标
@@ -1199,8 +1379,11 @@ void WindowInfo::move_to_position(POINT dst, long active_x, long active_y) {
 	int screen_x = 22;  // wWidth / 2 / 20
 	int screen_y = 17;  // wHeight / 2 / 20
 	if (abs(player_pos.x - dst.x) <= active_x && (player_pos.y - dst.y) <= active_y) return;  // 有效对话范围内，不用移动
-	if (abs(player_pos.x - dst.x) <= screen_x && (player_pos.y - dst.y) <= screen_y) click_position(dst);
-	else move_via_map(dst);
+	// A星寻路
+	auto astar_pos = astar(player_pos.x, player_pos.y, dst.x, dst.y, m_scene_id, dianxiaoer_valid_distence, dianxiaoer_valid_distence);
+	if (abs(player_pos.x - astar_pos.x) <= screen_x && (player_pos.y - astar_pos.y) <= screen_y) click_position(astar_pos);
+	else move_via_map(astar_pos);
+	moving = true;
 }
 void WindowInfo::move_via_map(POINT dst) {
 	// 目标不在视野范围内，通过地图进行移动
@@ -1227,7 +1410,7 @@ void WindowInfo::move_via_map(POINT dst) {
 	mouse_click_human({ x_dst, y_dst });
 	close_map();
 }
-bool WindowInfo::click_position(POINT dst, int xs = 0, int ys = 0, int mode = 1) {
+bool WindowInfo::click_position(POINT dst, int xs, int ys, int mode) {
 	// 通过鼠标点击目的坐标
 	// 如果NPC在视野范围内，可以和NPC对话
 	// 如果没有NPC，则移动到目的坐标
@@ -1235,13 +1418,16 @@ bool WindowInfo::click_position(POINT dst, int xs = 0, int ys = 0, int mode = 1)
 	auto px = compute_pos_pixel({ dst.x, dst.y }, m_scene_id);
 	return mouse_click_human({ rect.left + px.x, rect.top + px.y }, xs, xs, mode);
 }
-void WindowInfo::click_position_at_edge(POINT dst, int xs = 0, int ys = 0) {
+void WindowInfo::click_position_at_edge(POINT dst, int xs, int ys) {
 	if (!click_position(dst, 0, 0))
 		if (!click_position(dst, 0, ys))
 			click_position(dst, xs, 0);
 }
-void WindowInfo::attack_npc(POINT dst) {
+bool WindowInfo::attack_npc(POINT dst) {
 	click_position_at_edge(dst);
+	if (wait_fighting()) return true;
+	mp3_playing = true;
+	return false;
 }
 unsigned int WindowInfo::get_scene_id_by_name(std::wstring name) {
 	unsigned int scene_id = 0;
@@ -1262,12 +1448,26 @@ unsigned int WindowInfo::get_scene_id_by_name(std::wstring name) {
 }
 
 void WindowInfo::UpdateWindowRect() {
+	// 实际截图与窗口在屏幕上的坐标有偏差，修正
+	// 后台截图，窗口右偏8像素，窗口标题31像素
+	int x_fix = 8;
+	int y_fix = 31;
 	GetWindowRect(hwnd, &rect);
-	// 后台截图，窗口右偏7像素，窗口标题31像素
-	rect.left += 7;
-	rect.bottom += 31;
+	rect.left += x_fix;
+	rect.top += y_fix;
+	rect.right = rect.left + x_fix + wWidth;
+	rect.bottom = rect.top + y_fix + wHeight;
 }
-
+void WindowInfo::SplitTitleAsPlayerId() {
+	// 根据窗口title，解析玩家id
+	int start, end;
+	start = end = 0;
+	start = player_name.find_last_of('[');
+	if (start != std::string::npos) {
+		end = player_name.find_last_of(']');
+		player_id = player_name.substr(start + 1, end - start - 1);
+	}
+}
 cv::Rect WindowInfo::ROI_cursor(POINT pos) {
 	int len = 150;
 	long left = pos.x - rect.left - len;
@@ -1482,104 +1682,49 @@ bool TimeProcessor::time_wait(uint64_t time) {
 GoodMorning::GoodMorning() {}
 
 void GoodMorning::init() {
-	int x_fix = 8;
-	int y_fix = 31;
-	for (WindowInfo& winfo : this->winsInfo) {
-		RECT rc;
-		GetWindowRect(winfo.hwnd, &rc);
-		// 实际截图与窗口在屏幕上的坐标有偏差，修正
-		(&winfo)->rect.left = rc.left + x_fix;
-		(&winfo)->rect.top = rc.top + y_fix;
-		(&winfo)->rect.right = rc.left + x_fix + winfo.wWidth;
-		(&winfo)->rect.bottom = rc.top + y_fix + winfo.wHeight;
+	struct stat st = { 0 };
+	if (stat("screenshot", &st) == -1) {
+		_mkdir("screenshot");
 	}
+	for (WindowInfo& winfo : this->winsInfo) {
+		winfo.UpdateWindowRect();
+		winfo.SplitTitleAsPlayerId();
+	}
+	if (!fs::exists(dbFile)) {
+		std::ofstream outFile(dbFile);
+		outFile << "{}";
+		outFile << std::endl;
+		outFile.close();
+	}
+
+	std::ifstream configFile(dbFile);
+	db = json::parse(configFile);
+	bool update = false;
+	for (WindowInfo& winfo : this->winsInfo) {
+		if (!winfo.player_id.empty()) {
+			bool no_key = false;
+			if (!db.contains(winfo.player_id)) no_key = true;
+			else if (!db[winfo.player_id].contains("title")) no_key = true;
+			if (no_key) {
+				db[winfo.player_id]["title"] = AnsiToUtf8(winfo.player_name);
+				update = true;
+			}
+		}
+
+	}
+	if (update) update_db();
 }
 
 void GoodMorning::hook_data() {
 	for (WindowInfo& winfo : this->winsInfo) {
-
-		winfo.hNtdll = GetModuleHandleA("ntdll.dll");
-		PFN_NtOpenProcess pNtOpenProcess = (PFN_NtOpenProcess)GetProcAddress(winfo.hNtdll, "NtOpenProcess");
-		winfo.pNtReadVirtualMemory = (PFN_NtReadVirtualMemory)GetProcAddress(winfo.hNtdll, "NtReadVirtualMemory");
-
-		OBJECT_ATTRIBUTES OA = { sizeof(OA), NULL };
-		CLIENT_ID         CID = { (HANDLE)winfo.pid, NULL };
-		NTSTATUS status = pNtOpenProcess(&winfo.hProcess, PROCESS_ALL_ACCESS, &OA, &CID);
-
-		winfo.mhmainDllBase = getProcessModulesAddress(winfo.hProcess, MHMAIN_DLL);
-
-		// 玩家坐标地址
-		winfo.player_pos_addr = winfo.getRelativeStaticAddressByAoB(
-			winfo.hProcess,
-			winfo.mhmainDllBase,
-			"83 3D ? ? ? ? FF 75 DF 0F 57 D2 0F 57 C9 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ?",
-			"xx????xxxxxxxxxxxx????x????xxx????x????",
-			18);
-		if (winfo.player_pos_addr == 0) log_error("查找玩家坐标地址失败");
-
-		//log_info("查找场景地址开始:0x%X", winfo.hProcess);
-		//// 场景[100,10] (111,111)
-		//// B4 F3 CC C6 B9 FA BE B3 5B 31 39 38 2C 32 33 32 5D 00 B6 FE 28 31 31 31 2C 31 31 31 29 00
-		//auto map_info_AoB_adr = winfo.PerformAoBScan(winfo.hProcess, 0, "28 31 31 31 2C 31 31 31 29 00", "xxxxxxxxxx");
-		//if (map_info_AoB_adr == 0) log_error("查找场景地址失败");
-		//else winfo.map_info_addr = map_info_AoB_adr - winfo.map_offset;
-		//log_info("查找场景地址结束:0x%X", winfo.hProcess);
-
-		// 场景id
-		//48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 ? ? ? ? 44 89 3D ? ? ? ?
-		winfo.scene_id_addr = winfo.getRelativeStaticAddressByAoB(
-			winfo.hProcess,
-			winfo.mhmainDllBase,
-			"48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 ? ? ? ? 44 89 3D ? ? ? ?",
-			"xxxxxxxxxxxxxxxxxxxx????xxx????",
-			27);
-		if (winfo.scene_id_addr == 0) log_error("查找场景id地址失败");
+		winfo.hook_init();
 	}
 }
 
 void GoodMorning::work() {
 	while (true) {
 		for (WindowInfo& winfo : this->winsInfo) {
-			if (winfo.moveing) {
-				if (winfo.is_moving()) continue;
-				else winfo.moveing = false;
-			}
-
-			SetForegroundWindow(winfo.hwnd);
-			if (winfo.step.current == &to_changan_jiudian) {
-				log_info("to_changan_jiudian");
-				winfo.goto_changanjiudian();
-				winfo.step.next();
-				time_pawn_update();
-			}
-			else if (winfo.step.current == &to_dianxiaoer) {
-				log_info("to_dianxiaoer");
-				winfo.move_to_dianxiaoer();
-				winfo.step.next();
-			}
-			else if (winfo.step.current == &talk_get_baoturenwu) {
-				log_info("talk_get_baoturenwu");
-				if (winfo.talk_to_dianxiaoer()) {
-					winfo.step.next();
-				}
-				else {
-					winfo.move_to_changanjidian_center();
-					winfo.step.set_current(&to_dianxiaoer);
-				}
-			}
-			else if (winfo.step.current == &parse_baotu_task) {
-				log_info("parse_baotu_task");
-				winfo.close_npc_talk();
-				//ClickMatchImage(ROI_npc_talk(), img_npc_dianxiaoer, "", 0.78, cv::TM_CCORR_NORMED, 0, 50, 0, 0, 1, 2000);  // 接任务后关闭对话窗
-				winfo.parse_baotu_task_info();
-				winfo.step.next();
-			}
-			else if (winfo.step.current == &goto_target_scene) {
-				winfo.goto_scene(winfo.baotu_target_pos, winfo.baotu_target_scene_id);
-			}
-			else if (winfo.step.current == &attack_qiangdao) {
-				winfo.goto_scene(winfo.baotu_target_pos, winfo.baotu_target_scene_id);
-			}
+			winfo.datu();
 		}
 		Sleep(500);
 	}
@@ -1587,6 +1732,11 @@ void GoodMorning::work() {
 void GoodMorning::time_pawn_update() {
 	time_pawn.update();
 	task_pawn.update();
+}
+void GoodMorning::update_db() {
+	// 将 JSON 对象序列化并写入文件，参数 4 表示使用 4 个空格进行美观格式化输出
+	std::ofstream o(dbFile);
+	o << std::setw(4) << db << std::endl;
 }
 void GoodMorning::test() {
 	HWND sc = GetDesktopWindow();
@@ -1606,21 +1756,23 @@ void GoodMorning::test() {
 		//	"xxxxxxxxxxxxxxxx");
 		//hwnd2mat(winfo.hwnd);
 		//winfo.scan_dianxiaoer_addr_pos();
-		winfo.update_player_float_pos();
-		winfo.update_scene_id();
-		winfo.click_position({ 189, 121 });
+		//winfo.update_player_float_pos();
+		//winfo.update_scene_id();
+		//winfo.click_position({ 189, 121 });
 
-		//while (true) {
-		//	winfo.update_player_float_pos();
-		//	winfo.update_scene_id();
-		//	winfo.click_position({189, 130});
-		//	//winfo.update_scene();
-		//	//winfo.update_dianxiaoer_pos();
-		//	//winfo.move_to_dianxiaoer();
-		//	//winfo.parse_baotu_task_info();
-		//	Sleep(3000);
-		//	printf("\n");
-		//}
+		while (true) {
+			//winfo.update_player_float_pos();
+			//winfo.update_scene_id();
+			//winfo.click_position({189, 130});
+			//winfo.update_scene();
+			//winfo.update_dianxiaoer_pos();
+			//winfo.move_to_dianxiaoer();
+			//winfo.parse_baotu_task_info();
+			winfo.scan_dianxiaoer_addr_pos();
+			gm.update_db();
+			//Sleep(3000);
+			printf("\n");
+		}
 
 
 		//GetWindowRect(winfo.hwnd, &rect);
@@ -1844,14 +1996,16 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 			//win_hwnd = hwnd;
 			// 如果是多标签模式,只有mhtab.exe有窗口
 			//SetForegroundWindow(hwnd);
+
+			WindowInfo winfo((HANDLE)targetProcessId);
+			winfo.hwnd = hwnd;
+			winfo.player_name = pszMem;
+			gm.winsInfo.push_back(winfo);
+			printf("窗口句柄回调成功：%s\n", pszMem);
 			VirtualFree(
 				pszMem,       // Base address of block
 				0,             // Bytes of committed pages
 				MEM_RELEASE);  // Decommit the pages
-			WindowInfo winfo((HANDLE)targetProcessId);
-			winfo.hwnd = hwnd;
-			gm.winsInfo.push_back(winfo);
-			printf("窗口句柄回调成功：%s\n", gametitle.c_str());
 			return FALSE;
 		}
 		VirtualFree(
@@ -2631,6 +2785,22 @@ std::vector<std::wstring> findContentBetweenTags(
 	}
 	return res;
 }
+// Function to convert a Windows-1252/ANSI string to UTF-8
+std::string AnsiToUtf8(const std::string& ansiStr) {
+	int requiredSize = MultiByteToWideChar(CP_ACP, 0, ansiStr.c_str(), -1, nullptr, 0);
+	if (requiredSize == 0) return "";
+
+	std::vector<wchar_t> wideStr(requiredSize);
+	MultiByteToWideChar(CP_ACP, 0, ansiStr.c_str(), -1, wideStr.data(), requiredSize);
+
+	requiredSize = WideCharToMultiByte(CP_UTF8, 0, wideStr.data(), -1, nullptr, 0, nullptr, nullptr);
+	if (requiredSize == 0) return "";
+
+	std::vector<char> utf8Str(requiredSize);
+	WideCharToMultiByte(CP_UTF8, 0, wideStr.data(), -1, utf8Str.data(), requiredSize, nullptr, nullptr);
+
+	return std::string(utf8Str.data());
+}
 POINT get_map_max_pixel(unsigned int scene_id) {
 	POINT px = { -1, -1 };
 	switch (scene_id)
@@ -2713,10 +2883,6 @@ int main(int argc, const char** argv)
 
 	// SEED the generator ONCE at the start of the program
 	std::srand(static_cast<unsigned int>(time(nullptr)));
-	struct stat st = { 0 };
-	if (stat("screenshot", &st) == -1) {
-		_mkdir("screenshot");
-	}
 
 	//src = imread("111.png", IMREAD_COLOR); // Load an image
 	//if (src.empty())
