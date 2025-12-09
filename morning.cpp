@@ -434,7 +434,11 @@ uintptr_t WindowInfo::getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE Modul
 	return rav + 5 + AoB_adr + offset - 1;
 }
 
-POINT WindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
+bool WindowInfo::MatchingRectExist(cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method)
+{
+	return MatchingRectLoc(roi_rect, templ_path, mask_path, threshold, match_method, MATCHEXIST).x > -1;
+}
+POINT WindowInfo::MatchingRectLoc(cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int loc) {
 	// Mask image(M) : The mask, a grayscale image that masks the template
 	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
 	// The mask must have the same dimensions as the template
@@ -448,26 +452,12 @@ POINT WindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std
 	//Thresholding an existing image
 
 	// cv2.TM_CCORR_NORMED  # 这个对颜色敏感度高
-	POINT pos = {-1, -1};
-
+	// cv::TM_CCOEFF_NORMED 这个通用性好
+	// loc:1匹配中心坐标，2匹配左上角坐标，即原始匹配,3不计算坐标，只匹配是否存在
 	auto image = hwnd2mat(hwnd);
 	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
-	if (image.empty() || templ.empty())
-	{
-		log_error("Can't read one of the images\n");
-		return pos;
-	}
 	cv::Mat mask;
-	if (!mask_path.empty())
-	{
-		mask = cv::imread((current_path / mask_path).string(), cv::IMREAD_COLOR);
-		if (mask.empty())
-		{
-			log_error("Can't read mask image\n");
-			return pos;
-		}
-	}
-
+	if (!mask_path.empty())mask = cv::imread((current_path / mask_path).string(), cv::IMREAD_COLOR);
 	cv::Mat image_roi = image;
 	if (!roi_rect.empty()) {
 		// Ensure the ROI is within the image boundaries
@@ -477,14 +467,96 @@ POINT WindowInfo::MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std
 		// 'image_roi' is a new Mat header pointing to the data in 'image'
 		image_roi = image(roi_rect);
 	}
+	cv::Mat result;
+	int result_cols = image.cols - templ.cols + 1;
+	int result_rows = image.rows - templ.rows + 1;
 
-	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	auto cv_pos = getMatchLoc(result, threshold, match_method, templ.cols, templ.rows);
-	if (cv_pos.x > -1) {
-		pos.x += cv_pos.x;
-		pos.y += cv_pos.y;
+	result.create(result_rows, result_cols, CV_32FC1);
+
+	bool method_accepts_mask = (cv::TM_SQDIFF == match_method || match_method == cv::TM_CCORR_NORMED);
+	try {
+		if (!mask.empty() && method_accepts_mask)
+		{
+			matchTemplate(image, templ, result, match_method, mask);
+		}
+		else
+		{
+			matchTemplate(image, templ, result, match_method);
+		}
 	}
-	return pos;
+	catch (cv::Exception& e) {
+		log_error(e.what());
+	}
+	cv::Point matchLoc(-1, -1);
+	double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
+
+	minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat());
+	if (match_method == cv::TM_SQDIFF || match_method == cv::TM_SQDIFF_NORMED)
+	{
+		matchLoc = minLoc;
+	}
+	else
+	{
+		//log_info("maxVal:%f", maxVal);
+		if (maxVal >= threshold)
+		{
+			matchLoc = maxLoc;
+			if (loc != MATCHEXIST) {
+				if (loc == MATCHCENTER) {
+					//int width = templ.cols;
+					//int height = templ.rows;
+					matchLoc.x += templ.cols / 2;
+					matchLoc.y += templ.rows / 2;
+				}
+				//if (!roi_rect.empty()) {
+				//	matchLoc.x += roi_rect.x;
+				//	matchLoc.y += roi_rect.y;
+				//}
+				//log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
+			}
+		}
+	}
+	return { matchLoc.x, matchLoc.y };
+}
+POINT WindowInfo::WaitMatchingRectLoc(cv::Rect roi_rect, std::string templ_path, int timeout, std::string mask_path, double threshold, int match_method, int loc) {
+	auto t_ms = getCurrentTimeMilliseconds();
+	while (true) {
+		auto pos = MatchingRectLoc(roi_rect, templ_path, mask_path, threshold, match_method, loc);
+		if (pos.x > 0) return pos;
+		if (timeout == 0) break;
+		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
+			log_info("超时: %s", templ_path.c_str());
+			return {-1,-1};
+		}
+		Sleep(5);
+	}
+}
+
+bool WindowInfo::WaitMatchingRectExist(cv::Rect roi_rect, std::string templ_path, int timeout, std::string mask_path, double threshold, int match_method) {
+	auto t_ms = getCurrentTimeMilliseconds();
+	while (true) {
+		auto match = MatchingRectExist(roi_rect, templ_path, mask_path, threshold, match_method);
+		if (match) return true;
+		if (timeout == 0) break;
+		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
+			log_info("超时: %s", templ_path.c_str());
+			return false;
+		}
+		Sleep(5);
+	}
+}
+
+bool WindowInfo::WaitMatchingRectDisapper(cv::Rect roi_rect, std::string templ_path, int timeout, std::string mask_path, double threshold, int match_method) {
+	auto t_ms = getCurrentTimeMilliseconds();
+	while (true) {
+		if (!MatchingRectExist(roi_rect, templ_path, mask_path, threshold, match_method)) return true;
+		if (timeout == 0) break;
+		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
+			log_info("超时: %s", templ_path.c_str());
+			break;
+		}
+	}
+	return false;
 }
 
 void WindowInfo::update_player_float_pos() {
@@ -678,8 +750,8 @@ void WindowInfo::open_beibao() {
 	move_cursor_center_top();
 	for (int i = 0; i < 5; i++) {
 		input_alt_e();
-		if (WaitMatchingRect(hwnd, ROI_beibao(), img_btn_beibao, 2000)) {
-			if (MatchingRect(hwnd, ROI_beibao(), img_btn_package_prop)) {
+		if (WaitMatchingRectExist(ROI_beibao(), img_btn_beibao, 2000)) {
+			if (MatchingRectExist(ROI_beibao(), img_btn_package_prop)) {
 				ClickMatchImage(ROI_beibao(), img_btn_package_prop);
 			}
 			break;
@@ -687,11 +759,11 @@ void WindowInfo::open_beibao() {
 	}
 }
 
-cv::Point WindowInfo::open_map() {
-	cv::Point pos = { -1, -1 };
+POINT WindowInfo::open_map() {
+	POINT pos = { -1, -1 };
 	for (int i = 0; i < 5; i++) {
 		input_tab();
-		pos = WaitMatchingRectPos(hwnd, ROI_map(), img_symbol_map, 2500);
+		pos = WaitMatchingRectLoc(ROI_map(), img_symbol_map, 2500);
 		if (pos.x > 0) {
 			break;
 		}
@@ -704,13 +776,13 @@ void WindowInfo::close_map() {
 	input_tab();
 	for (int i = 0; i < 5; i++) {
 		input_tab();
-		if (WaitMatchingRectDisapper(hwnd, ROI_map(), img_symbol_map, 2500)) break;
+		if (WaitMatchingRectDisapper(ROI_map(), img_symbol_map, 2500)) break;
 		input_tab();
 		Sleep(200);
 	}
 }
 void WindowInfo::close_beibao_smart(bool keep) {
-	if (!keep && MatchingRect(hwnd, ROI_beibao(), img_btn_beibao)) input_alt_e();
+	if (!keep && MatchingRectExist(ROI_beibao(), img_btn_beibao)) input_alt_e();
 }
 POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id) {
 	// 根据坐标计算相对自己在屏幕上的像素
@@ -1039,7 +1111,7 @@ void WindowInfo::use_changan777(cv::Rect roi, bool move, bool turn, bool keep) {
 	log_info("使用长安合成旗");
 	use_beibao_prop(img_props_red_777, turn, keep);
 	if (move) move_cursor_center_bottom();
-	auto flag_loc = WaitMatchingRectPos(hwnd, roi, img_btn_flag_loc, 5000, "", 0.85);
+	auto flag_loc = WaitMatchingRectLoc(roi, img_btn_flag_loc, 5000, "", 0.85);
 	mouse_click_human({flag_loc.x, flag_loc.y});
 	wait_scene_change(长安城);
 	update_player_float_pos();
@@ -1049,7 +1121,7 @@ void WindowInfo::use_zhuziguo777(cv::Rect roi, bool move, bool turn, bool keep) 
 	log_info("使用朱紫国合成旗");
 	use_beibao_prop(img_props_white_777, turn, keep);
 	if (move) move_cursor_center_bottom();
-	auto flag_loc = WaitMatchingRectPos(hwnd, roi, img_btn_flag_loc, 4000, "", 0.85);
+	auto flag_loc = WaitMatchingRectLoc(roi, img_btn_flag_loc, 4000, "", 0.85);
 	mouse_click_human({ flag_loc.x, flag_loc.y });
 	wait_scene_change(朱紫国);
 	update_player_float_pos();
@@ -1059,7 +1131,7 @@ void WindowInfo::use_changshoucun777(cv::Rect roi, bool move, bool turn, bool ke
 	log_info("使用长寿村合成旗");
 	use_beibao_prop(img_props_green_777, turn, keep);
 	if (move) move_cursor_center_bottom();
-	auto flag_loc = WaitMatchingRectPos(hwnd, roi, img_btn_flag_loc, 4000, "", 0.85);
+	auto flag_loc = WaitMatchingRectLoc(roi, img_btn_flag_loc, 4000, "", 0.85);
 	mouse_click_human({ flag_loc.x, flag_loc.y });
 	wait_scene_change(长寿村);
 	update_player_float_pos();
@@ -1069,9 +1141,9 @@ void WindowInfo::use_aolaiguo777(cv::Rect roi, bool move, bool turn, bool keep) 
 	log_info("使用傲来国合成旗");
 	use_beibao_prop(img_props_yellow_777, turn, keep);
 	if (move) move_cursor_center_bottom();
-	auto flag_loc = WaitMatchingRectPos(hwnd, roi, img_btn_flag_loc, 4000, "", 0.85);
+	auto flag_loc = WaitMatchingRectLoc(roi, img_btn_flag_loc, 4000, "", 0.85);
 	if (flag_loc.x < 0) {
-		if (roi == ROI_aolaiguo777_qianzhuang()) flag_loc = WaitMatchingRectPos(hwnd, ROI_aolaiguo777_yaodian(), img_btn_flag_loc, 0, "", 0.85);
+		if (roi == ROI_aolaiguo777_qianzhuang()) flag_loc = WaitMatchingRectLoc(ROI_aolaiguo777_yaodian(), img_btn_flag_loc, 0, "", 0.85);
 	}
 	mouse_click_human({ flag_loc.x, flag_loc.y });
 	wait_scene_change(傲来国);
@@ -1125,11 +1197,11 @@ void WindowInfo::use_feixingfu(unsigned int scene_id) {
 	default:
 		return;
 	}
-	auto flag_loc = WaitMatchingRectPos(hwnd, roi, flag_image, 3000, "", 0.85);
+	auto flag_loc = WaitMatchingRectLoc(roi, flag_image, 3000, "", 0.85);
 	if (flag_loc.x < 0) {
 		for (int i = 0;i < 3;i++) {
 			input_f1();
-			flag_loc = WaitMatchingRectPos(hwnd, roi, flag_image, 1000, "", 0.85);
+			flag_loc = WaitMatchingRectLoc(roi, flag_image, 1000, "", 0.85);
 			if (flag_loc.x > 0) break;
 		}
 	}
@@ -1214,7 +1286,7 @@ POINT WindowInfo::get_cursor_pos(POINT pos) {
 		// 循环等待鼠标移动停止
 		if (getCurrentTimeMilliseconds() - t_ms > 1300) return tmp_pos;
 		Sleep(5);
-		auto cursor_pos = MatchingRectLeftTop(hwnd, ROI_cursor(pos), img_cursors_cursor);  // 游戏自身的鼠标
+		auto cursor_pos = MatchingRectLoc(ROI_cursor(pos), img_cursors_cursor, "", mThreshold, mMatchMethod, MATCHLEFTTOP);  // 游戏自身的鼠标
 		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
 		{
@@ -1228,7 +1300,7 @@ POINT WindowInfo::get_cursor_pos(POINT pos) {
 }
 
 bool WindowInfo::ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int x_fix, int y_fix, int xs, int ys, int mode, int timeout) {
-	auto cv_pos = WaitMatchingRectPos(hwnd, roi_rect, templ_path, timeout, mask_path, threshold, match_method);
+	auto cv_pos = WaitMatchingRectLoc(roi_rect, templ_path, timeout, mask_path, threshold, match_method);
 	if (cv_pos.x < 0) return false;
 	POINT pos = { cv_pos.x + x_fix, cv_pos.y + y_fix };
 	return mouse_click_human(pos, xs, ys, mode);
@@ -1243,7 +1315,7 @@ bool WindowInfo::talk_to_dianxiaoer() {
 		log_info("店小二坐标:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
 		log_info("店小二坐标:%d,%d", dxe_x, dxe_y);
 		click_position({ dxe_x, dxe_y });  // 点击与店小二对话
-		auto pos = WaitMatchingRectPos(hwnd, ROI_npc_talk(), img_btn_tingtingwufang);
+		auto pos = WaitMatchingRectLoc(ROI_npc_talk(), img_btn_tingtingwufang);
 		if (pos.x > 0) {
 			mouse_click_human(POINT{ rect.left + pos.x, rect.top + pos.y }, 0, 0, 1);			// 弹出对话框，接任务
 			return true;
@@ -1303,10 +1375,10 @@ bool WindowInfo::is_near_dianxiaoer() {
 	return false;
 }
 bool WindowInfo::wait_fighting() {
-	return WaitMatchingRect(hwnd, ROI_fighting(), img_fight_fighting, 3500,"",0.85);
+	return WaitMatchingRectExist(ROI_fighting(), img_fight_fighting, 3500,"",0.85);
 }
 bool WindowInfo::is_fighting() {
-	return MatchingRect(hwnd, ROI_fighting(), img_fight_fighting, "", 0.85);
+	return MatchingRectExist(ROI_fighting(), img_fight_fighting, "", 0.85);
 }
 void WindowInfo::handle_datu_fight() {
 
@@ -1469,7 +1541,7 @@ void WindowInfo::SplitTitleAsPlayerId() {
 	}
 }
 cv::Rect WindowInfo::ROI_cursor(POINT pos) {
-	int len = 150;
+	int len = 130;
 	long left = pos.x - rect.left - len;
 	long top = pos.y - rect.top - len;
 	long width = len * 2;
@@ -1751,7 +1823,11 @@ void GoodMorning::test() {
 		//cv::Rect roi_test(450, 338, 300, 300);
 		cv::Rect roi_test;
 		//MatchingRectPos(roi_test, "screenshot\\2025-12-09 01-11-22-r30319.png", "object\\btn\\tingtingwufang.png");
-		auto cursor_pos = MatchingRectLeftTop(winfo.hwnd, ROI_NULL(), img_btn_tingtingwufang, "", 0.78, cv::TM_CCOEFF_NORMED);  // 游戏自身的鼠标
+		//auto cursor_pos = MatchingRectLeftTop(winfo.hwnd, ROI_NULL(), img_btn_tingtingwufang, "", 0.78, cv::TM_CCOEFF_NORMED);  // 游戏自身的鼠标
+		//MatchingRectLoc(cv::Rect(200, 200, 3000, 3000), "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor_15.png", "object\\cursors\\cursor_mask.png", 0.78, cv::TM_CCOEFF_NORMED, MATCHLEFTTOP);
+		MatchingRectLoc(roi_test, "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor.png", "", 0.78, cv::TM_CCOEFF_NORMED, MATCHCENTER);
+		MatchingRectLoc(cv::Rect(10, 10, 3000, 3000), "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor.png", "", 0.78, cv::TM_CCOEFF_NORMED, MATCHLEFTTOP);
+		MatchingRectLoc(cv::Rect(10, 10, 3000, 3000), "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor.png", "", 0.78, cv::TM_CCOEFF_NORMED, MATCHEXIST);
 		//auto wabaoturenwu_AoB_adr = winfo.PerformAoBScan(
 		//	winfo.hProcess,
 		//	0,
@@ -2238,7 +2314,7 @@ static void CannyThreshold(int, void*)
 	imshow(window_name, dst);
 }
 
-cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path, double threshold, int match_method) {
+POINT MatchingRectLoc(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path, double threshold, int match_method, int loc) {
 	// Mask image(M) : The mask, a grayscale image that masks the template
 	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
 	// The mask must have the same dimensions as the template
@@ -2252,26 +2328,12 @@ cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string
 	//Thresholding an existing image
 
 	// cv2.TM_CCORR_NORMED  # 这个对颜色敏感度高
-	cv::Point pos(-1, -1);
+	POINT pos{ -1, -1 };
 
 	auto image = cv::imread((current_path / image_path).string(), cv::IMREAD_COLOR);
 	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
-	if (image.empty() || templ.empty())
-	{
-		log_error("Can't read one of the images\n");
-		return pos;
-	}
 	cv::Mat mask;
-	if (!mask_path.empty())
-	{
-		mask = cv::imread((current_path / mask_path).string(), cv::IMREAD_COLOR);
-		if (mask.empty())
-		{
-			log_error("Can't read mask image\n");
-			return pos;
-		}
-	}
-
+	if (!mask_path.empty())mask = cv::imread((current_path / mask_path).string(), cv::IMREAD_COLOR);
 	cv::Mat image_roi = image;
 	if (!roi_rect.empty()) {
 		// Ensure the ROI is within the image boundaries
@@ -2281,218 +2343,7 @@ cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string
 		// 'image_roi' is a new Mat header pointing to the data in 'image'
 		image_roi = image(roi_rect);
 	}
-	
-	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	return getMatchLoc(result, threshold, match_method, templ.cols, templ.rows);
-}
-
-cv::Point WaitMatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout, std::string mask_path, double threshold, int match_method) {
-	auto t_ms = getCurrentTimeMilliseconds();
-	while (true) {
-		auto pos = MatchingRectPos(hwnd, roi_rect, templ_path, mask_path, threshold, match_method);
-		if (pos.x > 0) return pos;
-		if (timeout == 0) break;
-		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
-			log_info("超时: %s", templ_path.c_str());
-			return cv::Point(-1, -1);
-		}
-		Sleep(5);
-	}
-}
-
-bool WaitMatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout, std::string mask_path, double threshold, int match_method) {
-	auto t_ms = getCurrentTimeMilliseconds();
-	while (true) {
-		auto match = MatchingRect(hwnd, roi_rect, templ_path, mask_path, threshold, match_method);
-		if (match) return true;
-		if (timeout == 0) break;
-		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
-			log_info("超时: %s", templ_path.c_str());
-			return false;
-		}
-		Sleep(5);
-	}
-}
-
-bool WaitMatchingRectDisapper(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout, std::string mask_path, double threshold, int match_method) {
-	auto t_ms = getCurrentTimeMilliseconds();
-	while (true) {
-		if (!MatchingRect(hwnd, roi_rect, templ_path, mask_path, threshold, match_method)) return true;
-		if (timeout == 0) break;
-		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
-			log_info("超时: %s", templ_path.c_str());
-			break;
-		}
-	}
-	return false;
-}
-
-cv::Point MatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
-	// Mask image(M) : The mask, a grayscale image that masks the template
-	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
-	// The mask must have the same dimensions as the template
-	// The mask should have a CV_8U or CV_32F depth and the same number of channels as the template image. In CV_8U case, the mask values are treated as binary, i.e. zero and non-zero.
-	// In CV_32F case, the values should fall into [0..1] range and the template pixels will be multiplied by the corresponding mask pixel values.
-	// Since the input images in the sample have the CV_8UC3 type, the mask is also read as color image.
-
-	//In OpenCV, a mask image is a binary image (pixels are typically 0 or 255) used to define a Region of Interest (ROI). 
-	// You can create a mask using several methods, with the two most common approaches being: 
-	//Drawing shapes on a black canvas
-	//Thresholding an existing image
-
-	// cv2.TM_CCORR_NORMED  # 这个对颜色敏感度高
-	cv::Point pos(-1, -1);
-
-	auto image = hwnd2mat(hwnd);
-	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
-	if (image.empty() || templ.empty())
-	{
-		log_error("Can't read one of the images\n");
-		return pos;
-	}
-	cv::Mat mask;
-	if (!mask_path.empty())
-	{
-		mask = cv::imread((current_path / mask_path).string(), cv::IMREAD_COLOR);
-		if (mask.empty())
-		{
-			log_error("Can't read mask image\n");
-			return pos;
-		}
-	}
-
-	cv::Mat image_roi = image;
-	if (!roi_rect.empty()) {
-		// Ensure the ROI is within the image boundaries
-		roi_rect = roi_rect & cv::Rect(0, 0, image.cols, image.rows);
-
-		// 2. Access the ROI using the Mat operator()
-		// 'image_roi' is a new Mat header pointing to the data in 'image'
-		image_roi = image(roi_rect);
-	}
-
-	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	return getMatchLoc(result, threshold, match_method, templ.cols, templ.rows);
-}
-
-cv::Point MatchingRectLeftTop(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method) {
-	// Mask image(M) : The mask, a grayscale image that masks the template
-	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
-	// The mask must have the same dimensions as the template
-	// The mask should have a CV_8U or CV_32F depth and the same number of channels as the template image. In CV_8U case, the mask values are treated as binary, i.e. zero and non-zero.
-	// In CV_32F case, the values should fall into [0..1] range and the template pixels will be multiplied by the corresponding mask pixel values.
-	// Since the input images in the sample have the CV_8UC3 type, the mask is also read as color image.
-
-	//In OpenCV, a mask image is a binary image (pixels are typically 0 or 255) used to define a Region of Interest (ROI). 
-	// You can create a mask using several methods, with the two most common approaches being: 
-	//Drawing shapes on a black canvas
-	//Thresholding an existing image
-
-	// cv2.TM_CCORR_NORMED  # 这个对颜色敏感度高
-	cv::Point pos(-1, -1);
-
-	auto image = hwnd2mat(hwnd);
-	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
-	if (image.empty() || templ.empty())
-	{
-		log_error("Can't read one of the images\n");
-		return pos;
-	}
-	cv::Mat mask;
-	if (!mask_path.empty())
-	{
-		mask = cv::imread((current_path / mask_path).string(), cv::IMREAD_COLOR);
-		if (mask.empty())
-		{
-			log_error("Can't read mask image\n");
-			return pos;
-		}
-	}
-
-	cv::Mat image_roi = image;
-	if (!roi_rect.empty()) {
-		// Ensure the ROI is within the image boundaries
-		roi_rect = roi_rect & cv::Rect(0, 0, image.cols, image.rows);
-
-		// 2. Access the ROI using the Mat operator()
-		// 'image_roi' is a new Mat header pointing to the data in 'image'
-		image_roi = image(roi_rect);
-	}
-	//log_info("roi_rect:%d, %d, %d, %d", roi_rect.x, roi_rect.y, roi_rect.width, roi_rect.height);
-	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	return getMatchLoc(result, threshold, match_method, 0, 0);
-}
-
-bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method)
-{
-	// Mask image(M) : The mask, a grayscale image that masks the template
-	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
-	// The mask must have the same dimensions as the template
-	// The mask should have a CV_8U or CV_32F depth and the same number of channels as the template image. In CV_8U case, the mask values are treated as binary, i.e. zero and non-zero.
-	// In CV_32F case, the values should fall into [0..1] range and the template pixels will be multiplied by the corresponding mask pixel values.
-	// Since the input images in the sample have the CV_8UC3 type, the mask is also read as color image.
-
-	//In OpenCV, a mask image is a binary image (pixels are typically 0 or 255) used to define a Region of Interest (ROI). 
-	// You can create a mask using several methods, with the two most common approaches being: 
-	//Drawing shapes on a black canvas
-	//Thresholding an existing image
-
-	// cv2.TM_CCORR_NORMED  # 这个对颜色敏感度高
-	auto image = hwnd2mat(hwnd);
-	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
-	if (image.empty() || templ.empty())
-	{
-		log_error("Can't read one of the images\n");
-		return false;
-	}
-	cv::Mat mask;
-	if (!mask_path.empty())
-	{
-		mask = cv::imread((current_path / mask_path).string(), cv::IMREAD_COLOR);
-		if (mask.empty())
-		{
-			log_error("Can't read mask image\n");
-			return false;
-		}
-	}
-
-	cv::Mat image_roi = image;
-	if (!roi_rect.empty()) {
-		// Ensure the ROI is within the image boundaries
-		roi_rect = roi_rect & cv::Rect(0, 0, image.cols, image.rows);
-
-		// 2. Access the ROI using the Mat operator()
-		// 'image_roi' is a new Mat header pointing to the data in 'image'
-		image_roi = image(roi_rect);
-	}
-
-	auto result = MatchingMethod(image_roi, templ, mask, threshold, match_method);
-	auto matchLoc = getMatchLoc(result, threshold, match_method, 0, 0);
-	return matchLoc.x > -1;
-}
-
-cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double threshold, int match_method)
-{
-	// Mask image(M) : The mask, a grayscale image that masks the template
-	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
-	// The mask must have the same dimensions as the template
-	// The mask should have a CV_8U or CV_32F depth and the same number of channels as the template image. In CV_8U case, the mask values are treated as binary, i.e. zero and non-zero.
-	// In CV_32F case, the values should fall into [0..1] range and the template pixels will be multiplied by the corresponding mask pixel values.
-	// Since the input images in the sample have the CV_8UC3 type, the mask is also read as color image.
-
-	//In OpenCV, a mask image is a binary image (pixels are typically 0 or 255) used to define a Region of Interest (ROI). 
-	// You can create a mask using several methods, with the two most common approaches being: 
-	//Drawing shapes on a black canvas
-	//Thresholding an existing image
-
-	// cv2.TM_CCORR_NORMED  # 这个对颜色敏感度高
 	cv::Mat result;
-	if (image.empty() || templ.empty())
-	{
-		log_error("Can't read one of the images\n");
-		return result;
-	}
-
 	int result_cols = image.cols - templ.cols + 1;
 	int result_rows = image.rows - templ.rows + 1;
 
@@ -2501,41 +2352,47 @@ cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double thresh
 	bool method_accepts_mask = (cv::TM_SQDIFF == match_method || match_method == cv::TM_CCORR_NORMED);
 	try {
 		if (!mask.empty() && method_accepts_mask)
-		{ matchTemplate(image, templ, result, match_method, mask); }
+		{
+			matchTemplate(image, templ, result, match_method, mask);
+		}
 		else
-		{ matchTemplate(image, templ, result, match_method); }
+		{
+			matchTemplate(image, templ, result, match_method);
+		}
 	}
 	catch (cv::Exception& e) {
 		log_error(e.what());
-		return result;
 	}
-	cv::normalize(result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat());
-	return result;
-}
-
-cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method, int width, int height) {
-	//int height = image.rows;
-	//int width = image.cols;
 	cv::Point matchLoc(-1, -1);
 	double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
 
 	minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat());
 	if (match_method == cv::TM_SQDIFF || match_method == cv::TM_SQDIFF_NORMED)
-	{ matchLoc = minLoc; }
+	{
+		matchLoc = minLoc;
+	}
 	else
 	{
 		//log_info("maxVal:%f", maxVal);
 		if (maxVal >= threshold)
 		{
-			matchLoc = maxLoc; 
-			//int height = image.rows;
-			//int width = image.cols;
-			matchLoc.x += width / 2;
-			matchLoc.y += height / 2;
-			//log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
+			matchLoc = maxLoc;
+			if (loc != MATCHEXIST) {
+				if (loc == MATCHCENTER) {
+					//int width = templ.cols;
+					//int height = templ.rows;
+					matchLoc.x += templ.cols / 2;
+					matchLoc.y += templ.rows / 2;
+				}
+				//if (!roi_rect.empty()) {
+				//	matchLoc.x += roi_rect.x;
+				//	matchLoc.y += roi_rect.y;
+				//}
+				//log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
+			}
 		}
 	}
-	return matchLoc;
+	return { matchLoc.x, matchLoc.y };
 }
 
 void ThresholdinginRange()
@@ -2861,9 +2718,6 @@ int main(int argc, const char** argv)
 
 
 	//ThresholdinginRange();
-	//MatchingMethod();
-
-	//_setmode(_fileno(stdout), _O_U8TEXT);
 
 	Serial();
 	//test();

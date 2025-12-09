@@ -54,6 +54,9 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define LEN_OF_INT64 22  // 21 + 1
 
 #define dianxiaoer_valid_distence 5  // 与店小二对话时的最大有效距离
+#define MATCHCENTER 1
+#define MATCHLEFTTOP 2
+#define MATCHEXIST 3
 
 const char* STOP_MP3 = "mmp3:STOP\n";
 
@@ -137,8 +140,14 @@ public:
 	uintptr_t PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask);
 	uintptr_t getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 	uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
-	POINT MatchingRectPos(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-	
+	bool MatchingRectExist(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED);
+	POINT MatchingRectLoc(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int loc = MATCHCENTER);
+	POINT WaitMatchingRectLoc(cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int loc = MATCHCENTER);
+	bool WaitMatchingRectExist(cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED);
+	bool WaitMatchingRectDisapper(cv::Rect roi_rect, std::string templ_path, int timeout = 1000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED);
+	bool mouse_click_human(POINT pos, int xs = 0, int ys = 0, int mode = 1);
+	POINT get_cursor_pos(POINT pos);
+	bool ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int x_fix = 0, int y_fix = 0, int xs = 0, int ys = 0, int mode = 1, int timeout = 500);
 	void scan_dianxiaoer_addr_pos();
 	void update_player_float_pos();
 	void update_scene();
@@ -149,7 +158,7 @@ public:
 	void move_cursor_center_bottom();
 
 	void open_beibao();
-	cv::Point open_map();
+	POINT open_map();
 	void close_map();
 	void close_beibao_smart(bool keep = false);
 	void move_to_dianxiaoer();
@@ -228,9 +237,7 @@ public:
 	cv::Rect ROI_feixingfu_zhuziguo();
 	cv::Rect ROI_feixingfu_aolaiguo();
 	cv::Rect ROI_fighting();
-	bool mouse_click_human(POINT pos, int xs = 0, int ys = 0, int mode = 1);
-	POINT get_cursor_pos(POINT pos);
-	bool ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED, int x_fix = 0, int y_fix = 0, int xs = 0, int ys = 0, int mode = 1, int timeout = 500);
+
 	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
 	float player_y = 0;  // 这里的玩家坐标是float值，是内部地图坐标
 	POINT player_pos = { 0, 0 };
@@ -259,7 +266,7 @@ public:
 	bool moving = false;
 	bool fail = false;
 	double mThreshold = 0.78;  // 默认值
-	int mMatchMethod = cv::TM_CCORR_NORMED;  // 默认值
+	int mMatchMethod = cv::TM_CCOEFF_NORMED;  // 默认值
 	bool mp3_playing = false;
 
 	HANDLE pid;
@@ -310,15 +317,8 @@ std::vector<DWORD> FindPidsByName(const wchar_t* name);
 HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);
 DWORD GetModuleSize(HANDLE hProcess, HMODULE hModule);
 cv::Mat hwnd2mat(HWND hwnd);
-cv::Point MatchingRectPos(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-cv::Point MatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-cv::Point MatchingRectLeftTop(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-bool MatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-cv::Mat MatchingMethod(cv::Mat image, cv::Mat templ, cv::Mat mask, double threshold, int match_method);
-cv::Point getMatchLoc(cv::Mat result, double threshold, int match_method, int width, int height);
-cv::Point WaitMatchingRectPos(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-bool WaitMatchingRect(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
-bool WaitMatchingRectDisapper(HWND hwnd, cv::Rect roi_rect, std::string templ_path, int timeout = 1000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCORR_NORMED);
+POINT MatchingRectLoc(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int loc = MATCHCENTER);
+
 uint64_t getCurrentTimeMilliseconds();
 std::wstring bytes_to_wstring(const unsigned char* buffer, size_t size);
 std::vector<std::wstring> findContentBetweenTags(const std::wstring& source, const std::wstring& startTag, const std::wstring& endTag);
