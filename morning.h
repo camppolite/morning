@@ -67,6 +67,7 @@ const char* STOP_MP3 = "mmp3:STOP\n";
 
 const char* MS_MOVE_HUMAN_SYMBOL = "movehm:%d,%d,%d,%d,%d\n";  // cx, cy, x, y, mode
 const char* CLICK_CURRENT_SYMBOL = "hkeyCC\n";
+const char* RIGHT_CLICK_CURRENT_SYMBOL = "hkeyRCC\n";
 const char* KEY_ALT_xxx = "hkey:ALT_%s\n";
 const char* KEY_PRESS = "hkey:%s\n";
 
@@ -278,7 +279,7 @@ public:
 	std::string player_id;
 	bool moving = false;
 	bool fail = false;
-	double mThreshold = 0.78;  // 默认值
+	double mThreshold = 0.81;  // 默认值
 	int mMatchMethod = cv::TM_CCOEFF_NORMED;  // 默认值
 	bool mp3_playing = false;
 
@@ -348,6 +349,7 @@ int Serial();
 void SerialWrite(const char* data);
 void SerialRead();
 void serial_click_cur();
+void serial_right_click_cur();
 void serial_move_human(POINT pos, int mode=1);
 
 

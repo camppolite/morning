@@ -24,6 +24,7 @@ typedef struct {
 // 场景id
 #define 长安城 1001
 #define 长安酒店 1028
+#define 化生寺 1002
 #define 桃源村 1003
 #define 建邺城 1501
 #define 建邺衙门 1537
