@@ -54,9 +54,14 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define LEN_OF_INT64 22  // 21 + 1
 
 #define dianxiaoer_valid_distence 5  // 与店小二对话时的最大有效距离
+#define changan_yizhan_laoban_valid_distence 10  // 与长安驿站老板对话时的最大有效距离
 #define MATCHCENTER 1
 #define MATCHLEFTTOP 2
 #define MATCHEXIST 3
+
+#define NPC_DIANXIAOER 1  // 店小二
+#define NPC_CHANGAN_YIZHANLAOBAN 2  // 长安驿站老板
+
 
 const char* STOP_MP3 = "mmp3:STOP\n";
 
@@ -70,6 +75,7 @@ const char* img_btn_package_prop = "object\\btn\\package_prop.png";
 const char* img_btn_tingtingwufang = "object\\btn\\tingtingwufang.png";
 const char* img_btn_npc_talk_close = "object\\btn\\npc_talk_close.png";
 const char* img_btn_flag_loc = "object\\btn\\flag_loc.png";
+const char* img_btn_shide_woyaoqu = "object\\btn\\shide_woyaoqu.png";
 
 const char* img_props_red_777 = "object\\props\\red_777.png";
 const char* img_props_white_777 = "object\\props\\white_777.png";
@@ -148,11 +154,11 @@ public:
 	bool mouse_click_human(POINT pos, int xs = 0, int ys = 0, int mode = 1);
 	POINT get_cursor_pos(POINT pos);
 	bool ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int x_fix = 0, int y_fix = 0, int xs = 0, int ys = 0, int mode = 1, int timeout = 500);
-	void scan_dianxiaoer_addr_pos();
+	void scan_npc_pos_addr(int npc);
 	void update_player_float_pos();
 	void update_scene();
 	void update_scene_id();
-	void update_dianxiaoer_pos();
+	void update_npc_pos(int npc);
 
 	void move_cursor_center_top();
 	void move_cursor_center_bottom();
@@ -163,9 +169,11 @@ public:
 	void close_beibao_smart(bool keep = false);
 	void move_to_dianxiaoer();
 	bool is_dianxiaoer_pos(float x, float y);
+	bool is_changan_yizhanlaoban_pos(float x, float y);
 	bool is_moving();
 	bool wait_moving_stop(int timeout);
 	bool is_near_dianxiaoer();
+	bool is_near_changan_yizhanlaoban();
 	bool wait_fighting();
 	bool is_fighting();
 	void handle_datu_fight();
@@ -246,13 +254,18 @@ public:
 	uintptr_t map_info_addr = 0;
 	SIZE_T map_offset = 0x14;
 
-	uintptr_t dianxiaoer_first_static_addr = 0;
-	uintptr_t dianxiaoer_second_static_addr = 0;
-	uintptr_t dianxiaoer_dynamic_addr_third_child_first_static_addr = 0;
+	//这个结构包含所有NPC和玩家（包括自己）的坐标
+	uintptr_t location_first_static_addr = 0;
+	uintptr_t location_second_static_addr = 0;
+	uintptr_t location_dynamic_addr_third_child_first_static_addr = 0;
 	uintptr_t dianxiaoer_pos_addr = 0;
+	uintptr_t changan_yizhanlaoban_pos_addr = 0;
 	std::vector<POINT> dianxiaoer_pos_list;  // 店小二固定移动的几个坐标
+	std::vector<POINT> changan_yizhanlaoban_pos_list;  // 长安驿站老板固定移动的几个坐标
 	float dianxiaoer_pos_x = 0;
 	float dianxiaoer_pos_y = 0;
+	float changan_yizhanlaoban_pos_x = 0;
+	float changan_yizhanlaoban_pos_y = 0;
 	unsigned int baotu_target_scene_id = 0;
 	POINT baotu_target_pos = { 0, 0 };
 	//POINT baotu_astar_pos = { 0, 0 };  // 宝图A星寻路目的坐标

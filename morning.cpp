@@ -61,6 +61,12 @@ WindowInfo::WindowInfo(HANDLE processID) {
 	dianxiaoer_pos_list.push_back(POINT{ 470, 650 });
 	dianxiaoer_pos_list.push_back(POINT{ 750, 610 });
 	dianxiaoer_pos_list.push_back(POINT{ 650, 790 });
+
+	changan_yizhanlaoban_pos_list.push_back(POINT{ 5570, 4710 });
+	changan_yizhanlaoban_pos_list.push_back(POINT{ 5570, 4750 });
+	changan_yizhanlaoban_pos_list.push_back(POINT{ 5610, 4730 });
+	changan_yizhanlaoban_pos_list.push_back(POINT{ 5650, 4710 });
+	changan_yizhanlaoban_pos_list.push_back(POINT{ 5650, 4750 });
 	init();
 }
 
@@ -68,6 +74,9 @@ void WindowInfo::init() {
 	dianxiaoer_pos_addr = 0;
 	dianxiaoer_pos_x = 0;
 	dianxiaoer_pos_y = 0;
+	changan_yizhanlaoban_pos_addr = 0;
+	changan_yizhanlaoban_pos_x = 0;
+	changan_yizhanlaoban_pos_y = 0;
 	baotu_target_scene_id = 0;
 	baotu_target_pos = { 0, 0 };
 	step.reset();
@@ -111,20 +120,20 @@ void WindowInfo::hook_init() {
 	if (scene_id_addr == 0) log_error("查找场景id地址失败");
 
 	// 店小二结构体静态地址
-	dianxiaoer_first_static_addr = getRelativeStaticAddressByAoB(
+	location_first_static_addr = getRelativeStaticAddressByAoB(
 		hProcess,
 		mhmainDllBase,
 		"48 8D 0D ? ? ? ? 48 89 08 48 8B 53 08 48 89 50 08 48 8B 53 10 48 89 50 10",
 		"xxx????xxxxxxxxxxxxxxxxxxx",
 		3);
-	dianxiaoer_second_static_addr = getRelativeCallAddressByAoB(
+	location_second_static_addr = getRelativeCallAddressByAoB(
 		hProcess,
 		mhmainDllBase,
 		"48 8B 08 48 8D 56 40 48 8D 05 ? ? ? ? 48 89 45 E7",
 		"xxxxxxxxxx????xxxx",
 		10);
 
-	dianxiaoer_dynamic_addr_third_child_first_static_addr = getRelativeStaticAddressByAoB(
+	location_dynamic_addr_third_child_first_static_addr = getRelativeStaticAddressByAoB(
 		hProcess,
 		mhmainDllBase,
 		"48 8D 05 ? ? ? ? 48 89 03 48 8D 4B 30 E8 ? ? ? ?",
@@ -614,48 +623,57 @@ void WindowInfo::update_scene_id() {
 	delete[] buffer;
 }
 
-void WindowInfo::scan_dianxiaoer_addr_pos() {
-	if (dianxiaoer_pos_addr == 0) {
+void WindowInfo::scan_npc_pos_addr(int npc) {
+	// 这个结构不是每次都会出现的，如果找不到，可以先出去再进来，重复试几次一般都会产生这个内存结构
+	// 先找到 #c80c0ff挖宝图任务 这个地址
+	//auto wabaoturenwu_AoB_adr = PerformAoBScan(
+	//	hProcess,
+	//	0,
+	//	"23 63 38 30 63 30 66 66 CD DA B1 A6 CD BC C8 CE CE F1 00",
+	//	"xxxxxxxxxxxxxxxxxxx");
+	//// 然后结构体上方有个地址指针，指向一个结构，这个结构包含店小二的动态坐标
+	//// 注意：店小二如果这个离开了玩家视野，这个地址需要重新查找，也就是说这个地址要店小二出现在玩家视野中才会出现
+	//SIZE_T regionSize = 0x8;
+	//BYTE* buffer = new BYTE[regionSize];
+	//SIZE_T bytesRead;
+	//pNtReadVirtualMemory(hProcess, (PVOID)(wabaoturenwu_AoB_adr - 0x40), buffer, regionSize, &bytesRead);
+	//auto ptr = *reinterpret_cast<QWORD*>(buffer);
+	//delete[] buffer;
+
+	//if (bytesRead > 0) {
+	//	bytesRead = 0;
+	//	buffer = new BYTE[regionSize];
+	//	pNtReadVirtualMemory(hProcess, (PVOID)(ptr), buffer, regionSize, &bytesRead);
+	//	if (bytesRead > 0) {
+	//		dianxiaoer_pos_addr = ptr + 0x4C;
+	//		log_info("店小二坐标地址:0x%llX", dianxiaoer_pos_addr);
+	//	}
+	//	delete[] buffer;
+	//}
+	uintptr_t pos_addr=-1;
+	if (npc == NPC_DIANXIAOER) {
 		log_info("查找店小二坐标开始:0x%X", hProcess);
+		pos_addr = dianxiaoer_pos_addr;
 		dianxiaoer_pos_x = 0;
 		dianxiaoer_pos_y = 0;
-		// 这个结构不是每次都会出现的，如果找不到，可以先出去再进来，重复试几次一般都会产生这个内存结构
-		// 先找到 #c80c0ff挖宝图任务 这个地址
-		//auto wabaoturenwu_AoB_adr = PerformAoBScan(
-		//	hProcess,
-		//	0,
-		//	"23 63 38 30 63 30 66 66 CD DA B1 A6 CD BC C8 CE CE F1 00",
-		//	"xxxxxxxxxxxxxxxxxxx");
-		//// 然后结构体上方有个地址指针，指向一个结构，这个结构包含店小二的动态坐标
-		//// 注意：店小二如果这个离开了玩家视野，这个地址需要重新查找，也就是说这个地址要店小二出现在玩家视野中才会出现
-		//SIZE_T regionSize = 0x8;
-		//BYTE* buffer = new BYTE[regionSize];
-		//SIZE_T bytesRead;
-		//pNtReadVirtualMemory(hProcess, (PVOID)(wabaoturenwu_AoB_adr - 0x40), buffer, regionSize, &bytesRead);
-		//auto ptr = *reinterpret_cast<QWORD*>(buffer);
-		//delete[] buffer;
-
-		//if (bytesRead > 0) {
-		//	bytesRead = 0;
-		//	buffer = new BYTE[regionSize];
-		//	pNtReadVirtualMemory(hProcess, (PVOID)(ptr), buffer, regionSize, &bytesRead);
-		//	if (bytesRead > 0) {
-		//		dianxiaoer_pos_addr = ptr + 0x4C;
-		//		log_info("店小二坐标地址:0x%llX", dianxiaoer_pos_addr);
-		//	}
-		//	delete[] buffer;
-		//}
-
+	}
+	else if (npc == NPC_CHANGAN_YIZHANLAOBAN) {
+		log_info("查找驿站老板坐标开始:0x%X", hProcess);
+		pos_addr = changan_yizhanlaoban_pos_addr;
+		changan_yizhanlaoban_pos_x = 0;
+		changan_yizhanlaoban_pos_y = 0;
+	}
+	if (pos_addr == 0) {
 		// 结构特点：2个静态地址+一个动态地址，动态地址开头包含6个指针，第1个指针为静态地址，第5和6的指针为空
 		std::string struct_AoB;
-		auto ptr1 = reinterpret_cast<char*>(&dianxiaoer_first_static_addr);
+		auto ptr1 = reinterpret_cast<char*>(&location_first_static_addr);
 		for (int i = 0; i < 8; i++) {
 			auto c = *reinterpret_cast<const unsigned char*>(ptr1 + i);
 			char hexStr[3];
 			sprintf(hexStr, "%2X ", c);
 			struct_AoB += hexStr;
 		}
-		auto ptr2 = reinterpret_cast<char*>(&dianxiaoer_second_static_addr);
+		auto ptr2 = reinterpret_cast<char*>(&location_second_static_addr);
 		for (int i = 0; i < 8; i++) {
 			auto c = *reinterpret_cast<const unsigned char*>(ptr2 + i);
 			char hexStr[3];
@@ -682,7 +700,7 @@ void WindowInfo::scan_dianxiaoer_addr_pos() {
 				pNtReadVirtualMemory(hProcess, (PVOID)heap_add, buffer1, regionSize, &bytesRead);
 				if (bytesRead > 0) {
 					auto m_static_child_addr1 = *reinterpret_cast<QWORD*>(buffer1);
-					if (m_static_child_addr1 == dianxiaoer_dynamic_addr_third_child_first_static_addr) {
+					if (m_static_child_addr1 == location_dynamic_addr_third_child_first_static_addr) {
 						auto heap_child_addr5 = *reinterpret_cast<QWORD*>(buffer1 + 0x20);
 						auto heap_child_addr6 = *reinterpret_cast<QWORD*>(buffer1 + 0x28);
 						if (heap_child_addr5 == 0 && heap_child_addr6 == 0) {
@@ -692,13 +710,25 @@ void WindowInfo::scan_dianxiaoer_addr_pos() {
 							update_player_float_pos();
 							if (x != player_x && y != player_y) {
 								// 这个结构包含所有NPC和玩家（包括自己）的坐标，所以要做过滤
-								if (is_dianxiaoer_pos(x, y)) {
-									dianxiaoer_pos_x = x;
-									dianxiaoer_pos_y = y;
-									dianxiaoer_pos_addr = item;
-									log_info("店小二坐标地址:0x%llX", dianxiaoer_pos_addr);
-									break;
+								if (npc == NPC_DIANXIAOER) {
+									if (is_dianxiaoer_pos(x, y)) {
+										dianxiaoer_pos_x = x;
+										dianxiaoer_pos_y = y;
+										dianxiaoer_pos_addr = item;
+										log_info("店小二坐标地址:0x%llX", item);
+										break;
+									}
 								}
+								else if (npc == NPC_CHANGAN_YIZHANLAOBAN) {
+									if (is_changan_yizhanlaoban_pos(x, y)) {
+										changan_yizhanlaoban_pos_x = x;
+										changan_yizhanlaoban_pos_y = y;
+										changan_yizhanlaoban_pos_addr = item;
+										log_info("驿站老版坐标地址:0x%llX", item);
+										break;
+									}
+								}
+	
 							}
 						}
 					}
@@ -708,34 +738,59 @@ void WindowInfo::scan_dianxiaoer_addr_pos() {
 			delete[] buffer;
 			delete[] buffer1;
 		}
-		log_info("查找店小二坐标结束:0x%X", hProcess);
+		log_info("查找坐标结束:0x%X", hProcess);
 	}
 }
 
-void WindowInfo::update_dianxiaoer_pos() {
-	// 读取更新小二坐标
-	dianxiaoer_pos_x = 0;
-	dianxiaoer_pos_y = 0;
-	SIZE_T regionSize = 0x24;
-	BYTE* buffer = new BYTE[regionSize];
-	SIZE_T bytesRead;
-	pNtReadVirtualMemory(hProcess, (PVOID)dianxiaoer_pos_addr, buffer, regionSize, &bytesRead);
-	if (bytesRead > 0) {
-		auto first_static_addr = *reinterpret_cast<uintptr_t*>(buffer);
-		if (dianxiaoer_first_static_addr == first_static_addr) {
-			auto x = *reinterpret_cast<float*>(buffer + 0x18);
-			auto y = *reinterpret_cast<float*>(buffer + 0x1C);
-			if (is_dianxiaoer_pos(x, y)) {
-				dianxiaoer_pos_x = x;
-				dianxiaoer_pos_y = y;
+void WindowInfo::update_npc_pos(int npc) {
+	// 读取更新坐标
+	uintptr_t pos_addr = -1;
+	if (npc == NPC_DIANXIAOER) {
+		pos_addr = dianxiaoer_pos_addr;
+		dianxiaoer_pos_x = 0;
+		dianxiaoer_pos_y = 0;
+	}
+	else if (npc == NPC_CHANGAN_YIZHANLAOBAN) {
+		pos_addr = changan_yizhanlaoban_pos_addr;
+		changan_yizhanlaoban_pos_x = 0;
+		changan_yizhanlaoban_pos_y = 0;
+	}
+	if (pos_addr != -1) {
+		SIZE_T regionSize = 0x24;
+		BYTE* buffer = new BYTE[regionSize];
+		SIZE_T bytesRead;
+		pNtReadVirtualMemory(hProcess, (PVOID)pos_addr, buffer, regionSize, &bytesRead);
+		if (bytesRead > 0) {
+			auto first_static_addr = *reinterpret_cast<uintptr_t*>(buffer);
+			if (location_first_static_addr == first_static_addr) {
+				auto x = *reinterpret_cast<float*>(buffer + 0x18);
+				auto y = *reinterpret_cast<float*>(buffer + 0x1C);
+				if (npc == NPC_DIANXIAOER) {
+					if (is_dianxiaoer_pos(x, y)) {
+						dianxiaoer_pos_x = x;
+						dianxiaoer_pos_y = y;
+					}
+				}
+				else if (npc == NPC_CHANGAN_YIZHANLAOBAN) {
+					if (is_changan_yizhanlaoban_pos(x, y)) {
+						changan_yizhanlaoban_pos_x = x;
+						changan_yizhanlaoban_pos_y = y;
+					}
+				}
+			}
+			else {
+				// 店小二消失，内存释放后，结构体变了
+				if (npc == NPC_DIANXIAOER) {
+					dianxiaoer_pos_addr = 0;
+				}
+				else if (npc == NPC_CHANGAN_YIZHANLAOBAN) {
+					changan_yizhanlaoban_pos_addr = 0;
+				}
 			}
 		}
-		else {
-			// 店小二消失，内存释放后，结构体变了
-			dianxiaoer_pos_addr = 0;
-		}
+		delete[] buffer;
 	}
-	delete[] buffer;
+
 }
 
 void WindowInfo::move_cursor_center_top() {
@@ -815,8 +870,8 @@ POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id) {
 }
 
 void WindowInfo::move_to_dianxiaoer() {
-	scan_dianxiaoer_addr_pos();
-	update_dianxiaoer_pos();
+	scan_npc_pos_addr(NPC_DIANXIAOER);
+	update_npc_pos(NPC_DIANXIAOER);
 	update_player_float_pos();
 
 	if (!is_near_dianxiaoer() && dianxiaoer_pos_x > 0) {
@@ -852,19 +907,23 @@ void WindowInfo::move_to_changanjidian_center() {
 }
 void WindowInfo::from_changan_fly_to_datangguojing() {
 	log_info("从长安长安驿站老板飞到大唐国境");
-	//update_dianxiaoer_pos();
-	//update_player_float_pos();
+	scan_npc_pos_addr(NPC_CHANGAN_YIZHANLAOBAN);
+	update_npc_pos(NPC_CHANGAN_YIZHANLAOBAN);
+	update_player_float_pos();
 
-	//if (!is_near_dianxiaoer() && dianxiaoer_pos_x > 0) {
-	//	auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
-	//	auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
-	//	// A星寻路
-	//	auto astar_pos = astar(player_pos.x, player_pos.y, dxe_x, dxe_y, m_scene_id, dianxiaoer_valid_distence, dianxiaoer_valid_distence);
-	//	log_info("店小二坐标:%d, %d", dxe_x, dxe_y);
-	//	log_info("A星寻路结果:%d, %d", astar_pos.x, astar_pos.y);
-	//	click_position(astar_pos);
-	//	wait_moving_stop(5000);
-	//}
+	if (!is_near_changan_yizhanlaoban() && changan_yizhanlaoban_pos_x > 0) {
+		click_position({247,43});  // 这个固定坐标可以和驿站老板对话
+		wait_moving_stop(5000);
+		update_npc_pos(NPC_CHANGAN_YIZHANLAOBAN);
+		update_player_float_pos();
+	}
+	if (changan_yizhanlaoban_pos_x > 0) {
+		auto dst_x = convert_to_map_pos_x(changan_yizhanlaoban_pos_x);
+		auto dst_y = convert_to_map_pos_y(changan_yizhanlaoban_pos_y);
+		click_position({dst_x, dst_y});
+		ClickMatchImage(ROI_npc_talk(), img_btn_shide_woyaoqu,"", mThreshold, mMatchMethod,0,0,0,0,1,2000);
+		wait_scene_change(大唐国境);
+	}
 }
 void WindowInfo::from_datangguojing_to_datangjingwai() {
 	log_info("从大唐国境到大唐境外");
@@ -1029,7 +1088,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 		else {
 			log_info("从长安到大唐国境");
 			use_changan777(ROI_changan777_datangguojing(), false, false);
-			click_position_at_edge({ 10,10 }, 30, -30);  // TODO
+			click_position_at_edge({ 8,5 }, 30, -30);
 			wait_scene_change(大唐国境);
 			update_player_float_pos();
 		}
@@ -1331,7 +1390,13 @@ bool WindowInfo::is_dianxiaoer_pos(float x, float y) {
 	}
 	return false;
 }
-
+bool WindowInfo::is_changan_yizhanlaoban_pos(float x, float y) {
+	// 店小二是按照顺时针固定几个坐标的规律移动的,根据坐标判断是否是店小二
+	for (auto& pos : changan_yizhanlaoban_pos_list) {
+		if (x > 0 && y > 0 && pos.x == x && pos.y == y) return true;
+	}
+	return false;
+}
 bool WindowInfo::is_moving() {
 	// 判断自己是否在移动
 	float x0 = 0;
@@ -1363,11 +1428,23 @@ bool WindowInfo::wait_moving_stop(int timeout) {
 	return false;
 }
 bool WindowInfo::is_near_dianxiaoer() {
-	update_dianxiaoer_pos();
+	update_npc_pos(NPC_DIANXIAOER);
 	if (dianxiaoer_pos_x > 0) {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 		if (abs(dxe_x - player_pos.x) <= (dianxiaoer_valid_distence + 1) && abs(dxe_x - player_pos.x) <= (dianxiaoer_valid_distence + 1)) {
+			//  +1是防止鼠标漂移误差
+			return true;
+		}
+	}
+	return false;
+}
+bool WindowInfo::is_near_changan_yizhanlaoban() {
+	update_npc_pos(NPC_CHANGAN_YIZHANLAOBAN);
+	if (changan_yizhanlaoban_pos_addr > 0) {
+		auto dxe_x = convert_to_map_pos_x(changan_yizhanlaoban_pos_x);
+		auto dxe_y = convert_to_map_pos_y(changan_yizhanlaoban_pos_y);
+		if (abs(dxe_x - player_pos.x) <= changan_yizhan_laoban_valid_distence && abs(dxe_x - player_pos.x) <= changan_yizhan_laoban_valid_distence) {
 			//  +1是防止鼠标漂移误差
 			return true;
 		}
@@ -1587,11 +1664,13 @@ cv::Rect WindowInfo::ROI_beibao_props() {
 
 cv::Rect WindowInfo::ROI_changan777_changanjiudian() {
 	log_info("长安合成旗-长安酒店");
+	dianxiaoer_pos_addr = 0;
 	return cv::Rect(495, 515, 45, 40); //TODO
 }
 
 cv::Rect WindowInfo::ROI_changan777_yizhan_laoban() {
 	log_info("长安合成旗-驿站老板");
+	changan_yizhanlaoban_pos_addr = 0;
 	return cv::Rect(495, 515, 45, 40);
 }
 
@@ -1825,9 +1904,9 @@ void GoodMorning::test() {
 		//MatchingRectPos(roi_test, "screenshot\\2025-12-09 01-11-22-r30319.png", "object\\btn\\tingtingwufang.png");
 		//auto cursor_pos = MatchingRectLeftTop(winfo.hwnd, ROI_NULL(), img_btn_tingtingwufang, "", 0.78, cv::TM_CCOEFF_NORMED);  // 游戏自身的鼠标
 		//MatchingRectLoc(cv::Rect(200, 200, 3000, 3000), "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor_15.png", "object\\cursors\\cursor_mask.png", 0.78, cv::TM_CCOEFF_NORMED, MATCHLEFTTOP);
-		MatchingRectLoc(roi_test, "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor.png", "", 0.78, cv::TM_CCOEFF_NORMED, MATCHCENTER);
-		MatchingRectLoc(cv::Rect(10, 10, 3000, 3000), "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor.png", "", 0.78, cv::TM_CCOEFF_NORMED, MATCHLEFTTOP);
-		MatchingRectLoc(cv::Rect(10, 10, 3000, 3000), "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor.png", "", 0.78, cv::TM_CCOEFF_NORMED, MATCHEXIST);
+		//MatchingRectLoc(roi_test, "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor.png", "", 0.78, cv::TM_CCOEFF_NORMED, MATCHCENTER);
+		//MatchingRectLoc(cv::Rect(10, 10, 3000, 3000), "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor.png", "", 0.78, cv::TM_CCOEFF_NORMED, MATCHLEFTTOP);
+		//MatchingRectLoc(cv::Rect(10, 10, 3000, 3000), "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor.png", "", 0.78, cv::TM_CCOEFF_NORMED, MATCHEXIST);
 		//auto wabaoturenwu_AoB_adr = winfo.PerformAoBScan(
 		//	winfo.hProcess,
 		//	0,
@@ -1841,14 +1920,15 @@ void GoodMorning::test() {
 
 		while (true) {
 			//winfo.update_player_float_pos();
-			//winfo.update_scene_id();
+			winfo.update_scene_id();
+			winfo.from_changan_fly_to_datangguojing();
 			//winfo.click_position({189, 130});
 			//winfo.update_scene();
 			//winfo.update_dianxiaoer_pos();
 			//winfo.move_to_dianxiaoer();
 			//winfo.parse_baotu_task_info();
-			winfo.scan_dianxiaoer_addr_pos();
-			gm.update_db();
+			//winfo.scan_npc_pos_addr();
+			//gm.update_db();
 			//Sleep(3000);
 			printf("\n");
 		}
