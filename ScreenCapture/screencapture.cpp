@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <cstdlib> // For rand() and srand()
 //#include <map>
+#include <direct.h>
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -75,7 +76,18 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 	_In_ SIZE_T NumberOfBytesToRead,
 	_Out_opt_ PSIZE_T NumberOfBytesRead
 	);
-
+void save_screenshot(cv::Mat& image) {
+	auto save_path = fs::current_path() / "screenshot";
+	//fs::path filename = "data.txt";
+	//fs::path full_path = current_path / filename;
+	time_t t = time(nullptr);
+	struct tm* lt = localtime(&t);
+	char filename[35];
+	filename[strftime(filename, sizeof(filename), "%Y-%m-%d %H-%M-%S-", lt)] = '\0';
+	//log_info("rand:%d", rand());
+	save_path /= filename + std::string("r") + std::to_string(rand()) + ".png";
+	cv::imwrite(save_path.string().c_str(), image);
+}
 inline cv::Mat hwnd2mat(HWND hwnd) {
 
 	HDC hwindowDC, hwindowCompatibleDC;
@@ -130,16 +142,7 @@ inline cv::Mat hwnd2mat(HWND hwnd) {
 	// 2. Use cvtColor with the COLOR_BGRA2BGR conversion code
 	cv::cvtColor(src, image_bgr, cv::COLOR_BGRA2BGR);
 
-	auto current_path = fs::current_path();
-	//fs::path filename = "data.txt";
-	//fs::path full_path = current_path / filename;
-	time_t t = time(nullptr);
-	struct tm* lt = localtime(&t);
-	char filename[35];
-	filename[strftime(filename, sizeof(filename), "%Y-%m-%d %H-%M-%S-", lt)] = '\0';
-
-	current_path /= filename + std::string("r") + std::to_string(rand()) + ".png";
-	cv::imwrite(current_path.string(), image_bgr);
+	save_screenshot(image_bgr);
 	return image_bgr;
 }
 
@@ -225,6 +228,10 @@ int main(int argc, const char** argv)
 		EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
 	}
 	Sleep(50);  // 等一下枚举窗口句柄回调完成再执行
+	struct stat st = { 0 };
+	if (stat("screenshot", &st) == -1) {
+		_mkdir("screenshot");
+	}
 	if (argc > 1) {
 		while (true) {
 			for (auto winfo : sc.winsInfo) {

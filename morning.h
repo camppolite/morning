@@ -211,6 +211,7 @@ public:
 	unsigned int get_scene_id_by_name(std::wstring name);
 
 	cv::Rect ROI_cursor(POINT pos);
+	cv::Rect ROI_cursor_verify(POINT pos);
 	cv::Rect ROI_beibao();
 	cv::Rect ROI_map();
 	cv::Rect ROI_npc_talk();
@@ -246,6 +247,8 @@ public:
 	cv::Rect ROI_feixingfu_zhuziguo();
 	cv::Rect ROI_feixingfu_aolaiguo();
 	cv::Rect ROI_fighting();
+
+	void test();
 
 	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
 	float player_y = 0;  // 这里的玩家坐标是float值，是内部地图坐标
@@ -331,6 +334,8 @@ std::vector<DWORD> FindPidsByName(const wchar_t* name);
 HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);
 DWORD GetModuleSize(HANDLE hProcess, HMODULE hModule);
 cv::Mat hwnd2mat(HWND hwnd);
+void save_screenshot(cv::Mat& image);
+POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int loc = MATCHCENTER);
 POINT MatchingRectLoc(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int loc = MATCHCENTER);
 
 uint64_t getCurrentTimeMilliseconds();
@@ -338,7 +343,8 @@ std::wstring bytes_to_wstring(const unsigned char* buffer, size_t size);
 std::vector<std::wstring> findContentBetweenTags(const std::wstring& source, const std::wstring& startTag, const std::wstring& endTag);
 std::string AnsiToUtf8(const std::string& ansiStr);
 POINT get_map_max_pixel(unsigned int scene_id);
-
+cv::Mat CannyThreshold(cv::Mat src);
+cv::Mat ThresholdinginRange(cv::Mat frame);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
 void init_log();
 
