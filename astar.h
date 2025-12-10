@@ -23,26 +23,28 @@ typedef struct {
 
 // 场景id
 #define 长安城 1001
-#define 长安酒店 1028
 #define 化生寺 1002
 #define 桃源村 1003
+#define 长安酒店 1028
+#define	西凉女国 1040
+#define	长寿村 1070
+#define	傲来国 1092
+#define 大唐国境 1110
+#define 地府 1122
+#define 狮驼岭 1131
+#define	普陀山 1140
+#define	女儿村 1142
+#define	五庄观 1146
+#define	大唐境外 1173
+#define	江南野外 1193
+#define	朱紫国 1208
+#define	宝象国 1226
 #define 建邺城 1501
 #define 建邺衙门 1537
-#define 建邺杂货店 155555
+#define 建邺杂货店 1505
 #define 东海湾 1506
-#define 大唐国境 9999
-#define 狮驼岭 9999
+#define 花果山 1514
 
-#define	女儿村 1
-#define	普陀山 2
-#define	江南野外 3
-#define	大唐境外 4
-#define	朱紫国 5
-#define	傲来国 6
-#define	宝象国 7
-#define	五庄观 9
-#define	长寿村 10
-#define	西凉女国 11
 
 typedef map<int, vector<range>> MAZE;
 

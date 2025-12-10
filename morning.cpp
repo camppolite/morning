@@ -940,7 +940,7 @@ void WindowInfo::from_datangguojing_to_datangjingwai() {
 	moving = true;
 }
 void WindowInfo::fly_to_changanjiudian() {
-	use_changan777(ROI_changan777_changanjiudian());
+	use_changan777(ROI_changan777_changanjiudian(), false);
 }
 
 void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
@@ -1120,6 +1120,10 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			use_changan777(ROI_changan777_yizhan_laoban(), false, false);
 			from_changan_fly_to_datangguojing();
 		}
+		break;
+	}
+	case 化生寺:
+	{
 		break;
 	}
 	default:
@@ -1331,8 +1335,8 @@ bool WindowInfo::mouse_click_human(POINT pos, int xs, int ys, int mode) {
 		cursor_pos = get_cursor_pos(mouse_move_pos);
 		if (cursor_pos.x < 0) continue;
 		mouse_move_pos = { mouse_move_pos.x + target_pos.x - cursor_pos.x, mouse_move_pos.y + target_pos.y - cursor_pos.y };
-		Sleep(5);
-	} while (abs(target_pos.x - cursor_pos.x) > 5 || abs(target_pos.y - cursor_pos.y) > 5);
+		//Sleep(5);
+	} while (abs(target_pos.x - cursor_pos.x) > 6 || abs(target_pos.y - cursor_pos.y) > 6);
 	switch (mode)
 	{
 	case 1:
@@ -1358,18 +1362,18 @@ POINT WindowInfo::get_cursor_pos(POINT pos) {
 	while (true) {
 		// 循环等待鼠标移动停止
 		if (getCurrentTimeMilliseconds() - t_ms > 1000) return tmp_pos;
-		Sleep(5);
+		//Sleep(5);
 		auto image = hwnd2mat(hwnd);
 		cv::Rect roi_rect = ROI_cursor(pos) & cv::Rect(0, 0, image.cols, image.rows);
 		auto image_roi = image(roi_rect);
 		if (image_roi.empty()) continue;
 		cv::Mat image_inRange = ThresholdinginRange(image_roi);
-		auto cursor_pos = MatchingLoc(image_inRange, ROI_NULL(), img_cursors_cursor, "", 0.72, cv::TM_CCOEFF_NORMED, MATCHLEFTTOP);  // 游戏自身的鼠标，鼠标用cv::TM_CCORR_NORMED方法匹配准确率最高
+		auto cursor_pos = MatchingLoc(image_inRange, ROI_NULL(), img_cursors_cursor, "", 0.69, cv::TM_CCOEFF_NORMED, MATCHLEFTTOP);  // 游戏自身的鼠标，鼠标用cv::TM_CCORR_NORMED方法匹配准确率最高
 		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
 		{
-			tmp_pos.x += rect.left;
-			tmp_pos.y += rect.top;
+			tmp_pos.x += rect.left + roi_rect.x;
+			tmp_pos.y += rect.top + roi_rect.y;
 			return tmp_pos;
 		}
 		tmp_pos.x = cursor_pos.x;
@@ -1548,7 +1552,13 @@ void WindowInfo::move_to_position(POINT dst, long active_x, long active_y) {
 	int screen_y = 17;  // wHeight / 2 / 20
 	if (abs(player_pos.x - dst.x) <= active_x && (player_pos.y - dst.y) <= active_y) return;  // 有效对话范围内，不用移动
 	// A星寻路
-	auto astar_pos = astar(player_pos.x, player_pos.y, dst.x, dst.y, m_scene_id, dianxiaoer_valid_distence - 1, dianxiaoer_valid_distence - 1);
+	auto astar_pos = astar(player_pos.x, player_pos.y, dst.x, dst.y, m_scene_id, active_x, active_y);
+	if (astar_pos.x < 0) {
+		if (astar_pos.x < dst.x) astar_pos.x = dst.x - active_x;
+		else astar_pos.x = dst.x + active_x;
+		if (astar_pos.y < dst.y) astar_pos.y = dst.y - active_y;
+		else astar_pos.y = dst.y + active_y;
+	}
 	if (abs(player_pos.x - astar_pos.x) <= screen_x && (player_pos.y - astar_pos.y) <= screen_y) click_position(astar_pos);
 	else move_via_map(astar_pos);
 	moving = true;
@@ -1605,6 +1615,9 @@ unsigned int WindowInfo::get_scene_id_by_name(std::wstring name) {
 	else if (name == L"建邺城") {
 		scene_id = 建邺城;
 	}
+	else if (name == L"建邺衙门") {
+		scene_id = 建邺衙门;
+	}
 	else if (name == L"建邺杂货店") {
 		scene_id = 建邺杂货店;
 	}
@@ -1614,6 +1627,43 @@ unsigned int WindowInfo::get_scene_id_by_name(std::wstring name) {
 	else if (name == L"化生寺") {
 		scene_id = 化生寺;
 	}
+	else if (name == L"长寿村") {
+		scene_id = 长寿村;
+	}
+	else if (name == L"西凉女国") {
+		scene_id = 西凉女国;
+	}
+	else if (name == L"傲来国") {
+		scene_id = 傲来国;
+	}
+	else if (name == L"大唐国境") {
+		scene_id = 大唐国境;
+	}
+	else if (name == L"地府") {
+		scene_id = 地府;
+	}
+	else if (name == L"普陀山") {
+		scene_id = 普陀山;
+	}
+	else if (name == L"五庄观") {
+		scene_id = 五庄观;
+	}
+	else if (name == L"大唐境外") {
+		scene_id = 大唐境外;
+	}
+	else if (name == L"江南野外") {
+		scene_id = 江南野外;
+	}
+	else if (name == L"朱紫国") {
+		scene_id = 朱紫国;
+	}
+	else if (name == L"宝象国") {
+		scene_id = 宝象国;
+	}
+	else if (name == L"花果山") {
+		scene_id = 花果山;
+	}
+	else log_info("未支持的场景，等待添加");
 	return scene_id;
 }
 
@@ -1910,7 +1960,7 @@ void GoodMorning::work() {
 		for (WindowInfo& winfo : this->winsInfo) {
 			winfo.datu();
 		}
-		Sleep(500);
+		Sleep(10);
 	}
 }
 void GoodMorning::time_pawn_update() {
@@ -2541,7 +2591,7 @@ POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std:
 				//log_info("matchLoc:%d, %d", matchLoc.x, matchLoc.y);
 			}
 		}
-		log_info("maxVal:%f matchLoc:%d,%d", maxVal, matchLoc.x, matchLoc.y);
+		//log_info("maxVal:%f matchLoc:%d,%d", maxVal, matchLoc.x, matchLoc.y);
 		//if (templ_path == img_cursors_cursor) {
 		//	if (match_method == cv::TM_CCOEFF_NORMED) log_info("TM_CCOEFF_NORMED:%f matchLoc:%d,%d", maxVal, matchLoc.x, matchLoc.y);
 		//	// --- 6. Draw a rectangle around the best match area ---
@@ -2970,7 +3020,7 @@ int main(int argc, const char** argv)
 
 	//CannyThreshold(0, 0);
 
-	ThresholdinginRange();
+	//ThresholdinginRange();
 
 	Serial();
 	//test();
@@ -2988,8 +3038,8 @@ int main(int argc, const char** argv)
 
 	gm.init();
 	gm.hook_data();
-	//gm.work();
-	gm.test();
+	gm.work();
+	//gm.test();
 	return 0;
 }
 
