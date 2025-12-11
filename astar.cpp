@@ -11,148 +11,71 @@ class AStarNode;
 typedef std::shared_ptr<AStarNode> AStarNodePtr;
 
 MAZE get_maze(unsigned int scene_id) {
-	MAZE mz;
 	switch (scene_id)
 	{
-	case 女儿村:
-	{
-		mz = nvercun_maze;
-		break;
+		case 女儿村:
+			return nvercun_maze;
+		case 普陀山:
+			return putuoshan_maze;
+		case 江南野外:
+			return jiangnanyewai_maze;
+		case 大唐境外:
+			return datangjingwai_maze;
+		case 朱紫国:
+			return zhuziguo_maze;
+		case 傲来国:
+			return aolaiguo_maze;
+		case 宝象国:
+			return baoxiangguo_maze;
+		case 建邺城:
+			return jianyecheng_maze;
+		case 五庄观:
+			return wuzhuangguan_maze;
+		case 长寿村:
+			return changshoucun_maze;
+		case 西凉女国:
+			return xiliangnvguo_maze;
+		case 长安酒店:
+			return changanjiudian_maze;
+		//default:
+		//	break;
 	}
-	case 普陀山:
-	{
-		mz = putuoshan_maze;
-		break;
-	}
-	case 江南野外:
-	{
-		mz = jiangnanyewai_maze;
-		break;
-	}
-	case 大唐境外:
-	{
-		mz = datangjingwai_maze;
-		break;
-	}
-	case 朱紫国:
-	{
-		mz = zhuziguo_maze;
-		break;
-	}
-	case 傲来国:
-	{
-		mz = aolaiguo_maze;
-		break;
-	}
-	case 宝象国:
-	{
-		mz = baoxiangguo_maze;
-		break;
-	}
-	case 建邺城:
-	{
-		mz = jianyecheng_maze;
-		break;
-	}
-	case 五庄观:
-	{
-		mz = wuzhuangguan_maze;
-		break;
-	}
-	case 长寿村:
-	{
-		mz = changshoucun_maze;
-		break;
-	}
-	case 西凉女国:
-	{
-		mz = xiliangnvguo_maze;
-		break;
-	}
-	case 长安酒店:
-	{
-		mz = changanjiudian_maze;
-		break;
-	}
-	//default:
-	//	break;
-	}
-	return mz;
+	return MAZE();
 }
 
 POINT get_map_max_loc(unsigned int scene_id) {
-	POINT pos = { -1, -1 };
 	switch (scene_id)
 	{
-	case 女儿村:
-	{
-		pos = { 126, 142 };
-		break;
+		case 女儿村:
+			return { 126, 142 };
+		case 普陀山:
+			return { 94, 70 };
+		case 江南野外:
+			return { 158, 118 };
+		case 大唐境外:
+			return { 637, 117 };
+		case 朱紫国:
+			return { 190, 118 };
+		case 傲来国:
+			return { 222, 149 };
+		case 宝象国:
+			return { 158, 118 };
+		case 建邺城:
+			return { 286, 143 };
+		case 五庄观:
+			return { 98, 73 };
+		case 长寿村:
+			return { 158, 208 };
+		case 西凉女国:
+			return { 162, 122 };
+		case 长安酒店:
+			return { 66, 49 };
+		case 长安城:
+			return { 548, 279 };
+		default:
+			break;
 	}
-	case 普陀山:
-	{
-		pos = { 94, 70 };
-		break;
-	}
-	case 江南野外:
-	{
-		pos = { 158, 118 };
-		break;
-	}
-	case 大唐境外:
-	{
-		pos = { 637, 117 };
-		break;
-	}
-	case 朱紫国:
-	{
-		pos = { 190, 118 };
-		break;
-	}
-	case 傲来国:
-	{
-		pos = { 222, 149 };
-		break;
-	}
-	case 宝象国:
-	{
-		pos = { 158, 118 };
-		break;
-	}
-	case 建邺城:
-	{
-		pos = { 286, 143 };
-		break;
-	}
-	case 五庄观:
-	{
-		pos = { 98, 73 };
-		break;
-	}
-	case 长寿村:
-	{
-		pos = { 158, 208 };
-		break;
-	}
-	case 西凉女国:
-	{
-		pos = { 162, 122 };
-		break;
-	}
-	case 长安酒店:
-	{
-		pos = { 66, 49 };
-		break;
-	}
-	case 长安城:
-	{
-		pos = { 548, 279 };
-		break;
-	}
-	default:
-		break;
-	}
-	return pos;
+	return { -1, -1 };
 }
 
 class AStarNode
@@ -211,7 +134,6 @@ public:
 			if (v_y != mz.end()) {
 				for (auto& a_y : (*v_y).second)
 				{
-
 					if (a_y.min <= node_y && node_y <= a_y.max) {
 						ret.push_back(AStarNode::makePtr(node_x, node_y, g + TILE_COST, copy));
 						break;
@@ -219,7 +141,6 @@ public:
 				}
 			}
 		}
-
 		return ret;
 	}
 };

@@ -3166,78 +3166,38 @@ std::string AnsiToUtf8(const std::string& ansiStr) {
 	return std::string(utf8Str.data());
 }
 POINT get_map_max_pixel(unsigned int scene_id) {
-	POINT px = { -1, -1 };
 	switch (scene_id)
 	{
-	case 女儿村:
-	{
-		px = { 320, 360 };
-		break;
+		case 女儿村:
+			return { 320, 360 };
+		case 普陀山:
+			return { 369, 276 };
+		case 江南野外:
+			return { 369, 273 };
+		case 大唐境外:
+			return { 583, 108 };
+		case 朱紫国:
+			return { 439, 276 };
+		case 傲来国:
+			return { 410, 276 };
+		case 宝象国:
+			return { 441, 331 };
+		case 建邺城:
+			return { 556, 276 };
+		case 五庄观:
+			return { 369, 276 };
+		case 长寿村:
+			return { 267, 350 };
+		case 西凉女国:
+			return { 371, 281 };
+		case 长安酒店:
+			break;
+		case 长安城:
+			break;
+		default:
+			break;
 	}
-	case 普陀山:
-	{
-		px = { 369, 276 };
-		break;
-	}
-	case 江南野外:
-	{
-		px = { 369, 273 };
-		break;
-	}
-	case 大唐境外:
-	{
-		px = { 583, 108 };
-		break;
-	}
-	case 朱紫国:
-	{
-		px = { 439, 276 };
-		break;
-	}
-	case 傲来国:
-	{
-		px = { 410, 276 };
-		break;
-	}
-	case 宝象国:
-	{
-		px = { 441, 331 };
-		break;
-	}
-	case 建邺城:
-	{
-		px = { 556, 276 };
-		break;
-	}
-	case 五庄观:
-	{
-		px = { 369, 276 };
-		break;
-	}
-	case 长寿村:
-	{
-		px = { 267, 350 };
-		break;
-	}
-	case 西凉女国:
-	{
-		px = { 371, 281 };
-		break;
-	}
-	case 长安酒店:
-	{
-		//px = { 66, 49 };
-		break;
-	}
-	case 长安城:
-	{
-		//px = { 548, 279 };
-		break;
-	}
-	default:
-		break;
-	}
-	return px;
+	return { -1, -1 };
 }
 
 int main(int argc, const char** argv)
