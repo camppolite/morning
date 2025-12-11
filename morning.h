@@ -62,7 +62,7 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define NPC_DIANXIAOER 1  // 店小二
 #define NPC_CHANGAN_YIZHANLAOBAN 2  // 长安驿站老板
 
-
+const char* PLAY_MP3 = "mmp3:PLAY_%d\n";
 const char* STOP_MP3 = "mmp3:STOP\n";
 
 const char* MS_MOVE_HUMAN_SYMBOL = "movehm:%d,%d,%d,%d,%d\n";  // cx, cy, x, y, mode
@@ -77,6 +77,9 @@ const char* img_btn_tingtingwufang = "object\\btn\\tingtingwufang.png";
 const char* img_btn_npc_talk_close = "object\\btn\\npc_talk_close.png";
 const char* img_btn_flag_loc = "object\\btn\\flag_loc.png";
 const char* img_btn_shide_woyaoqu = "object\\btn\\shide_woyaoqu.png";
+const char* img_btn_cancel_auto_round = "object\\btn\\cancel_auto_round.png";
+const char* img_btn_cancel_zhanli = "object\\btn\\cancel_zhanli.png";
+const char* img_btn_reset_auto_round = "object\\btn\\reset_auto_round.png";
 
 const char* img_props_red_777 = "object\\props\\red_777.png";
 const char* img_props_white_777 = "object\\props\\white_777.png";
@@ -86,6 +89,13 @@ const char* img_props_sheyaoxiang = "object\\props\\sheyaoxiang.png";
 const char* img_npc_dianxiaoer = "object\\npc\\dianxiaoer.png";
 
 const char* img_fight_fighting = "object\\fight\\fighting.png";
+const char* img_fight_health_red = "object\\fight\\health_red.png";
+const char* img_fight_health_blue = "object\\fight\\health_blue.png";
+const char* img_fight_fourman_title_gray_107_255_0 = "object\\fight\\fourman_title_gray_107_255_0.png";
+const char* img_fight_do_hero_action = "object\\fight\\do_hero_action.png";
+const char* img_fight_do_peg_action = "object\\fight\\do_peg_action.png";
+const char* img_fight_auto = "object\\fight\\auto.png";
+const char* img_fight_auto_round30 = "object\\btn\\auto_round30.png";
 
 const char* img_symbol_map = "object\\symbol\\map.png";
 const char* img_symbol_feixingfu_xiliangnvguo = "object\\symbol\\feixingfu_xiliangnvguo.png";
@@ -117,6 +127,8 @@ std::vector<std::string*> datu_step = {
 	&baotu_end
 };
 
+double gThreshold = 0.81;  // 默认值
+int gMatchMethod = cv::TM_CCOEFF_NORMED;  // 默认值
 
 class Step {
 public:
@@ -147,14 +159,14 @@ public:
 	uintptr_t PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask);
 	uintptr_t getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 	uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
-	bool MatchingRectExist(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED);
-	POINT MatchingRectLoc(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int loc = MATCHCENTER);
-	POINT WaitMatchingRectLoc(cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int loc = MATCHCENTER);
-	bool WaitMatchingRectExist(cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED);
-	bool WaitMatchingRectDisapper(cv::Rect roi_rect, std::string templ_path, int timeout = 1000, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED);
+	bool MatchingRectExist(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
+	POINT MatchingRectLoc(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
+	POINT WaitMatchingRectLoc(cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
+	bool WaitMatchingRectExist(cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
+	bool WaitMatchingRectDisapper(cv::Rect roi_rect, std::string templ_path, int timeout = 1000, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
 	bool mouse_click_human(POINT pos, int xs = 0, int ys = 0, int mode = 1);
 	POINT get_cursor_pos(POINT pos);
-	bool ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int x_fix = 0, int y_fix = 0, int xs = 0, int ys = 0, int mode = 1, int timeout = 500);
+	bool ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int x_fix = 0, int y_fix = 0, int xs = 0, int ys = 0, int mode = 1, int timeout = 500);
 	void scan_npc_pos_addr(int npc);
 	void update_player_float_pos();
 	void update_scene();
@@ -163,6 +175,7 @@ public:
 
 	void move_cursor_center_top();
 	void move_cursor_center_bottom();
+	void move_cursor_right_top();
 
 	void open_beibao();
 	POINT open_map();
@@ -207,11 +220,19 @@ public:
 
 	bool wait_scene_change(unsigned int scene_id, int timeout = 1700);
 	void close_npc_talk();
-
+	void close_npc_talk_fast();
 	unsigned int get_scene_id_by_name(std::wstring name);
+	bool low_health(cv::Rect roi, std::string templ_path, int deadline);
+	bool low_health_hero(int deadline);
+	bool low_health_peg(int deadline);
+	bool low_mana_hero(int deadline);
+	void supply_health_hero();
+	void supply_health_peg();
+	void supply_mana_hero();
+	void handle_health();
+
 
 	cv::Rect ROI_cursor(POINT pos);
-	cv::Rect ROI_cursor_verify(POINT pos);
 	cv::Rect ROI_beibao();
 	cv::Rect ROI_map();
 	cv::Rect ROI_npc_talk();
@@ -220,6 +241,7 @@ public:
 	cv::Rect ROI_changan777_yizhan_laoban();
 	cv::Rect ROI_changan777_datangguojing();
 	cv::Rect ROI_changan777_jiangnanyewai();
+	cv::Rect ROI_changan777_huashengsi();
 	cv::Rect ROI_changshoucun777_lucheng_n_qiangzhuan();
 	cv::Rect ROI_changshoucun777_fangcunshan();
 	cv::Rect ROI_changshoucun777_zhongshusheng();
@@ -247,7 +269,11 @@ public:
 	cv::Rect ROI_feixingfu_zhuziguo();
 	cv::Rect ROI_feixingfu_aolaiguo();
 	cv::Rect ROI_fighting();
-
+	cv::Rect ROI_health_hero(int deadline);
+	cv::Rect ROI_health_peg(int deadline);
+	cv::Rect ROI_mana_hero(int deadline);
+	cv::Rect ROI_four_man();
+	cv::Rect ROI_fight_action();
 	void test();
 
 	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
@@ -282,9 +308,10 @@ public:
 	std::string player_id;
 	bool moving = false;
 	bool fail = false;
-	double mThreshold = 0.81;  // 默认值
-	int mMatchMethod = cv::TM_CCOEFF_NORMED;  // 默认值
 	bool mp3_playing = false;
+	//bool four_man = false;
+	int f_round = 0;
+	uint64_t wait_hero_action_time = 0;
 
 	HANDLE pid;
 	HWND hwnd;
@@ -335,8 +362,10 @@ HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);
 DWORD GetModuleSize(HANDLE hProcess, HMODULE hModule);
 cv::Mat hwnd2mat(HWND hwnd);
 void save_screenshot(cv::Mat& image);
-POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int loc = MATCHCENTER);
-POINT MatchingRectLoc(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path = "", double threshold = 0.78, int match_method = cv::TM_CCOEFF_NORMED, int loc = MATCHCENTER);
+bool MatchingExist(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
+POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, cv::Mat templ, std::string mask_path, double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
+POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
+POINT MatchingRectLoc(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
 
 uint64_t getCurrentTimeMilliseconds();
 std::wstring bytes_to_wstring(const unsigned char* buffer, size_t size);
@@ -347,7 +376,7 @@ cv::Mat CannyThreshold(cv::Mat src);
 cv::Mat ThresholdinginRange(cv::Mat frame);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
 void init_log();
-
+int randint(int min, int max);
 cv::Rect ROI_NULL();
 
 
@@ -365,8 +394,8 @@ void input_alt_e();
 void input_key_xxx(const char* data);
 void input_tab();
 void input_f1();
-
-
+void stop_laba();
+void play_mp3();
 
 
 

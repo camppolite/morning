@@ -69,6 +69,8 @@ void WindowInfo::init() {
 	changan_yizhanlaoban_pos_y = 0;
 	baotu_target_scene_id = 0;
 	baotu_target_pos = { 0, 0 };
+	mp3_playing = false;
+	f_round = 0;
 	step.reset();
 }
 void WindowInfo::hook_init() {
@@ -167,8 +169,9 @@ void WindowInfo::datu() {
 	else if (step.current == &parse_baotu_task) {
 		log_info("parse_baotu_task");
 		//close_npc_talk();
-		if (!MatchingRectExist(ROI_npc_talk(), img_btn_tingtingwufang) && ClickMatchImage(ROI_npc_talk(), img_npc_dianxiaoer, "", 0.78, cv::TM_CCORR_NORMED, 0, 50, 0, 0, 1, 1300)){
+		if (!MatchingRectExist(ROI_npc_talk(), img_btn_tingtingwufang) && WaitMatchingRectExist(ROI_npc_talk(), img_npc_dianxiaoer, 1300)){
 			// 接任务后关闭对话窗
+			close_npc_talk_fast();
 			parse_baotu_task_info();
 			if (baotu_target_scene_id <= 0 || baotu_target_pos.x <= 0) {
 				log_info("解析宝图任务失败，需要手动处理");
@@ -184,6 +187,7 @@ void WindowInfo::datu() {
 		if (goto_scene(baotu_target_pos, baotu_target_scene_id)) {
 			step.next();
 		}
+		if (moving)handle_health();
 	}
 	else if (step.current == &attack_qiangdao) {
 		attack_npc(baotu_target_pos);
@@ -801,13 +805,15 @@ void WindowInfo::update_npc_pos(int npc) {
 }
 
 void WindowInfo::move_cursor_center_top() {
-	serial_move_human({ rect.left + 515, rect.top + 150 }, 0);
+	serial_move_human({ rect.left + 515, rect.top + 95 }, 0);
 }
 
 void WindowInfo::move_cursor_center_bottom() {
 	serial_move_human({ rect.left + 515, rect.bottom - 100 }, 0);
 }
-
+void WindowInfo::move_cursor_right_top() {
+	serial_move_human({ rect.left + 820, rect.top + 125 }, 0);
+}
 void WindowInfo::open_beibao() {
 	move_cursor_center_top();
 	for (int i = 0; i < 5; i++) {
@@ -930,7 +936,7 @@ void WindowInfo::from_changan_fly_to_datangguojing() {
 		auto dst_x = convert_to_map_pos_x(changan_yizhanlaoban_pos_x);
 		auto dst_y = convert_to_map_pos_y(changan_yizhanlaoban_pos_y);
 		click_position({dst_x, dst_y});
-		ClickMatchImage(ROI_npc_talk(), img_btn_shide_woyaoqu,"", mThreshold, mMatchMethod,0,0,0,0,1,2000);
+		ClickMatchImage(ROI_npc_talk(), img_btn_shide_woyaoqu,"", gThreshold, gMatchMethod,0,0,0,0,1,2000);
 		wait_scene_change(大唐国境);
 	}
 }
@@ -1124,6 +1130,11 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 	}
 	case 化生寺:
 	{
+		log_info("从长安到化生寺");
+		use_changan777(ROI_changan777_huashengsi(), false, false);
+		click_position_at_edge({ 542, 2 }, 0, 30);  // TODO
+		wait_scene_change(化生寺);
+		update_player_float_pos();
 		break;
 	}
 	default:
@@ -1172,7 +1183,7 @@ bool WindowInfo::goto_scene(POINT dst, unsigned int scene_id) {
 }
 void WindowInfo::use_beibao_prop(const char* image, bool turn, bool keep) {
 	if (turn) open_beibao(); // 这里的动作是：用完道具后是否关闭背包。打开背包使用飞行旗的时候，背包自动关闭了，不需要再关闭背包
-	ClickMatchImage(ROI_beibao_props(), image, "", mThreshold, mMatchMethod, 0, 0, 0, 0, 2, 3000);
+	ClickMatchImage(ROI_beibao_props(), image, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 2, 3000);
 	if (!keep) {
 		//Sleep(150);
 		input_alt_e();
@@ -1308,9 +1319,11 @@ bool WindowInfo::wait_scene_change(unsigned int scene_id, int timeout) {
 }
 
 void WindowInfo::close_npc_talk() {
-	if (!ClickMatchImage(ROI_npc_talk(), img_btn_npc_talk_close)) serial_move_human({rect.left + 670, rect.top + 530});
+	if (!ClickMatchImage(ROI_npc_talk(), img_btn_npc_talk_close)) close_npc_talk_fast();
 }
-
+void WindowInfo::close_npc_talk_fast() {
+	serial_move_human({ rect.left + 670, rect.top + 530 });  // npc对话框很大，不用怕鼠标漂移点不准 TODO
+}
 bool WindowInfo::mouse_click_human(POINT pos, int xs, int ys, int mode) {
 	// mode:0不点击，1左键，2右键，5ctrl+左键, 6alt+a攻击
 	POINT target_pos = pos;
@@ -1481,7 +1494,58 @@ bool WindowInfo::is_fighting() {
 	return MatchingRectExist(ROI_fighting(), img_fight_fighting, "", 0.85);
 }
 void WindowInfo::handle_datu_fight() {
-
+	// 四小人验证处理
+	bool four_man = false;
+	if (MatchingRectExist(ROI_four_man(), img_fight_fourman_title_gray_107_255_0, "", 0.81)) {if(!four_man)four_man = true;}
+	else { four_man = true; }
+	if (four_man) {
+		for (int i = 0;i < 5;i++) { log_info("***四小人弹窗验证,请手动点击***"); }
+		if (!mp3_playing) {
+			play_mp3();
+			mp3_playing = true;
+		}
+	}
+	else {
+		if (mp3_playing) {
+			stop_laba();
+			mp3_playing = false;
+		}
+		auto auto_btn_pos = MatchingRectLoc(ROI_fight_action(), img_fight_auto, "", 0.75);
+		if (auto_btn_pos.x>0) {click_position_at_edge(auto_btn_pos,-10);}
+	}
+	// 自动战斗挂机处理
+	bool hangup = false;
+	auto image = hwnd2mat(hwnd);
+	if (MatchingExist(image, ROI_NULL(), img_btn_cancel_auto_round))hangup = true;
+	else if (MatchingExist(image, ROI_NULL(), img_btn_cancel_zhanli))hangup = true;
+	if (MatchingExist(image, ROI_fight_action(), img_fight_do_hero_action)) {
+		if (getCurrentTimeMilliseconds() - wait_hero_action_time > 2.0) {
+			wait_hero_action_time = getCurrentTimeMilliseconds();
+			f_round += 1;
+			gm.db[player_id]["round"] += 1;
+			gm.update_db();
+		}
+	}
+	else if (MatchingExist(image, ROI_fight_action(), img_fight_do_peg_action)) {
+		if (!hangup) {
+			log_info("宠物平A");
+			input_alt_a();
+		}
+	}
+	//重置自动战斗挂机剩余回合
+	if (gm.db[player_id]["round"] >= randint(19,24) && f_round == 1) {
+		log_info("重置自动战斗挂机剩余回合");
+		move_cursor_center_top();
+		auto btn_pos = WaitMatchingRectLoc(ROI_NULL(), img_btn_reset_auto_round, 500,"",0.95);
+		if (btn_pos.x > 0) {
+			click_position_at_edge(btn_pos, 0, 10);
+			if (WaitMatchingRectExist(ROI_NULL(), img_fight_auto_round30, 300, "", 0.95)) {
+				gm.db[player_id]["round"] = 0;
+				gm.update_db();
+				log_info("重置完毕.");
+			}
+		}
+	}
 }
 int WindowInfo::convert_to_map_pos_x(float x) {
 	// (x - 1) * 20 + 30 = player_x  其中x是地图上显示的坐标
@@ -1666,6 +1730,45 @@ unsigned int WindowInfo::get_scene_id_by_name(std::wstring name) {
 	else log_info("未支持的场景，等待添加");
 	return scene_id;
 }
+bool WindowInfo::low_health(cv::Rect roi, std::string templ_path, int deadline) {
+	if (roi.empty())return false;
+	return MatchingRectExist(roi, templ_path, "", 0.96);
+}
+bool WindowInfo::low_health_hero(int deadline) {
+	auto roi = ROI_health_hero(deadline);
+	return low_health(roi, img_fight_health_red, deadline);
+}
+bool WindowInfo::low_health_peg(int deadline) {
+	auto roi = ROI_health_peg(deadline);
+	return low_health(roi, img_fight_health_red, deadline);
+}
+bool WindowInfo::low_mana_hero(int deadline) {
+	auto roi = ROI_mana_hero(deadline);
+	return low_health(roi, img_fight_health_blue, deadline);
+}
+void WindowInfo::supply_health_hero() {
+	if (low_health_hero(80)) {
+		mouse_click_human({ rect.left + 985,rect.top + 9 }, -50, 30, 2);
+		move_cursor_right_top();
+	}
+}
+void WindowInfo::supply_health_peg() {
+	if (low_health_peg(55)) {
+		mouse_click_human({ rect.left + 869,rect.top + 9 }, -50, 30, 2);
+		move_cursor_right_top();
+	}
+}
+void WindowInfo::supply_mana_hero() {
+	if (low_mana_hero(50)) {
+		mouse_click_human({ rect.left + 985,rect.top + 21 }, -50, 30, 2);
+		move_cursor_right_top();
+	}
+}
+void WindowInfo::handle_health() {
+	supply_health_hero();
+	supply_health_peg();
+	supply_mana_hero();
+}
 
 void WindowInfo::UpdateWindowRect() {
 	// 实际截图与窗口在屏幕上的坐标有偏差，修正
@@ -1716,12 +1819,7 @@ cv::Rect WindowInfo::ROI_cursor(POINT pos) {
 	cv::Rect roi(left, top, width, height);
 	return roi;
 }
-cv::Rect WindowInfo::ROI_cursor_verify(POINT pos) {
-	//鼠标tmpl模板是10x10像素
-	int px = 12;
-	cv::Rect roi(pos.x - 1, pos.y - 1, px, px);
-	return roi;
-}
+
 // 多标签窗口边框像素x:6,y:57
 //现在的截图边框像素x:8
 // 也就是说，需要x+2，y-57
@@ -1760,6 +1858,10 @@ cv::Rect WindowInfo::ROI_changan777_datangguojing() {
 cv::Rect WindowInfo::ROI_changan777_jiangnanyewai() {
 	log_info("长安合成旗-江南野外");
 	return cv::Rect(750, 498, 50, 45);
+}
+cv::Rect WindowInfo::ROI_changan777_huashengsi() {
+	log_info("长安合成旗-化生寺");
+	return cv::Rect(750, 498, 50, 45);  // TODO
 }
 cv::Rect WindowInfo::ROI_changshoucun777_lucheng_n_qiangzhuan() {
 	// 落地坐标:125,110 钱庄
@@ -1889,7 +1991,102 @@ cv::Rect WindowInfo::ROI_feixingfu_aolaiguo() {
 cv::Rect WindowInfo::ROI_fighting() {
 	return cv::Rect(1004, 115, 20, 65);
 }
-
+cv::Rect WindowInfo::ROI_health_hero(int deadline) {
+	switch (deadline)
+	{
+	case 100:
+		return cv::Rect(1004, 115, 20, 65);  //TODO
+	case 95:
+		return cv::Rect(1004, 115, 20, 65);
+	case 90:
+		return cv::Rect(1004, 115, 20, 65);
+	case 85:
+		return cv::Rect(1004, 115, 20, 65);
+	case 80:
+		return cv::Rect(1004, 115, 20, 65);
+	case 75:
+		return cv::Rect(1004, 115, 20, 65);
+	case 70:
+		return cv::Rect(1004, 115, 20, 65);
+	case 65:
+		return cv::Rect(1004, 115, 20, 65);
+	case 60:
+		return cv::Rect(1004, 115, 20, 65);
+	case 55:
+		return cv::Rect(1004, 115, 20, 65);
+	case 50:
+		return cv::Rect(1004, 115, 20, 65);
+	default:
+		break;
+	}
+	return cv::Rect();
+}
+cv::Rect WindowInfo::ROI_health_peg(int deadline) {
+	switch (deadline)
+	{
+	case 100:
+		return cv::Rect(1004, 115, 20, 65);  //TODO
+	case 95:
+		return cv::Rect(1004, 115, 20, 65);
+	case 90:
+		return cv::Rect(1004, 115, 20, 65);
+	case 85:
+		return cv::Rect(1004, 115, 20, 65);
+	case 80:
+		return cv::Rect(1004, 115, 20, 65);
+	case 75:
+		return cv::Rect(1004, 115, 20, 65);
+	case 70:
+		return cv::Rect(1004, 115, 20, 65);
+	case 65:
+		return cv::Rect(1004, 115, 20, 65);
+	case 60:
+		return cv::Rect(1004, 115, 20, 65);
+	case 55:
+		return cv::Rect(1004, 115, 20, 65);
+	case 50:
+		return cv::Rect(1004, 115, 20, 65);
+	default:
+		break;
+	}
+	return cv::Rect();
+}
+cv::Rect WindowInfo::ROI_mana_hero(int deadline) {
+	switch (deadline)
+	{
+	case 100:
+		return cv::Rect(1004, 115, 20, 65);  //TODO
+	case 95:
+		return cv::Rect(1004, 115, 20, 65);
+	case 90:
+		return cv::Rect(1004, 115, 20, 65);
+	case 85:
+		return cv::Rect(1004, 115, 20, 65);
+	case 80:
+		return cv::Rect(1004, 115, 20, 65);
+	case 75:
+		return cv::Rect(1004, 115, 20, 65);
+	case 70:
+		return cv::Rect(1004, 115, 20, 65);
+	case 65:
+		return cv::Rect(1004, 115, 20, 65);
+	case 60:
+		return cv::Rect(1004, 115, 20, 65);
+	case 55:
+		return cv::Rect(1004, 115, 20, 65);
+	case 50:
+		return cv::Rect(1004, 115, 20, 65);
+	default:
+		break;
+	}
+	return cv::Rect();
+}
+cv::Rect WindowInfo::ROI_four_man() {
+	return cv::Rect(350, 200, 430, 250);
+}
+cv::Rect WindowInfo::ROI_fight_action() {
+	return cv::Rect(850, 100, 150, 550);
+}
 void WindowInfo::test() {
 	Sleep(2000);
 	bool res = ClickMatchImage(ROI_NULL(), "object\\test.png");
@@ -1936,15 +2133,23 @@ void GoodMorning::init() {
 	bool update = false;
 	for (WindowInfo& winfo : this->winsInfo) {
 		if (!winfo.player_id.empty()) {
+			bool new_content = false;
+			auto player = db[winfo.player_id];
 			bool no_key = false;
-			if (!db.contains(winfo.player_id)) no_key = true;
-			else if (!db[winfo.player_id].contains("title")) no_key = true;
-			if (no_key) {
-				db[winfo.player_id]["title"] = AnsiToUtf8(winfo.player_name);
+			if (player.empty()) {
+				player["title"] = AnsiToUtf8(winfo.player_name);
+				player["round"] = 0;
+				new_content = true;
+			}
+			else if (!player.contains("title")) {
+				player["title"] = AnsiToUtf8(winfo.player_name);
+				new_content = true;
+			}
+			if (new_content) {
+				db[winfo.player_id] = player;
 				update = true;
 			}
 		}
-
 	}
 	if (update) update_db();
 }
@@ -2288,7 +2493,9 @@ uint64_t getCurrentTimeMilliseconds() {
 	// 3. Return the count of milliseconds as an integer
 	return duration_since_epoch.count();
 }
-
+int randint(int min, int max) {
+	return (std::rand() % (max - min + 1)) + min;
+}
 void test() {
 	HANDLE hSerial;
 	DCB dcbSerialParams = { 0 };
@@ -2514,8 +2721,11 @@ static void CannyThreshold(int, void*)
 
 	cv::imwrite("222.png", dst);
 }
-
-POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int loc) {
+bool MatchingExist(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method)
+{
+	return MatchingLoc(image, roi_rect, templ_path, mask_path, threshold, match_method, MATCHEXIST).x > -1;
+}
+POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, cv::Mat templ, std::string mask_path, double threshold, int match_method, int loc) {
 	// Mask image(M) : The mask, a grayscale image that masks the template
 	// Only two matching methods currently accept a mask: TM_SQDIFF and TM_CCORR_NORMED (see below for explanation of all the matching methods available in opencv).
 	// The mask must have the same dimensions as the template
@@ -2540,7 +2750,6 @@ POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std:
 		// 'image_roi' is a new Mat header pointing to the data in 'image'
 		image_roi = image(roi_rect);
 	}
-	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
 	cv::Mat mask;
 	if (!mask_path.empty())mask = cv::imread((current_path / mask_path).string(), cv::IMREAD_COLOR);
 
@@ -2602,6 +2811,10 @@ POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std:
 		//}
 	}
 	return { matchLoc.x, matchLoc.y };
+}
+POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int loc) {
+	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_COLOR);
+	return MatchingLoc(image, roi_rect, templ, mask_path, threshold, match_method, loc);
 }
 POINT MatchingRectLoc(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path, double threshold, int match_method, int loc) {
 	// Mask image(M) : The mask, a grayscale image that masks the template
@@ -2880,7 +3093,24 @@ void input_f1() {
 	input_key_xxx("F1");
 }
 
-
+void stop_laba() {
+	log_info("停止喇叭");
+	for (int i = 0;i < 5;i++) { 
+		SerialWrite(STOP_MP3); 
+		SerialRead();
+	}
+}
+void play_mp3() {
+	log_info("播放喇叭");
+	int64_t snp_len = strlen(PLAY_MP3) + LEN_OF_INT64 + 1;
+	// 在堆上分配内存
+	char* data_buf = new char[snp_len];
+	snprintf(data_buf, snp_len, PLAY_MP3, 1);
+	SerialWrite(data_buf);
+	// 使用完毕后，必须手动释放内存，防止内存泄漏
+	delete[] data_buf;
+	SerialRead();
+}
 std::wstring bytes_to_wstring(const unsigned char* buffer, size_t size) {
 	std::vector<unsigned char> raw_bytes(size);
 	memcpy(raw_bytes.data(), buffer, size);
