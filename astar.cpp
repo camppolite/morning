@@ -72,6 +72,8 @@ POINT get_map_max_loc(unsigned int scene_id) {
 			return { 66, 49 };
 		case 长安城:
 			return { 548, 279 };
+		case 东海湾:
+			return { 119, 119 };
 		default:
 			break;
 	}

@@ -187,7 +187,7 @@ void WindowInfo::datu() {
 		if (goto_scene(baotu_target_pos, baotu_target_scene_id)) {
 			step.next();
 		}
-		if (moving)handle_health();
+		//if (moving)handle_health();
 	}
 	else if (step.current == &attack_qiangdao) {
 		attack_npc(baotu_target_pos);
@@ -445,7 +445,14 @@ bool WindowInfo::MatchingRectExist(cv::Rect roi_rect, std::string templ_path, st
 {
 	return MatchingRectLoc(roi_rect, templ_path, mask_path, threshold, match_method, MATCHEXIST).x > -1;
 }
-
+bool WindowInfo::MatchingGrayRectExist(cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method)
+{
+	auto image = hwnd2mat(hwnd);
+	cv::Mat img_gray;
+	cvtColor(image, img_gray, cv::COLOR_BGR2GRAY);
+	auto templ = cv::imread((current_path / templ_path).string(), cv::IMREAD_GRAYSCALE);
+	return MatchingLoc(img_gray, roi_rect, templ, mask_path, threshold, match_method).x>-1;
+}
 POINT WindowInfo::MatchingRectLoc(cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int loc) {
 	auto image = hwnd2mat(hwnd);
 	return MatchingLoc(image, roi_rect, templ_path, mask_path, threshold, match_method, loc);
@@ -590,7 +597,7 @@ void WindowInfo::update_player_float_pos() {
 	delete[] buffer;
 	player_pos.x = convert_to_map_pos_x(player_x);
 	player_pos.y = convert_to_map_pos_y(player_y);
-	log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
+	//log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
 }
 
 void WindowInfo::update_scene() {
@@ -631,7 +638,7 @@ void WindowInfo::update_scene_id() {
 	SIZE_T bytesRead;
 	pNtReadVirtualMemory(hProcess, (PVOID)scene_id_addr, buffer, regionSize, &bytesRead);
 	m_scene_id = *reinterpret_cast<unsigned int*>(buffer);
-	delete[] buffer;
+		delete[] buffer;
 }
 
 void WindowInfo::scan_npc_pos_addr(int npc) {
@@ -843,7 +850,6 @@ POINT WindowInfo::open_map() {
 void WindowInfo::close_map() {
 	input_tab();
 	for (int i = 0; i < 5; i++) {
-		input_tab();
 		if (WaitMatchingRectDisapper(ROI_map(), img_symbol_map, 2500)) break;
 		input_tab();
 		Sleep(200);
@@ -891,7 +897,7 @@ void WindowInfo::move_to_dianxiaoer() {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 		// A星寻路
-		auto astar_pos = astar(player_pos.x, player_pos.y, dxe_x, dxe_y, m_scene_id, dianxiaoer_valid_distence, dianxiaoer_valid_distence);
+		auto astar_pos = astar(player_pos.x, player_pos.y, dxe_x, dxe_y, m_scene_id, dianxiaoer_valid_distence - 1, dianxiaoer_valid_distence - 1);
 		log_info("店小二坐标:%d, %d", dxe_x, dxe_y);
 		log_info("A星寻路结果:%d, %d", astar_pos.x, astar_pos.y);
 		click_position(astar_pos);
@@ -951,7 +957,7 @@ void WindowInfo::fly_to_changanjiudian() {
 
 void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 	log_info("飞到宝图场景");
-	bool turn = false;
+	bool turn = true;
 	switch (scene_id)
 	{
 	case 长寿村:
@@ -1048,14 +1054,14 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			else via_zhuziguo = false;
 			if (via_zhuziguo) {
 				log_info("从朱紫国到大唐境外");
-				use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false, false);
+				use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false);
 				click_position_at_edge({ 2, 4 }, 35, -35);
 				wait_scene_change(大唐境外);
 				update_player_float_pos();
 			}
 			else {
 				log_info("大唐国境到大唐境外");
-				use_changan777(ROI_changan777_yizhan_laoban(), false, false);
+				use_changan777(ROI_changan777_yizhan_laoban(), false);
 				from_changan_fly_to_datangguojing();
 			}
 		}
@@ -1065,7 +1071,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 	{
 		// 江南野外:1.合成旗-长安右下角-江南野外 2.飞行符-建邺城-江南野外
 		log_info("从长安到江南野外");
-		use_changan777(ROI_changan777_jiangnanyewai(), false, false);
+		use_changan777(ROI_changan777_jiangnanyewai(), false);
 		click_position_at_edge({ 542, 2 }, -32, -32);
 		wait_scene_change(江南野外);
 		update_player_float_pos();
@@ -1075,7 +1081,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 	{
 		// 女儿村：合成旗-傲来国左上角-女儿村
 		log_info("从傲来国到女儿村");
-		use_aolaiguo777(ROI_aolaiguo777_nvercun(), true, false);
+		use_aolaiguo777(ROI_aolaiguo777_nvercun(), true);
 		click_position_at_edge({ 5, 144 }, 30, 30);
 		wait_scene_change(女儿村);
 		update_player_float_pos();
@@ -1088,7 +1094,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			if (1) {//TODO
 				log_info("从大唐国境到普陀山");
 				handle_sheyaoxiang_time();
-				move_via_map({ 20,20 });  //TODO
+				move_via_map({ 225,65 });
 				close_beibao_smart();
 				moving = true;
 			}
@@ -1102,7 +1108,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 		}
 		else {
 			log_info("从长安到大唐国境");
-			use_changan777(ROI_changan777_datangguojing(), false, false);
+			use_changan777(ROI_changan777_datangguojing(), false);
 			click_position_at_edge({ 8,5 }, 30, -30);
 			wait_scene_change(大唐国境);
 			update_player_float_pos();
@@ -1123,7 +1129,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			moving = true;
 		}
 		else {
-			use_changan777(ROI_changan777_yizhan_laoban(), false, false);
+			use_changan777(ROI_changan777_yizhan_laoban(), false);
 			from_changan_fly_to_datangguojing();
 		}
 		break;
@@ -1131,9 +1137,29 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 	case 化生寺:
 	{
 		log_info("从长安到化生寺");
-		use_changan777(ROI_changan777_huashengsi(), false, false);
-		click_position_at_edge({ 542, 2 }, 0, 30);  // TODO
+		use_changan777(ROI_changan777_huashengsi(), false);
+		click_position_at_edge({ 511, 274 });
 		wait_scene_change(化生寺);
+		update_player_float_pos();
+		break;
+	}
+	case 东海湾:
+	{
+		log_info("从长安到东海湾");
+		use_aolaiguo777(ROI_aolaiguo777_donghaiwan(), false);
+		click_position({ 542, 2 });  // TODO
+		wait_scene_change(东海湾);
+		update_player_float_pos();
+		break;
+	}
+	case 狮驼岭:
+	{
+		log_info("从长安到狮驼岭");
+		use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false);
+		click_position_at_edge({ 542, 2 });  // TODO
+		wait_scene_change(大唐境外);
+		click_position_at_edge({ 542, 2 });  // TODO
+		wait_scene_change(狮驼岭);
 		update_player_float_pos();
 		break;
 	}
@@ -1322,7 +1348,7 @@ void WindowInfo::close_npc_talk() {
 	if (!ClickMatchImage(ROI_npc_talk(), img_btn_npc_talk_close)) close_npc_talk_fast();
 }
 void WindowInfo::close_npc_talk_fast() {
-	serial_move_human({ rect.left + 670, rect.top + 530 });  // npc对话框很大，不用怕鼠标漂移点不准 TODO
+	serial_move_human({ rect.left + 670, rect.top + 475 });  // npc对话框很大，不用怕鼠标漂移点不准 TODO
 }
 bool WindowInfo::mouse_click_human(POINT pos, int xs, int ys, int mode) {
 	// mode:0不点击，1左键，2右键，5ctrl+左键, 6alt+a攻击
@@ -1496,7 +1522,7 @@ bool WindowInfo::is_fighting() {
 void WindowInfo::handle_datu_fight() {
 	// 四小人验证处理
 	bool four_man = false;
-	if (MatchingRectExist(ROI_four_man(), img_fight_fourman_title_gray_107_255_0, "", 0.81)) {if(!four_man)four_man = true;}
+	if (MatchingGrayRectExist(ROI_four_man(), img_fight_fourman_title_gray, "", 0.81)) {if(!four_man)four_man = true;}
 	else { four_man = true; }
 	if (four_man) {
 		for (int i = 0;i < 5;i++) { log_info("***四小人弹窗验证,请手动点击***"); }
@@ -1638,7 +1664,7 @@ void WindowInfo::move_via_map(POINT dst) {
 	auto max_px = get_map_max_pixel(m_scene_id);  // 地图的像素高和宽
 	auto max_loc = get_map_max_loc(m_scene_id);  // 地图的xy最大坐标值
 	long x_base = map_pos.x - 10; // 地图左上角实际的像素位置
-	long y_base = map_pos.x + 60 + max_px.y; // 地图左上角实际的像素位置
+	long y_base = map_pos.y + 60 + max_px.y; // 地图左上角实际的像素位置
 	// 边缘可能点不中，修复一下
 	int edge = 7;
 	long x = dst.x;
@@ -1673,60 +1699,25 @@ bool WindowInfo::attack_npc(POINT dst) {
 }
 unsigned int WindowInfo::get_scene_id_by_name(std::wstring name) {
 	unsigned int scene_id = 0;
-	if (name == L"狮驼岭") {
-		scene_id = 狮驼岭;
-	}
-	else if (name == L"建邺城") {
-		scene_id = 建邺城;
-	}
-	else if (name == L"建邺衙门") {
-		scene_id = 建邺衙门;
-	}
-	else if (name == L"建邺杂货店") {
-		scene_id = 建邺杂货店;
-	}
-	else if (name == L"女儿村") {
-		scene_id = 女儿村;
-	}
-	else if (name == L"化生寺") {
-		scene_id = 化生寺;
-	}
-	else if (name == L"长寿村") {
-		scene_id = 长寿村;
-	}
-	else if (name == L"西凉女国") {
-		scene_id = 西凉女国;
-	}
-	else if (name == L"傲来国") {
-		scene_id = 傲来国;
-	}
-	else if (name == L"大唐国境") {
-		scene_id = 大唐国境;
-	}
-	else if (name == L"地府") {
-		scene_id = 地府;
-	}
-	else if (name == L"普陀山") {
-		scene_id = 普陀山;
-	}
-	else if (name == L"五庄观") {
-		scene_id = 五庄观;
-	}
-	else if (name == L"大唐境外") {
-		scene_id = 大唐境外;
-	}
-	else if (name == L"江南野外") {
-		scene_id = 江南野外;
-	}
-	else if (name == L"朱紫国") {
-		scene_id = 朱紫国;
-	}
-	else if (name == L"宝象国") {
-		scene_id = 宝象国;
-	}
-	else if (name == L"花果山") {
-		scene_id = 花果山;
-	}
+	if (name == L"狮驼岭") {scene_id = 狮驼岭;}
+	else if (name == L"建邺城") {scene_id = 建邺城;}
+	else if (name == L"建邺衙门") {scene_id = 建邺衙门;}
+	else if (name == L"建邺杂货店") {scene_id = 建邺杂货店;}
+	else if (name == L"女儿村") {scene_id = 女儿村;}
+	else if (name == L"化生寺") {scene_id = 化生寺;}
+	else if (name == L"长寿村") {scene_id = 长寿村;}
+	else if (name == L"西凉女国") {scene_id = 西凉女国;}
+	else if (name == L"傲来国") {scene_id = 傲来国;}
+	else if (name == L"大唐国境") {scene_id = 大唐国境;}
+	else if (name == L"地府") {scene_id = 地府;}
+	else if (name == L"普陀山") {scene_id = 普陀山;}
+	else if (name == L"五庄观") {scene_id = 五庄观;}
+	else if (name == L"大唐境外") {scene_id = 大唐境外;}
+	else if (name == L"江南野外") {scene_id = 江南野外;}
+	else if (name == L"朱紫国") {scene_id = 朱紫国;}
+	else if (name == L"宝象国") {scene_id = 宝象国;}
+	else if (name == L"花果山") {scene_id = 花果山;}
+	else if (name == L"东海湾") {scene_id = 东海湾;}
 	else log_info("未支持的场景，等待添加");
 	return scene_id;
 }
@@ -1861,7 +1852,7 @@ cv::Rect WindowInfo::ROI_changan777_jiangnanyewai() {
 }
 cv::Rect WindowInfo::ROI_changan777_huashengsi() {
 	log_info("长安合成旗-化生寺");
-	return cv::Rect(750, 498, 50, 45);  // TODO
+	return cv::Rect(710, 240, 80, 60);
 }
 cv::Rect WindowInfo::ROI_changshoucun777_lucheng_n_qiangzhuan() {
 	// 落地坐标:125,110 钱庄
@@ -2088,8 +2079,9 @@ cv::Rect WindowInfo::ROI_fight_action() {
 	return cv::Rect(850, 100, 150, 550);
 }
 void WindowInfo::test() {
-	Sleep(2000);
-	bool res = ClickMatchImage(ROI_NULL(), "object\\test.png");
+	update_scene_id();
+	update_player_float_pos();
+	move_via_map({ 186,84 });
 	printf("\n");
 }
 TimeProcessor::TimeProcessor() {
@@ -2205,22 +2197,23 @@ void GoodMorning::test() {
 		//winfo.update_player_float_pos();
 		//winfo.update_scene_id();
 		//winfo.click_position({ 189, 121 });
-
-		while (true) {
-			//winfo.update_player_float_pos();
-			winfo.test();
-			//winfo.update_scene_id();
-			//winfo.from_changan_fly_to_datangguojing();
-			//winfo.click_position({189, 130});
-			//winfo.update_scene();
-			//winfo.update_dianxiaoer_pos();
-			//winfo.move_to_dianxiaoer();
-			//winfo.parse_baotu_task_info();
-			//winfo.scan_npc_pos_addr();
-			//gm.update_db();
-			//Sleep(3000);
-			//printf("\n");
-		}
+		SetForegroundWindow(winfo.hwnd);
+		winfo.test();
+		//while (true) {
+		//	//winfo.update_player_float_pos();
+		//	winfo.test();
+		//	//winfo.update_scene_id();
+		//	//winfo.from_changan_fly_to_datangguojing();
+		//	//winfo.click_position({189, 130});
+		//	//winfo.update_scene();
+		//	//winfo.update_dianxiaoer_pos();
+		//	//winfo.move_to_dianxiaoer();
+		//	//winfo.parse_baotu_task_info();
+		//	//winfo.scan_npc_pos_addr();
+		//	//gm.update_db();
+		//	//Sleep(3000);
+		//	//printf("\n");
+		//}
 
 
 		//GetWindowRect(winfo.hwnd, &rect);
@@ -2696,6 +2689,7 @@ cv::Mat CannyThreshold(cv::Mat src)
 
 	return dst;
 }
+
 static void CannyThreshold(int, void*)
 {
 	cv::Mat src, src_gray;
@@ -2761,14 +2755,8 @@ POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, cv::Mat templ, std::string m
 
 	bool method_accepts_mask = (cv::TM_SQDIFF == match_method || match_method == cv::TM_CCORR_NORMED);
 	try {
-		if (!mask.empty() && method_accepts_mask)
-		{
-			matchTemplate(image_roi, templ, result, match_method, mask);
-		}
-		else
-		{
-			matchTemplate(image_roi, templ, result, match_method);
-		}
+		if (!mask.empty() && method_accepts_mask){matchTemplate(image_roi, templ, result, match_method, mask);}
+		else{matchTemplate(image_roi, templ, result, match_method);}
 	}
 	catch (cv::Exception& e) {
 		log_error(e.what());
@@ -3194,6 +3182,9 @@ POINT get_map_max_pixel(unsigned int scene_id) {
 			break;
 		case 长安城:
 			break;
+		case 东海湾:
+			return { 276, 276 };
+			break;
 		default:
 			break;
 	}
@@ -3228,8 +3219,8 @@ int main(int argc, const char** argv)
 
 	gm.init();
 	gm.hook_data();
-	gm.work();
-	//gm.test();
+	//gm.work();
+	gm.test();
 	return 0;
 }
 

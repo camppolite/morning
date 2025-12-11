@@ -91,7 +91,7 @@ const char* img_npc_dianxiaoer = "object\\npc\\dianxiaoer.png";
 const char* img_fight_fighting = "object\\fight\\fighting.png";
 const char* img_fight_health_red = "object\\fight\\health_red.png";
 const char* img_fight_health_blue = "object\\fight\\health_blue.png";
-const char* img_fight_fourman_title_gray_107_255_0 = "object\\fight\\fourman_title_gray_107_255_0.png";
+const char* img_fight_fourman_title_gray = "object\\fight\\fourman_title_gray.png";
 const char* img_fight_do_hero_action = "object\\fight\\do_hero_action.png";
 const char* img_fight_do_peg_action = "object\\fight\\do_peg_action.png";
 const char* img_fight_auto = "object\\fight\\auto.png";
@@ -160,6 +160,7 @@ public:
 	uintptr_t getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 	uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
 	bool MatchingRectExist(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
+	bool MatchingGrayRectExist(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = cv::TM_CCORR_NORMED);
 	POINT MatchingRectLoc(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
 	POINT WaitMatchingRectLoc(cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
 	bool WaitMatchingRectExist(cv::Rect roi_rect, std::string templ_path, int timeout = 2000, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
