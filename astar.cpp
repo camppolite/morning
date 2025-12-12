@@ -33,7 +33,7 @@ MAZE get_maze(unsigned int scene_id) {
 			return wuzhuangguan_maze;
 		case 长寿村:
 			return changshoucun_maze;
-		case 西凉女国:
+		case 西梁女国:
 			return xiliangnvguo_maze;
 		case 长安酒店:
 			return changanjiudian_maze;
@@ -66,7 +66,7 @@ POINT get_map_max_loc(unsigned int scene_id) {
 			return { 98, 73 };
 		case 长寿村:
 			return { 158, 208 };
-		case 西凉女国:
+		case 西梁女国:
 			return { 162, 122 };
 		case 长安酒店:
 			return { 66, 49 };
@@ -75,13 +75,13 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		case 东海湾:
 			return { 119, 119 };
 		case 化生寺:
-			return { 119, 119 }; //todo
+			return { 127, 95 };
 		case 长安国子监:
 			return { 119, 119 }; //todo
 		case 地府:
-			return { 119, 119 }; //todo
+			return { 131, 98 };
 		case 狮驼岭:
-			return { 119, 119 }; //todo
+			return { 131, 98 };
 		case 建邺杂货店:
 			return { 119, 119 }; //todo
 		case 花果山:

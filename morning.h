@@ -81,6 +81,7 @@ const char* img_btn_shide_woyaoqu = "object\\btn\\shide_woyaoqu.png";
 const char* img_btn_cancel_auto_round = "object\\btn\\cancel_auto_round.png";
 const char* img_btn_cancel_zhanli = "object\\btn\\cancel_zhanli.png";
 const char* img_btn_reset_auto_round = "object\\btn\\reset_auto_round.png";
+const char* img_btn_woshilaishoushinide = "object\\btn\\woshilaishoushinide.png";
 
 const char* img_props_red_777 = "object\\props\\red_777.png";
 const char* img_props_white_777 = "object\\props\\white_777.png";
@@ -222,7 +223,7 @@ public:
 	bool goto_scene(POINT dst, unsigned int scene_id);
 	void move_to_position(POINT dst, long active_x = 0, long active_y = 0);
 	void move_via_map(POINT dst);
-	void move_to_other_scene(POINT door, int xs = 0, int ys = 0);
+	void move_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao=false);
 	bool click_position(POINT dst, int xs = 0, int ys = 0, int mode = 1);
 	void click_position_at_edge(POINT dst, int xs = 0, int ys = 0);
 	bool attack_npc(POINT dst);
