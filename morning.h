@@ -55,6 +55,7 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 
 #define dianxiaoer_valid_distence 5  // 与店小二对话时的最大有效距离
 #define changan_yizhan_laoban_valid_distence 10  // 与长安驿站老板对话时的最大有效距离
+#define NPC_TALK_VALID_DISTENCE 6  // 与NPC对话时的最大有效距离
 #define MATCHCENTER 1
 #define MATCHLEFTTOP 2
 #define MATCHEXIST 3
@@ -89,8 +90,28 @@ const char* img_props_sheyaoxiang = "object\\props\\sheyaoxiang.png";
 const char* img_npc_dianxiaoer = "object\\npc\\dianxiaoer.png";
 
 const char* img_fight_fighting = "object\\fight\\fighting.png";
-const char* img_fight_health_red = "object\\fight\\health_red.png";
-const char* img_fight_health_blue = "object\\fight\\health_blue.png";
+const char* img_fight_health_100 = "object\\fight\\health_100.png";
+const char* img_fight_health_95 = "object\\fight\\health_95.png";
+const char* img_fight_health_90 = "object\\fight\\health_90.png";
+const char* img_fight_health_85 = "object\\fight\\health_85.png";
+const char* img_fight_health_80 = "object\\fight\\health_80.png";
+const char* img_fight_health_75 = "object\\fight\\health_75.png";
+const char* img_fight_health_70 = "object\\fight\\health_70.png";
+const char* img_fight_health_65 = "object\\fight\\health_65.png";
+const char* img_fight_health_60 = "object\\fight\\health_60.png";
+const char* img_fight_health_55 = "object\\fight\\health_55.png";
+const char* img_fight_health_50 = "object\\fight\\health_50.png";
+const char* img_fight_mana_100 = "object\\fight\\mana_100.png";
+const char* img_fight_mana_95 = "object\\fight\\mana_95.png";
+const char* img_fight_mana_90 = "object\\fight\\mana_90.png";
+const char* img_fight_mana_85 = "object\\fight\\mana_85.png";
+const char* img_fight_mana_80 = "object\\fight\\mana_80.png";
+const char* img_fight_mana_75 = "object\\fight\\mana_75.png";
+const char* img_fight_mana_70 = "object\\fight\\mana_70.png";
+const char* img_fight_mana_65 = "object\\fight\\mana_65.png";
+const char* img_fight_mana_60 = "object\\fight\\mana_60.png";
+const char* img_fight_mana_55 = "object\\fight\\mana_55.png";
+const char* img_fight_mana_50 = "object\\fight\\mana_50.png";
 const char* img_fight_fourman_title_gray = "object\\fight\\fourman_title_gray.png";
 const char* img_fight_do_hero_action = "object\\fight\\do_hero_action.png";
 const char* img_fight_do_peg_action = "object\\fight\\do_peg_action.png";
@@ -189,6 +210,7 @@ public:
 	bool wait_moving_stop(int timeout);
 	bool is_near_dianxiaoer();
 	bool is_near_changan_yizhanlaoban();
+	bool is_near_loc(POINT dst, int near_x, int near_y);
 	bool wait_fighting();
 	bool is_fighting();
 	void handle_datu_fight();
@@ -198,8 +220,9 @@ public:
 	bool talk_to_dianxiaoer();
 	void parse_baotu_task_info();
 	bool goto_scene(POINT dst, unsigned int scene_id);
-	void move_to_position(POINT dst, long active_x = dianxiaoer_valid_distence, long active_y = dianxiaoer_valid_distence);
+	void move_to_position(POINT dst, long active_x = 0, long active_y = 0);
 	void move_via_map(POINT dst);
+	void move_to_other_scene(POINT door, int xs = 0, int ys = 0);
 	bool click_position(POINT dst, int xs = 0, int ys = 0, int mode = 1);
 	void click_position_at_edge(POINT dst, int xs = 0, int ys = 0);
 	bool attack_npc(POINT dst);
@@ -208,6 +231,7 @@ public:
 	void from_datangguojing_to_datangjingwai();
 	void move_to_changanjidian_center();
 	void fly_to_changanjiudian();
+	void fly_to_changan_yizhan_laoban();
 	void fly_to_scene(long x, long y, unsigned int scene_id);
 	void UpdateWindowRect();
 	void SplitTitleAsPlayerId();
@@ -223,10 +247,8 @@ public:
 	void close_npc_talk();
 	void close_npc_talk_fast();
 	unsigned int get_scene_id_by_name(std::wstring name);
-	bool low_health(cv::Rect roi, std::string templ_path, int deadline);
-	bool low_health_hero(int deadline);
-	bool low_health_peg(int deadline);
-	bool low_mana_hero(int deadline);
+	bool low_health(cv::Rect roi, int deadline);
+	bool low_mana(cv::Rect roi, int deadline);
 	void supply_health_hero();
 	void supply_health_peg();
 	void supply_mana_hero();
@@ -270,9 +292,9 @@ public:
 	cv::Rect ROI_feixingfu_zhuziguo();
 	cv::Rect ROI_feixingfu_aolaiguo();
 	cv::Rect ROI_fighting();
-	cv::Rect ROI_health_hero(int deadline);
-	cv::Rect ROI_health_peg(int deadline);
-	cv::Rect ROI_mana_hero(int deadline);
+	cv::Rect ROI_health_hero();
+	cv::Rect ROI_health_peg();
+	cv::Rect ROI_mana_hero();
 	cv::Rect ROI_four_man();
 	cv::Rect ROI_fight_action();
 	void test();
@@ -319,6 +341,8 @@ public:
 	RECT rect;
 	long wWidth = 1024;  // 游戏窗口大小
 	long wHeight = 768;  // 游戏窗口大小
+	int mScreen_x = 22;  // wWidth / 2 / 20  屏幕可以范围坐标跨度
+	int mScreen_y = 17;  // wHeight / 2 / 20 屏幕可以范围坐标跨度
 	HANDLE hProcess = 0;
 	HMODULE hNtdll = 0;
 	HMODULE mhmainDllBase = 0;

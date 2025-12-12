@@ -187,7 +187,7 @@ void WindowInfo::datu() {
 		if (goto_scene(baotu_target_pos, baotu_target_scene_id)) {
 			step.next();
 		}
-		//if (moving)handle_health();
+		if (moving)handle_health();
 	}
 	else if (step.current == &attack_qiangdao) {
 		attack_npc(baotu_target_pos);
@@ -842,17 +842,14 @@ POINT WindowInfo::open_map() {
 		if (pos.x > 0) {
 			break;
 		}
-		Sleep(200);
 	}
 	return pos;
 }
 
 void WindowInfo::close_map() {
-	input_tab();
 	for (int i = 0; i < 5; i++) {
-		if (WaitMatchingRectDisapper(ROI_map(), img_symbol_map, 2500)) break;
 		input_tab();
-		Sleep(200);
+		if (WaitMatchingRectDisapper(ROI_map(), img_symbol_map, 2500)) break;
 	}
 }
 void WindowInfo::close_beibao_smart(bool keep) {
@@ -872,10 +869,10 @@ POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id) {
 	auto max_loc = get_map_max_loc(scene_id);
 
 	if (player_pos.x <= x_edge) px.x = dst.x * pixel;
-	else if (max_loc.x - player_pos.x <= x_edge) px.x = 1024 - (max_loc.x - dst.x) * pixel;
+	else if (max_loc.x - player_pos.x <= x_edge) px.x = wWidth - (max_loc.x - dst.x) * pixel;
 	else px.x = center_x - (player_pos.x - dst.x) * pixel;
 
-	if (player_pos.y <= y_edge) px.y = 768 - dst.y * pixel;
+	if (player_pos.y <= y_edge) px.y = wHeight - dst.y * pixel;
 	else if (max_loc.y - player_pos.y <= y_edge) px.y = (max_loc.y - dst.y) * pixel;
 	else px.y = center_y + (player_pos.y - dst.y) * pixel;
 
@@ -954,7 +951,9 @@ void WindowInfo::from_datangguojing_to_datangjingwai() {
 void WindowInfo::fly_to_changanjiudian() {
 	use_changan777(ROI_changan777_changanjiudian(), false);
 }
-
+void WindowInfo::fly_to_changan_yizhan_laoban() {
+	use_changan777(ROI_changan777_yizhan_laoban(), false);
+}
 void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 	log_info("飞到宝图场景");
 	bool turn = true;
@@ -1091,20 +1090,23 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 	{
 		// 普陀山：合成旗-长安左下角-大唐国境-普陀接引仙女
 		if (m_scene_id == 大唐国境) {
-			if (1) {//TODO
-				log_info("从大唐国境到普陀山");
+			POINT dst = { 225,65 };//todo 普陀接引仙女坐标
+			if (!is_near_loc(dst, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
+				log_info("从大唐国境到普陀接引仙女");
 				handle_sheyaoxiang_time();
-				move_via_map({ 225,65 });
+				move_to_position(dst, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
 				close_beibao_smart();
 				moving = true;
 			}
 			else {
-				log_info("和普陀接引仙女对话");
-				//TODO
-				wait_scene_change(普陀山);
-				update_player_float_pos();
+				log_info("传送普陀山");
+				click_position(dst);
+				auto pos = WaitMatchingRectLoc(ROI_npc_talk(), img_btn_shide_woyaoqu);
+				if (pos.x > 0) {
+					wait_scene_change(普陀山);
+					update_player_float_pos();
+				}
 			}
-		
 		}
 		else {
 			log_info("从长安到大唐国境");
@@ -1124,9 +1126,16 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 		else if (m_scene_id == 大唐境外) {
 			log_info("从大唐境外到五庄观");
 			handle_sheyaoxiang_time();
-			move_via_map({ 20,20 });  //TODO
-			close_beibao_smart();
-			moving = true;
+			POINT dst = { 225,65 };//todo 普陀接引仙女坐标
+			if (is_near_loc(dst, mScreen_x, mScreen_x)) {
+				click_position_at_edge(dst, -30, 0);  // TODO
+				wait_scene_change(五庄观);
+			}
+			else {
+				move_to_position(dst, -30, 0);  // TODO
+				close_beibao_smart();
+				moving = true;
+			}
 		}
 		else {
 			use_changan777(ROI_changan777_yizhan_laoban(), false);
@@ -1138,29 +1147,81 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 	{
 		log_info("从长安到化生寺");
 		use_changan777(ROI_changan777_huashengsi(), false);
-		click_position_at_edge({ 511, 274 });
+		click_position_at_edge({ 511, 274 },0,30);
 		wait_scene_change(化生寺);
 		update_player_float_pos();
 		break;
 	}
 	case 东海湾:
 	{
-		log_info("从长安到东海湾");
+		log_info("从傲来国到东海湾");
 		use_aolaiguo777(ROI_aolaiguo777_donghaiwan(), false);
 		click_position({ 542, 2 });  // TODO
-		wait_scene_change(东海湾);
-		update_player_float_pos();
+		auto pos = WaitMatchingRectLoc(ROI_npc_talk(), img_btn_shide_woyaoqu);
+		if (pos.x > 0) {
+			wait_scene_change(东海湾);
+			update_player_float_pos();
+		}
 		break;
 	}
 	case 狮驼岭:
 	{
-		log_info("从长安到狮驼岭");
+		log_info("从朱紫国到狮驼岭");
 		use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false);
-		click_position_at_edge({ 542, 2 });  // TODO
+		click_position_at_edge({ 542, 2 },30,0);  // TODO
 		wait_scene_change(大唐境外);
-		click_position_at_edge({ 542, 2 });  // TODO
+		click_position_at_edge({ 542, 2 }, 30, 0);  // TODO
 		wait_scene_change(狮驼岭);
 		update_player_float_pos();
+		break;
+	}
+	case 长安国子监:
+	{
+		if (m_scene_id == 长安城) {
+			POINT dst = { 225,65 };//todo 普陀接引仙女坐标
+			if (is_near_loc(dst, mScreen_x, mScreen_x)) {
+				click_position(dst);  // TODO
+				wait_scene_change(长安国子监);
+			}
+			else {
+				move_to_position(dst);  // TODO
+				moving = true;
+			}
+		}
+		else {
+			fly_to_changanjiudian();
+		}
+
+		click_position_at_edge({ 542, 2 });  // TODO
+		break;
+	}
+	case 地府:
+	{
+		log_info("寻路到地府");
+		if (m_scene_id == 大唐国境) {
+			handle_sheyaoxiang_time();
+			POINT dst = { 225,65 };//todo 普陀接引仙女坐标
+			if (is_near_loc(dst, mScreen_x, mScreen_x)) {
+				click_position_at_edge(dst, 0, 30);  // TODO
+				wait_scene_change(地府);
+			}
+			else {
+				move_to_position(dst, 0, 30);  // TODO
+				moving = true;
+			}
+		}
+		else {
+			fly_to_changan_yizhan_laoban();
+			from_changan_fly_to_datangguojing();
+		}
+		break;
+	}
+	case 建邺杂货店:
+	{
+		break;
+	}
+	case 花果山:
+	{
 		break;
 	}
 	default:
@@ -1171,7 +1232,7 @@ bool WindowInfo::goto_scene(POINT dst, unsigned int scene_id) {
 	update_scene_id();
 	if (m_scene_id == scene_id) {
 		// 已处在目的场景，走路过去
-		move_to_position(dst);
+		move_to_position(dst,NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
 		close_beibao_smart();
 		return true;
 	}
@@ -1348,7 +1409,7 @@ void WindowInfo::close_npc_talk() {
 	if (!ClickMatchImage(ROI_npc_talk(), img_btn_npc_talk_close)) close_npc_talk_fast();
 }
 void WindowInfo::close_npc_talk_fast() {
-	serial_move_human({ rect.left + 670, rect.top + 475 });  // npc对话框很大，不用怕鼠标漂移点不准 TODO
+	serial_move_human({ rect.left + 670, rect.top + 475 });  // npc对话框很大，不用怕鼠标漂移点不准
 }
 bool WindowInfo::mouse_click_human(POINT pos, int xs, int ys, int mode) {
 	// mode:0不点击，1左键，2右键，5ctrl+左键, 6alt+a攻击
@@ -1513,6 +1574,12 @@ bool WindowInfo::is_near_changan_yizhanlaoban() {
 	}
 	return false;
 }
+bool WindowInfo::is_near_loc(POINT dst, int near_x, int near_y) {
+	if (abs(dst.x - player_pos.x) <= near_x && abs(dst.y - player_pos.x) <= near_y) {
+		return true;
+	}
+	return false;
+}
 bool WindowInfo::wait_fighting() {
 	return WaitMatchingRectExist(ROI_fighting(), img_fight_fighting, 3500,"",0.85);
 }
@@ -1638,8 +1705,6 @@ void WindowInfo::parse_baotu_task_info() {
 
 void WindowInfo::move_to_position(POINT dst, long active_x, long active_y) {
 	// active_x, active_y:NPC在这个坐标范围内对话才有效
-	int screen_x = 22;  // wWidth / 2 / 20
-	int screen_y = 17;  // wHeight / 2 / 20
 	if (abs(player_pos.x - dst.x) <= active_x && (player_pos.y - dst.y) <= active_y) return;  // 有效对话范围内，不用移动
 	// A星寻路
 	auto astar_pos = astar(player_pos.x, player_pos.y, dst.x, dst.y, m_scene_id, active_x, active_y);
@@ -1649,7 +1714,7 @@ void WindowInfo::move_to_position(POINT dst, long active_x, long active_y) {
 		if (astar_pos.y < dst.y) astar_pos.y = dst.y - active_y;
 		else astar_pos.y = dst.y + active_y;
 	}
-	if (abs(player_pos.x - astar_pos.x) <= screen_x && (player_pos.y - astar_pos.y) <= screen_y) click_position(astar_pos);
+	if (abs(player_pos.x - astar_pos.x) <= mScreen_x && (player_pos.y - astar_pos.y) <= mScreen_y) click_position(astar_pos);
 	else move_via_map(astar_pos);
 	moving = true;
 }
@@ -1677,6 +1742,19 @@ void WindowInfo::move_via_map(POINT dst) {
 	long y_dst = y_base - round(y * max_px.y / max_loc.y);
 	mouse_click_human({ x_dst, y_dst });
 	close_map();
+}
+void WindowInfo::move_to_other_scene(POINT door, unsigned int scene_id, int xs, int ys, bool close_beibao) {
+	//door：另一个场景入口
+	//scene_id:另一个场景id
+	if (is_near_loc(door, mScreen_x, mScreen_x)) {
+		click_position_at_edge(door, xs, ys);
+		wait_scene_change(scene_id);
+	}
+	else {
+		move_to_position(door);
+		if(close_beibao)close_beibao_smart();
+		moving = true;
+	}
 }
 bool WindowInfo::click_position(POINT dst, int xs, int ys, int mode) {
 	// 通过鼠标点击目的坐标
@@ -1721,36 +1799,64 @@ unsigned int WindowInfo::get_scene_id_by_name(std::wstring name) {
 	else log_info("未支持的场景，等待添加");
 	return scene_id;
 }
-bool WindowInfo::low_health(cv::Rect roi, std::string templ_path, int deadline) {
-	if (roi.empty())return false;
-	return MatchingRectExist(roi, templ_path, "", 0.96);
+bool WindowInfo::low_health(cv::Rect roi, int deadline) {
+	vector<const char*> templ_list = {
+		img_fight_health_100,
+		img_fight_health_95,
+		img_fight_health_90,
+		img_fight_health_85,
+		img_fight_health_80,
+		img_fight_health_75,
+		img_fight_health_70,
+		img_fight_health_65,
+		img_fight_health_60,
+		img_fight_health_55,
+		img_fight_health_50,
+	};
+	int percent = 105;
+	auto image = hwnd2mat(hwnd);
+	for (auto temp : templ_list) {
+		if (!MatchingExist(image, roi, temp, "", 0.96)) percent -= 5;
+		if (percent <= deadline)return true;
+	}
+	return false;
 }
-bool WindowInfo::low_health_hero(int deadline) {
-	auto roi = ROI_health_hero(deadline);
-	return low_health(roi, img_fight_health_red, deadline);
-}
-bool WindowInfo::low_health_peg(int deadline) {
-	auto roi = ROI_health_peg(deadline);
-	return low_health(roi, img_fight_health_red, deadline);
-}
-bool WindowInfo::low_mana_hero(int deadline) {
-	auto roi = ROI_mana_hero(deadline);
-	return low_health(roi, img_fight_health_blue, deadline);
+bool WindowInfo::low_mana(cv::Rect roi, int deadline) {
+	vector<const char*> templ_list = {
+		img_fight_mana_100,
+		img_fight_mana_95,
+		img_fight_mana_90,
+		img_fight_mana_85,
+		img_fight_mana_80,
+		img_fight_mana_75,
+		img_fight_mana_70,
+		img_fight_mana_65,
+		img_fight_mana_60,
+		img_fight_mana_55,
+		img_fight_mana_50,
+	};
+	int percent = 105;
+	auto image = hwnd2mat(hwnd);
+	for (auto temp : templ_list) {
+		if (!MatchingExist(image, roi, temp, "", 0.96)) percent -= 5;
+		if (percent <= deadline)return true;
+	}
+	return false;
 }
 void WindowInfo::supply_health_hero() {
-	if (low_health_hero(80)) {
+	if (low_health(ROI_health_hero(),80)) {
 		mouse_click_human({ rect.left + 985,rect.top + 9 }, -50, 30, 2);
 		move_cursor_right_top();
 	}
 }
 void WindowInfo::supply_health_peg() {
-	if (low_health_peg(55)) {
+	if (low_health(ROI_health_peg(), 55)) {
 		mouse_click_human({ rect.left + 869,rect.top + 9 }, -50, 30, 2);
 		move_cursor_right_top();
 	}
 }
 void WindowInfo::supply_mana_hero() {
-	if (low_mana_hero(50)) {
+	if (low_mana(ROI_mana_hero(), 50)) {
 		mouse_click_human({ rect.left + 985,rect.top + 21 }, -50, 30, 2);
 		move_cursor_right_top();
 	}
@@ -1982,95 +2088,14 @@ cv::Rect WindowInfo::ROI_feixingfu_aolaiguo() {
 cv::Rect WindowInfo::ROI_fighting() {
 	return cv::Rect(1004, 115, 20, 65);
 }
-cv::Rect WindowInfo::ROI_health_hero(int deadline) {
-	switch (deadline)
-	{
-	case 100:
-		return cv::Rect(1004, 115, 20, 65);  //TODO
-	case 95:
-		return cv::Rect(1004, 115, 20, 65);
-	case 90:
-		return cv::Rect(1004, 115, 20, 65);
-	case 85:
-		return cv::Rect(1004, 115, 20, 65);
-	case 80:
-		return cv::Rect(1004, 115, 20, 65);
-	case 75:
-		return cv::Rect(1004, 115, 20, 65);
-	case 70:
-		return cv::Rect(1004, 115, 20, 65);
-	case 65:
-		return cv::Rect(1004, 115, 20, 65);
-	case 60:
-		return cv::Rect(1004, 115, 20, 65);
-	case 55:
-		return cv::Rect(1004, 115, 20, 65);
-	case 50:
-		return cv::Rect(1004, 115, 20, 65);
-	default:
-		break;
-	}
-	return cv::Rect();
+cv::Rect WindowInfo::ROI_health_hero() {
+	return cv::Rect(962, 3, 65, 11);
 }
-cv::Rect WindowInfo::ROI_health_peg(int deadline) {
-	switch (deadline)
-	{
-	case 100:
-		return cv::Rect(1004, 115, 20, 65);  //TODO
-	case 95:
-		return cv::Rect(1004, 115, 20, 65);
-	case 90:
-		return cv::Rect(1004, 115, 20, 65);
-	case 85:
-		return cv::Rect(1004, 115, 20, 65);
-	case 80:
-		return cv::Rect(1004, 115, 20, 65);
-	case 75:
-		return cv::Rect(1004, 115, 20, 65);
-	case 70:
-		return cv::Rect(1004, 115, 20, 65);
-	case 65:
-		return cv::Rect(1004, 115, 20, 65);
-	case 60:
-		return cv::Rect(1004, 115, 20, 65);
-	case 55:
-		return cv::Rect(1004, 115, 20, 65);
-	case 50:
-		return cv::Rect(1004, 115, 20, 65);
-	default:
-		break;
-	}
-	return cv::Rect();
+cv::Rect WindowInfo::ROI_health_peg() {
+	return cv::Rect(842, 3, 65, 11);
 }
-cv::Rect WindowInfo::ROI_mana_hero(int deadline) {
-	switch (deadline)
-	{
-	case 100:
-		return cv::Rect(1004, 115, 20, 65);  //TODO
-	case 95:
-		return cv::Rect(1004, 115, 20, 65);
-	case 90:
-		return cv::Rect(1004, 115, 20, 65);
-	case 85:
-		return cv::Rect(1004, 115, 20, 65);
-	case 80:
-		return cv::Rect(1004, 115, 20, 65);
-	case 75:
-		return cv::Rect(1004, 115, 20, 65);
-	case 70:
-		return cv::Rect(1004, 115, 20, 65);
-	case 65:
-		return cv::Rect(1004, 115, 20, 65);
-	case 60:
-		return cv::Rect(1004, 115, 20, 65);
-	case 55:
-		return cv::Rect(1004, 115, 20, 65);
-	case 50:
-		return cv::Rect(1004, 115, 20, 65);
-	default:
-		break;
-	}
-	return cv::Rect();
+cv::Rect WindowInfo::ROI_mana_hero() {
+	return cv::Rect(962, 15, 65, 11);
 }
 cv::Rect WindowInfo::ROI_four_man() {
 	return cv::Rect(350, 200, 430, 250);

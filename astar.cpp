@@ -74,6 +74,18 @@ POINT get_map_max_loc(unsigned int scene_id) {
 			return { 548, 279 };
 		case 东海湾:
 			return { 119, 119 };
+		case 化生寺:
+			return { 119, 119 }; //todo
+		case 长安国子监:
+			return { 119, 119 }; //todo
+		case 地府:
+			return { 119, 119 }; //todo
+		case 狮驼岭:
+			return { 119, 119 }; //todo
+		case 建邺杂货店:
+			return { 119, 119 }; //todo
+		case 花果山:
+			return { 119, 119 }; //todo
 		default:
 			break;
 	}
