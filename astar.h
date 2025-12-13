@@ -45,6 +45,8 @@ typedef struct {
 #define 建邺杂货店 1505
 #define 东海湾 1506
 #define 花果山 1514
+#define 长寿郊外 999999  //todo
+#define 傲来客栈二楼 99999  //todo
 
 
 typedef map<int, vector<range>> MAZE;

@@ -77,7 +77,7 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		case 化生寺:
 			return { 127, 95 };
 		case 长安国子监:
-			return { 119, 119 }; //todo
+			return { 79, 59 };
 		case 地府:
 			return { 131, 98 };
 		case 狮驼岭:
@@ -85,6 +85,10 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		case 建邺杂货店:
 			return { 119, 119 }; //todo
 		case 花果山:
+			return { 119, 119 }; //todo
+		case 长寿郊外:
+			return { 119, 119 }; //todo
+		case 傲来客栈二楼:
 			return { 119, 119 }; //todo
 		default:
 			break;

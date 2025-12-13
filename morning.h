@@ -134,21 +134,23 @@ std::string to_changan_jiudian("to_changan_jiudian");
 std::string to_dianxiaoer("to_dianxiaoer");
 std::string talk_get_baoturenwu("talk_get_baoturenwu");
 std::string parse_baotu_task("parse_baotu_task");
-std::string goto_target_scene("goto_target_scene");
+std::string goto_baotu_scene("goto_baotu_scene");
 std::string attack_qiangdao("attack_qiangdao");
-std::string handle_qiangdao("handle_qiangdao");
+std::string fighting_qiangdao("fighting_qiangdao");
+std::string parse_zeiwang_task("parse_zeiwang_task");
 std::string baotu_end("baotu_end");
 std::vector<std::string*> datu_step = {
 	&to_changan_jiudian,
 	&to_dianxiaoer, 
 	&talk_get_baoturenwu,
 	&parse_baotu_task,
-	&goto_target_scene,
+	&goto_baotu_scene,
 	&attack_qiangdao,
-	&handle_qiangdao,
+	&fighting_qiangdao,
+	&parse_zeiwang_task,
 	&baotu_end
 };
-
+//std::vector<std::thread>
 double gThreshold = 0.81;  // 默认值
 int gMatchMethod = cv::TM_CCOEFF_NORMED;  // 默认值
 
@@ -173,6 +175,8 @@ public:
 	void init();
 	void hook_init();
 	void datu();
+	void test();
+	unsigned int __stdcall test1(void*);
 
 	std::vector<uintptr_t> ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask);
 	std::vector<uintptr_t> PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask);
@@ -220,6 +224,7 @@ public:
 	int convert_to_map_pos_y(float y);
 	bool talk_to_dianxiaoer();
 	void parse_baotu_task_info();
+	void parse_zeiwang_info();
 	bool goto_scene(POINT dst, unsigned int scene_id);
 	void move_to_position(POINT dst, long active_x = 0, long active_y = 0);
 	void move_via_map(POINT dst);
@@ -298,7 +303,6 @@ public:
 	cv::Rect ROI_mana_hero();
 	cv::Rect ROI_four_man();
 	cv::Rect ROI_fight_action();
-	void test();
 
 	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
 	float player_y = 0;  // 这里的玩家坐标是float值，是内部地图坐标
@@ -320,10 +324,12 @@ public:
 	float dianxiaoer_pos_y = 0;
 	float changan_yizhanlaoban_pos_x = 0;
 	float changan_yizhanlaoban_pos_y = 0;
+	unsigned int zeiwang_scene_id = 0;
 	unsigned int baotu_target_scene_id = 0;
 	POINT baotu_target_pos = { 0, 0 };
 	//POINT baotu_astar_pos = { 0, 0 };  // 宝图A星寻路目的坐标
 	unsigned int baotu_task_count = 0;  // 今日领取第几次任务
+
 
 	uintptr_t scene_id_addr = 0;
 	std::string scene;
@@ -331,9 +337,9 @@ public:
 	std::string player_name;  // 梦幻西游 ONLINE - (四川1区[嘉陵江] - Ⅻ闵Ξ青[16705567])
 	std::string player_id;
 	bool moving = false;
-	bool fail = false;
-	bool mp3_playing = false;
-	//bool four_man = false;
+	bool failure = false;
+	bool popup_verify = false;
+	bool threading = false;
 	int f_round = 0;
 	uint64_t wait_hero_action_time = 0;
 
@@ -350,6 +356,8 @@ public:
 	PFN_NtReadVirtualMemory pNtReadVirtualMemory;
 
 	Step step = Step(datu_step);
+
+	//std::thread thread1 = std::thread(&WindowInfo::test, this);;
 };
 class TimeProcessor {
 public:
