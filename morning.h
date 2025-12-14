@@ -55,7 +55,7 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 
 #define dianxiaoer_valid_distence 5  // 与店小二对话时的最大有效距离
 #define changan_yizhan_laoban_valid_distence 10  // 与长安驿站老板对话时的最大有效距离
-#define NPC_TALK_VALID_DISTENCE 6  // 与NPC对话时的最大有效距离
+#define NPC_TALK_VALID_DISTENCE 8  // 与NPC对话时的最大有效距离
 #define MATCHCENTER 1
 #define MATCHLEFTTOP 2
 #define MATCHEXIST 3
@@ -82,6 +82,7 @@ const char* img_btn_cancel_auto_round = "object\\btn\\cancel_auto_round.png";
 const char* img_btn_cancel_zhanli = "object\\btn\\cancel_zhanli.png";
 const char* img_btn_reset_auto_round = "object\\btn\\reset_auto_round.png";
 const char* img_btn_woshilaishoushinide = "object\\btn\\woshilaishoushinide.png";
+const char* img_btn_zeiwang_benshaoxiashilaititianxingdaode = "object\\btn\\zeiwang_benshaoxiashilaititianxingdaode.png";
 
 const char* img_props_red_777 = "object\\props\\red_777.png";
 const char* img_props_white_777 = "object\\props\\white_777.png";
@@ -126,6 +127,9 @@ const char* img_symbol_feixingfu_jianyecheng = "object\\symbol\\feixingfu_jianye
 const char* img_symbol_feixingfu_changshoucun = "object\\symbol\\feixingfu_changshoucun.png";
 const char* img_symbol_feixingfu_aolaiguo = "object\\symbol\\feixingfu_aolaiguo.png";
 const char* img_symbol_feixingfu_zhuziguo = "object\\symbol\\feixingfu_zhuziguo.png";
+const char* img_symbol_ciyushunxu_gray = "object\\symbol\\ciyushunxu_gray.png";
+const char* img_symbol_yidongdezi_gray = "object\\symbol\\yidongdezi_gray.png";
+const char* img_symbol_gaosunitadecangshenweizhi = "object\\symbol\\gaosunitadecangshenweizhi.png";
 
 const char* img_cursors_cursor = "object\\cursors\\cursor.png";
 const char* img_cursors_cursor_mask = "object\\cursors\\cursor_mask.png";
@@ -136,8 +140,9 @@ std::string talk_get_baoturenwu("talk_get_baoturenwu");
 std::string parse_baotu_task("parse_baotu_task");
 std::string goto_baotu_scene("goto_baotu_scene");
 std::string attack_qiangdao("attack_qiangdao");
-std::string fighting_qiangdao("fighting_qiangdao");
+//std::string fighting_qiangdao("fighting_qiangdao");
 std::string parse_zeiwang_task("parse_zeiwang_task");
+std::string attack_zeiwang("attack_zeiwang");
 std::string baotu_end("baotu_end");
 std::vector<std::string*> datu_step = {
 	&to_changan_jiudian,
@@ -146,7 +151,7 @@ std::vector<std::string*> datu_step = {
 	&parse_baotu_task,
 	&goto_baotu_scene,
 	&attack_qiangdao,
-	&fighting_qiangdao,
+	//&fighting_qiangdao,
 	&parse_zeiwang_task,
 	&baotu_end
 };
@@ -218,8 +223,9 @@ public:
 	bool is_near_loc(POINT dst, int near_x, int near_y);
 	bool wait_fighting();
 	bool is_fighting();
+	bool is_verifying();
 	void handle_datu_fight();
-	POINT compute_pos_pixel(POINT dst, unsigned int scene_id);
+	POINT compute_pos_pixel(POINT dst, unsigned int scene_id, bool fix = false);
 	int convert_to_map_pos_x(float x);
 	int convert_to_map_pos_y(float y);
 	bool talk_to_dianxiaoer();
@@ -231,10 +237,11 @@ public:
 	void move_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao=false);
 	bool click_position(POINT dst, int xs = 0, int ys = 0, int mode = 1);
 	void click_position_at_edge(POINT dst, int xs = 0, int ys = 0);
-	bool attack_npc(POINT dst);
+	bool talk_to_npc_fight(POINT dst, const char* templ);
 	void goto_changanjiudian();
 	void from_changan_fly_to_datangguojing();
 	void from_datangguojing_to_datangjingwai();
+	void from_changan_to_datangguojing();
 	void move_to_changanjidian_center();
 	void fly_to_changanjiudian();
 	void fly_to_changan_yizhan_laoban();
@@ -302,6 +309,8 @@ public:
 	cv::Rect ROI_health_peg();
 	cv::Rect ROI_mana_hero();
 	cv::Rect ROI_four_man();
+	cv::Rect ROI_ciyushunxu();
+	cv::Rect ROI_yidongdezi();
 	cv::Rect ROI_fight_action();
 
 	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
@@ -324,12 +333,13 @@ public:
 	float dianxiaoer_pos_y = 0;
 	float changan_yizhanlaoban_pos_x = 0;
 	float changan_yizhanlaoban_pos_y = 0;
-	unsigned int zeiwang_scene_id = 0;
+
 	unsigned int baotu_target_scene_id = 0;
 	POINT baotu_target_pos = { 0, 0 };
 	//POINT baotu_astar_pos = { 0, 0 };  // 宝图A星寻路目的坐标
 	unsigned int baotu_task_count = 0;  // 今日领取第几次任务
-
+	unsigned int zeiwang_scene_id = 0;
+	POINT zeiwang_pos = { 0, 0 };
 
 	uintptr_t scene_id_addr = 0;
 	std::string scene;

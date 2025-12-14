@@ -26,6 +26,8 @@ typedef struct {
 #define 化生寺 1002
 #define 桃源村 1003
 #define 长安国子监 1026
+#define 长安饰品店 102622
+#define 长安杂货店 42424
 #define 长安酒店 1028
 #define	西梁女国 1040
 #define	长寿村 1070
@@ -45,8 +47,11 @@ typedef struct {
 #define 建邺杂货店 1505
 #define 东海湾 1506
 #define 花果山 1514
-#define 长寿郊外 999999  //todo
-#define 傲来客栈二楼 99999  //todo
+#define 长寿郊外 1091
+#define 傲来客栈 1093
+#define 傲来客栈二楼 1535
+#define 傲来国药店 1104
+#define 长寿村当铺 1072
 
 
 typedef map<int, vector<range>> MAZE;

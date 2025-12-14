@@ -52,6 +52,8 @@ POINT get_map_max_loc(unsigned int scene_id) {
 			return { 94, 70 };
 		case 江南野外:
 			return { 158, 118 };
+		case 大唐国境:
+			return { 351, 335 };
 		case 大唐境外:
 			return { 637, 117 };
 		case 朱紫国:
@@ -79,17 +81,21 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		case 长安国子监:
 			return { 79, 59 };
 		case 地府:
-			return { 131, 98 };
+			return { 159, 119 };
 		case 狮驼岭:
 			return { 131, 98 };
 		case 建邺杂货店:
-			return { 119, 119 }; //todo
+			return { 35, 24 }; //todo
 		case 花果山:
-			return { 119, 119 }; //todo
+			return { 159, 119 };
 		case 长寿郊外:
-			return { 119, 119 }; //todo
+			return { 190, 167 };
+		case 傲来客栈:
+			return { 57, 38 };
 		case 傲来客栈二楼:
-			return { 119, 119 }; //todo
+			return { 60, 43 };
+		case 傲来国药店:
+			return { 50, 44 };
 		default:
 			break;
 	}
