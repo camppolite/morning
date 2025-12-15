@@ -254,22 +254,24 @@ void WindowInfo::datu() {
 		init();
 	}
 }
-std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
+std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, const BYTE* pattern, size_t pattern_size, const char* mask)
 {
 	std::vector<uintptr_t> res;
 	BYTE* buffer = new BYTE[regionSize];
-
+	// 分配并初始化坏字符表
+	//unsigned char badChar[ALPHABET_SIZE];
+	//preProcessBadChar(pattern, mask, pattern_size, badChar);
 	SIZE_T bytesRead;
 	if (pNtReadVirtualMemory(hProcess, (PVOID)startAddress, buffer, regionSize, &bytesRead) == 0)
 		//if (ReadProcessMemory(hProcess, startAddress, buffer, regionSize, &bytesRead))
 	{
 		//log_info("startAddress:0x%llX, regionSize:0x%llX", startAddress, regionSize);
-		for (SIZE_T i = 0; i <= bytesRead - pattern.size(); i++)  // Updated loop condition
+		for (SIZE_T i = 0; i <= bytesRead - pattern_size; i++)  // Updated loop condition
 		{
 			bool found = true;
-			for (SIZE_T j = 0; j < pattern.size(); j++)
+			for (SIZE_T j = 0; j < pattern_size; j++)
 			{
-				if (mask[j] == 'x' && buffer[i + j] != pattern.at(j))
+				if (!mask[j] && buffer[i + j] != pattern[j])
 				{
 					found = false;
 					break;
@@ -282,7 +284,7 @@ std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID s
 				//std::cout << i << std::endl;
 				//std::cout << "Pattern match found at address: 0x" << std::hex << matchAddress << std::endl;
 				res.push_back(matchAddress);
-				i += pattern.size(); // 跳过已对比过的字段
+				i += pattern_size; // 跳过已对比过的字段
 			}
 		}
 	}
@@ -290,27 +292,18 @@ std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID s
 	delete[] buffer;
 	return res;
 }
-
 std::vector<uintptr_t> WindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask)
 {
 	// ModuleBase 为0则扫描PRV内存，
 	// all 为true，则扫描全部匹配结果,为false扫描返回第一个
-	std::vector<BYTE> aob_byte;
-	int start, end;
-	start = end = 0;
-	char dl = ' ';
-	while ((start = pattern.find_first_not_of(dl, end)) != std::string::npos) {
-		// str.find(dl, start) will return the index of dl
-		// from start index
-		end = pattern.find(dl, start);
-		// substr function return the substring of the
-		// original string from the given starting index
-		// to the given end index
-		auto sub_s = pattern.substr(start, end - start);
-		if (sub_s == "?") sub_s = "00";
-		aob_byte.push_back(static_cast<BYTE>(stoi(sub_s, nullptr, 16)));
-	}
+	std::vector<unsigned char> pattern_bytes;
+	std::vector<char> pattern_mask;
 
+	parseAobString(pattern, pattern_bytes, pattern_mask);
+
+	// Get the raw pointer using the address-of operator on the first element
+	BYTE* aob_Array = &pattern_bytes[0];
+	char* mask_Array = &pattern_mask[0];
 	std::vector<uintptr_t> res;
 	DWORD ModuleSize = GetModuleSize(hProcess, ModuleBase);
 
@@ -341,7 +334,7 @@ std::vector<uintptr_t> WindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE Mod
 				//if (memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && !(memoryInfo.Type & MEM_PRIVATE))
 			{
 				// Scan the memory region
-				auto matchAddress = ScanMemoryRegionEx(hProcess, memoryInfo.BaseAddress, memoryInfo.RegionSize, aob_byte, mask);
+				auto matchAddress = ScanMemoryRegionEx(hProcess, memoryInfo.BaseAddress, memoryInfo.RegionSize, aob_Array, pattern_bytes.size(), mask_Array);
 				if (!matchAddress.empty()) {
 					// Insert all elements from vec2 at the end of vec1
 					// vec1.end() is the insertion point
@@ -360,7 +353,7 @@ std::vector<uintptr_t> WindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE Mod
 	return res;
 }
 
-uintptr_t WindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, std::vector<BYTE> pattern, const char* mask)
+uintptr_t WindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, const BYTE* pattern, size_t pattern_size, const char* mask)
 {
 	uintptr_t matchAddress = 0;
 	BYTE* buffer = new BYTE[regionSize];
@@ -370,12 +363,12 @@ uintptr_t WindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SI
 		//if (ReadProcessMemory(hProcess, startAddress, buffer, regionSize, &bytesRead))
 	{
 		//log_info("startAddress:0x%llX, regionSize:0x%llX", startAddress, regionSize);
-		for (SIZE_T i = 0; i <= bytesRead - pattern.size(); i++)  // Updated loop condition
+		for (SIZE_T i = 0; i <= bytesRead - pattern_size; i++)  // Updated loop condition
 		{
 			bool found = true;
-			for (SIZE_T j = 0; j < pattern.size(); j++)
+			for (SIZE_T j = 0; j < pattern_size; j++)
 			{
-				if (mask[j] == 'x' && buffer[i + j] != pattern.at(j))
+				if (!mask[j] && buffer[i + j] != pattern[j])
 				{
 					found = false;
 					break;
@@ -402,21 +395,13 @@ uintptr_t WindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const 
 {
 	// ModuleBase 为0则扫描PRV内存，
 	// all 为true，则扫描全部匹配结果,为false扫描返回第一个
-	std::vector<BYTE> aob_byte;
-	int start, end;
-	start = end = 0;
-	char dl = ' ';
-	while ((start = pattern.find_first_not_of(dl, end)) != std::string::npos) {
-		// str.find(dl, start) will return the index of dl
-		// from start index
-		end = pattern.find(dl, start);
-		// substr function return the substring of the
-		// original string from the given starting index
-		// to the given end index
-		auto sub_s = pattern.substr(start, end - start);
-		if (sub_s == "?") sub_s = "00";
-		aob_byte.push_back(static_cast<BYTE>(stoi(sub_s, nullptr, 16)));
-	}
+	std::vector<unsigned char> pattern_bytes;
+	std::vector<char> pattern_mask;
+
+	parseAobString(pattern, pattern_bytes, pattern_mask);
+	// Get the raw pointer using the address-of operator on the first element
+	BYTE* aob_Array = &pattern_bytes[0];
+	char* mask_Array = &pattern_mask[0];
 
 	uintptr_t matchAddress = 0;
 	DWORD ModuleSize = GetModuleSize(hProcess, ModuleBase);
@@ -448,7 +433,7 @@ uintptr_t WindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const 
 				//if (memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && !(memoryInfo.Type & MEM_PRIVATE))
 			{
 				// Scan the memory region
-				matchAddress = ScanMemoryRegion(hProcess, memoryInfo.BaseAddress, memoryInfo.RegionSize, aob_byte, mask);
+				matchAddress = ScanMemoryRegion(hProcess, memoryInfo.BaseAddress, memoryInfo.RegionSize, aob_Array, pattern_bytes.size(), mask_Array);
 				if (matchAddress > 0) break;
 			}
 			address = reinterpret_cast<LPVOID>(reinterpret_cast<char*>(address) + memoryInfo.RegionSize);
@@ -466,6 +451,7 @@ uintptr_t WindowInfo::getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE Mod
 	// adr_offset = rav_offset - 3
 	// opcode_adr = AoB_adr + adr_offset
 	// StaticAddress - opcode_adr - 7 = rav
+	//auto AoB_adr = PerformAoBScan(hProcess, ModuleBase, AoB, mask);
 	auto AoB_adr = PerformAoBScan(hProcess, ModuleBase, AoB, mask);
 	if (AoB_adr <= 0) return AoB_adr;
 
@@ -759,6 +745,11 @@ void WindowInfo::scan_npc_pos_addr(int npc) {
 			0,
 			struct_AoB,
 			"xxxxxxxxxxxxxxxx????????????????xxxxxxxx");
+		//auto scan_ret = PerformAoBScanEx(
+		//	hProcess,
+		//	0,
+		//	struct_AoB,
+		//	"xxxxxxxxxxxxxxxx????????????????xxxxxxxx");
 		for (const auto& item : scan_ret) {
 			SIZE_T regionSize = 0x38;
 			BYTE* buffer = new BYTE[regionSize];
@@ -1748,9 +1739,9 @@ void WindowInfo::parse_baotu_task_info() {
 			}
 			if (baotu_task_count > 0) {
 				if (num <= baotu_task_count) { continue; }  // 领取次数小于等于上一次的记录，说明是以前的内存没有被释放，忽略掉
-				else { 
+				else {
 					temp_count = num;
-					index = i; 
+					index = i;
 					break;
 				}
 			}
@@ -2270,6 +2261,15 @@ cv::Rect WindowInfo::ROI_fight_action() {
 	return cv::Rect(850, 100, 150, 550);
 }
 void WindowInfo::test() {
+	// 玩家坐标地址
+	player_pos_addr = getRelativeStaticAddressByAoB(
+		hProcess,
+		mhmainDllBase,
+		"83 3D ? ? ? ? FF 75 DF 0F 57 D2 0F 57 C9 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ?",
+		"xx????xxxxxxxxxxxx????x????xxx????x????",
+		18);
+	scan_npc_pos_addr(NPC_DIANXIAOER);
+	parse_baotu_task_info();
 	SetForegroundWindow(hwnd);
 	update_scene_id();
 	update_player_float_pos();
@@ -2513,6 +2513,30 @@ void Step::set_current(std::string* step) {
 cv::Rect ROI_NULL() {
 	cv::Rect roi_empty;
 	return roi_empty;
+}
+
+// --- 辅助函数：将十六进制字符串转换为字节向量和掩码向量 ---
+void parseAobString(const std::string& aobStr, std::vector<unsigned char>& pattern, std::vector<char>& mask) {
+	int start, end;
+	start = end = 0;
+	char dl = ' ';
+	while ((start = aobStr.find_first_not_of(dl, end)) != std::string::npos) {
+		// str.find(dl, start) will return the index of dl
+		// from start index
+		end = aobStr.find(dl, start);
+		// substr function return the substring of the
+		// original string from the given starting index
+		// to the given end index
+		auto sub_s = aobStr.substr(start, end - start);
+		if (sub_s == "?") {
+			pattern.push_back(0x00); // 占位符
+			mask.push_back(1);
+		}
+		else {
+			pattern.push_back(static_cast<unsigned char>(std::stoul(sub_s, nullptr, 16)));
+			mask.push_back(0);
+		}
+	}
 }
 
 std::vector<DWORD> FindPidsByName(const wchar_t* name)
@@ -3483,7 +3507,7 @@ int main(int argc, const char** argv)
 	
 	gm.init();
 	gm.hook_data();
-	//gm.test();
+	gm.test();
 	gm.work();
 	return 0;
 }
