@@ -214,8 +214,9 @@ public:
 	void close_map();
 	void close_beibao_smart(bool keep = false);
 	void move_to_dianxiaoer();
-	bool is_dianxiaoer_pos(float x, float y);
-	bool is_changan_yizhanlaoban_pos(float x, float y);
+	bool is_given_pos(float x, float y, const std::vector<POINT>& pos_list);
+	//bool is_dianxiaoer_pos(float x, float y);
+	//bool is_changan_yizhanlaoban_pos(float x, float y);
 	bool is_moving();
 	bool wait_moving_stop(int timeout);
 	bool is_near_dianxiaoer();
@@ -235,6 +236,7 @@ public:
 	void move_to_position(POINT dst, long active_x = 0, long active_y = 0);
 	void move_via_map(POINT dst);
 	void move_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao=false);
+	void ship_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao = false);
 	bool click_position(POINT dst, int xs = 0, int ys = 0, int mode = 1);
 	void click_position_at_edge(POINT dst, int xs = 0, int ys = 0);
 	bool talk_to_npc_fight(POINT dst, const char* templ);
