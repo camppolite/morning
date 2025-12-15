@@ -80,6 +80,10 @@ POINT get_map_max_loc(unsigned int scene_id) {
 			return { 127, 95 };
 		case 长安国子监:
 			return { 79, 59 };
+		case 长安杂货店:
+			return { 31, 29 };
+		case 长安饰品店:
+			return { 51, 38 };
 		case 地府:
 			return { 159, 119 };
 		case 狮驼岭:

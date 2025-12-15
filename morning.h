@@ -62,6 +62,7 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 
 #define NPC_DIANXIAOER 1  // 店小二
 #define NPC_CHANGAN_YIZHANLAOBAN 2  // 长安驿站老板
+#define NPC_ZEIWANG 3  // 贼王
 
 const char* PLAY_MP3 = "mmp3:PLAY_%d\n";
 const char* STOP_MP3 = "mmp3:STOP\n";
@@ -142,6 +143,8 @@ std::string goto_baotu_scene("goto_baotu_scene");
 std::string attack_qiangdao("attack_qiangdao");
 //std::string fighting_qiangdao("fighting_qiangdao");
 std::string parse_zeiwang_task("parse_zeiwang_task");
+std::string goto_zeiwang_scene("goto_zeiwang_scene");
+std::string find_zeiwang_pos("find_zeiwang_pos");
 std::string attack_zeiwang("attack_zeiwang");
 std::string baotu_end("baotu_end");
 std::vector<std::string*> datu_step = {
@@ -153,11 +156,25 @@ std::vector<std::string*> datu_step = {
 	&attack_qiangdao,
 	//&fighting_qiangdao,
 	&parse_zeiwang_task,
+	& goto_zeiwang_scene,
+	& find_zeiwang_pos,
+	& attack_zeiwang,
 	&baotu_end
 };
 //std::vector<std::thread>
 double gThreshold = 0.81;  // 默认值
 int gMatchMethod = cv::TM_CCOEFF_NORMED;  // 默认值
+
+// 场景NPC固定坐标
+std::vector<POINT> changan_guozijian_npc_list = {  };
+std::vector<POINT> changan_shipindian_npc_list = { {530,350} };   //长安饰品店
+std::vector<POINT> changan_zahuodian_npc_list = { {370,250} };  //长安杂货店
+std::vector<POINT> jianyecheng_npc_list = {  };
+std::vector<POINT> jianyeyamen_npc_list = {  };
+std::vector<POINT> jianyezahuodian_npc_list = {  };
+std::vector<POINT> aolaikezhanerlou_npc_list = {  };
+std::vector<POINT> aolaiguo_yaodian_npc_list = {  };
+std::vector<POINT> changshoucun_dangpu_npc_list = {  };
 
 class Step {
 public:
@@ -173,7 +190,15 @@ public:
 	int index;
 	bool end = false;
 };
+class TimeProcessor {
+public:
+	TimeProcessor();
+	bool timeout(uint64_t time);
+	void update();
+	bool time_wait(uint64_t time);
 
+	uint64_t mTime_ms;
+};
 class WindowInfo {
 public:
 	WindowInfo(HANDLE processID);
@@ -204,10 +229,11 @@ public:
 	void update_scene();
 	void update_scene_id();
 	void update_npc_pos(int npc);
-
+	std::vector<POINT> get_scene_npc_list();
 	void move_cursor_center_top();
 	void move_cursor_center_bottom();
 	void move_cursor_right_top();
+	void move_cursor_left_bottom();
 
 	void open_beibao();
 	POINT open_map();
@@ -232,13 +258,14 @@ public:
 	bool talk_to_dianxiaoer();
 	void parse_baotu_task_info();
 	void parse_zeiwang_info();
+	void find_zeiwang();
 	bool goto_scene(POINT dst, unsigned int scene_id);
 	void move_to_position(POINT dst, long active_x = 0, long active_y = 0);
 	void move_via_map(POINT dst);
 	void move_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao=false);
 	void ship_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao = false);
 	bool click_position(POINT dst, int xs = 0, int ys = 0, int mode = 1);
-	void click_position_at_edge(POINT dst, int xs = 0, int ys = 0);
+	void click_position_at_edge(POINT dst, int xs = 0, int ys = 0, int mode = 1);
 	bool talk_to_npc_fight(POINT dst, const char* templ);
 	void goto_changanjiudian();
 	void from_changan_fly_to_datangguojing();
@@ -268,7 +295,7 @@ public:
 	void supply_health_peg();
 	void supply_mana_hero();
 	void handle_health();
-
+	void time_pawn_update();
 
 	cv::Rect ROI_cursor(POINT pos);
 	cv::Rect ROI_beibao();
@@ -280,6 +307,7 @@ public:
 	cv::Rect ROI_changan777_datangguojing();
 	cv::Rect ROI_changan777_jiangnanyewai();
 	cv::Rect ROI_changan777_huashengsi();
+	cv::Rect ROI_changan777_dangpu();
 	cv::Rect ROI_changshoucun777_lucheng_n_qiangzhuan();
 	cv::Rect ROI_changshoucun777_fangcunshan();
 	cv::Rect ROI_changshoucun777_zhongshusheng();
@@ -338,20 +366,19 @@ public:
 
 	unsigned int baotu_target_scene_id = 0;
 	POINT baotu_target_pos = { 0, 0 };
-	//POINT baotu_astar_pos = { 0, 0 };  // 宝图A星寻路目的坐标
 	unsigned int baotu_task_count = 0;  // 今日领取第几次任务
 	unsigned int zeiwang_scene_id = 0;
-	POINT zeiwang_pos = { 0, 0 };
+	std::vector<POINT> zeiwang_pos_list;
 
 	uintptr_t scene_id_addr = 0;
 	std::string scene;
 	unsigned int m_scene_id = 0;
 	std::string player_name;  // 梦幻西游 ONLINE - (四川1区[嘉陵江] - Ⅻ闵Ξ青[16705567])
 	std::string player_id;
+	bool mp3_playing = false;
 	bool moving = false;
 	bool failure = false;
 	bool popup_verify = false;
-	bool threading = false;
 	int f_round = 0;
 	uint64_t wait_hero_action_time = 0;
 
@@ -368,17 +395,8 @@ public:
 	PFN_NtReadVirtualMemory pNtReadVirtualMemory;
 
 	Step step = Step(datu_step);
-
+	TimeProcessor time_pawn = TimeProcessor();
 	//std::thread thread1 = std::thread(&WindowInfo::test, this);;
-};
-class TimeProcessor {
-public:
-	TimeProcessor();
-	bool timeout(uint64_t time);
-	void update();
-	bool time_wait(uint64_t time);
-
-	uint64_t mTime_ms;
 };
 class GoodMorning {
 public:
@@ -388,7 +406,7 @@ public:
 	void hook_data();
 	void work();
 	void test();
-	void time_pawn_update();
+	//void time_pawn_update();
 	void update_db();
 
 	const char* dbFile = "database";
@@ -396,9 +414,9 @@ public:
 	bool waiting = false;
 	std::vector<WindowInfo> winsInfo;
 	HANDLE hSerial;
-	TimeProcessor time_knight = TimeProcessor();
-	TimeProcessor time_pawn = TimeProcessor();
-	TimeProcessor task_pawn = TimeProcessor();
+	//TimeProcessor time_knight = TimeProcessor();
+	//TimeProcessor time_pawn = TimeProcessor();
+	//TimeProcessor task_pawn = TimeProcessor();
 private:
 
 };
