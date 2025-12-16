@@ -53,9 +53,9 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define START 0
 #define LEN_OF_INT64 22  // 21 + 1
 
-#define dianxiaoer_valid_distence 5  // 与店小二对话时的最大有效距离
+#define dianxiaoer_valid_distence 4  // 与店小二对话时的最大有效距离
 #define changan_yizhan_laoban_valid_distence 10  // 与长安驿站老板对话时的最大有效距离
-#define NPC_TALK_VALID_DISTENCE 8  // 与NPC对话时的最大有效距离
+#define NPC_TALK_VALID_DISTENCE 6  // 与NPC对话时的最大有效距离
 #define MATCHCENTER 1
 #define MATCHLEFTTOP 2
 #define MATCHEXIST 3
@@ -119,7 +119,7 @@ const char* img_fight_fourman_title_gray = "object\\fight\\fourman_title_gray.pn
 const char* img_fight_do_hero_action = "object\\fight\\do_hero_action.png";
 const char* img_fight_do_peg_action = "object\\fight\\do_peg_action.png";
 const char* img_fight_auto = "object\\fight\\auto.png";
-const char* img_fight_auto_round30 = "object\\btn\\auto_round30.png";
+const char* img_fight_auto_round30 = "object\\fight\\auto_round30.png";
 
 const char* img_symbol_map = "object\\symbol\\map.png";
 const char* img_symbol_feixingfu_xiliangnvguo = "object\\symbol\\feixingfu_xiliangnvguo.png";
@@ -264,8 +264,8 @@ public:
 	void move_via_map(POINT dst);
 	void move_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao=false);
 	void ship_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao = false);
-	bool click_position(POINT dst, int xs = 0, int ys = 0, int mode = 1);
-	void click_position_at_edge(POINT dst, int xs = 0, int ys = 0, int mode = 1);
+	bool click_position(POINT dst, int xs = 0, int ys = 0, int x_fix = 0, int y_fix = 0, int mode = 1);
+	void click_position_at_edge(POINT dst, int xs = 0, int ys = 0, int x_fix = 0, int y_fix = 0, int mode = 1);
 	bool talk_to_npc_fight(POINT dst, const char* templ);
 	void goto_changanjiudian();
 	void from_changan_fly_to_datangguojing();
@@ -369,6 +369,7 @@ public:
 	unsigned int baotu_task_count = 0;  // 今日领取第几次任务
 	unsigned int zeiwang_scene_id = 0;
 	std::vector<POINT> zeiwang_pos_list;
+	POINT zeiwang_pos = {-1,-1};
 
 	uintptr_t scene_id_addr = 0;
 	std::string scene;
