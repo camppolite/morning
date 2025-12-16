@@ -166,15 +166,15 @@ double gThreshold = 0.81;  // 默认值
 int gMatchMethod = cv::TM_CCOEFF_NORMED;  // 默认值
 
 // 场景NPC固定坐标
-std::vector<POINT> changan_guozijian_npc_list = {  };
+std::vector<POINT> changan_guozijian_npc_list = {  };//todo
 std::vector<POINT> changan_shipindian_npc_list = { {530,350} };   //长安饰品店
 std::vector<POINT> changan_zahuodian_npc_list = { {370,250} };  //长安杂货店
-std::vector<POINT> jianyecheng_npc_list = {  };
-std::vector<POINT> jianyeyamen_npc_list = {  };
-std::vector<POINT> jianyezahuodian_npc_list = {  };
-std::vector<POINT> aolaikezhanerlou_npc_list = {  };
-std::vector<POINT> aolaiguo_yaodian_npc_list = {  };
-std::vector<POINT> changshoucun_dangpu_npc_list = {  };
+std::vector<POINT> jianyecheng_npc_list = {  };//todo
+std::vector<POINT> jianyeyamen_npc_list = {  };//todo
+std::vector<POINT> jianyezahuodian_npc_list = {  };//todo
+std::vector<POINT> aolaikezhanerlou_npc_list = {  };//todo
+std::vector<POINT> aolaiguo_yaodian_npc_list = {  };//todo
+std::vector<POINT> changshoucun_dangpu_npc_list = {  };//todo
 
 class Step {
 public:

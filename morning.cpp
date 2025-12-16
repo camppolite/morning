@@ -1527,7 +1527,7 @@ bool WindowInfo::mouse_click_human(POINT pos, int xs, int ys, int mode) {
 	auto t_ms = getCurrentTimeMilliseconds();
 	do {
 		// 因为有鼠标漂移，所以需要多次移动
-		if (getCurrentTimeMilliseconds() - t_ms > 5000) {
+		if (getCurrentTimeMilliseconds() - t_ms > 1500) {
 			log_warn("鼠标点击超时");
 			return false;
 		}
@@ -1535,6 +1535,7 @@ bool WindowInfo::mouse_click_human(POINT pos, int xs, int ys, int mode) {
 		cursor_pos = get_cursor_pos(mouse_move_pos);
 		if (cursor_pos.x < 0) continue;
 		mouse_move_pos = { mouse_move_pos.x + target_pos.x - cursor_pos.x, mouse_move_pos.y + target_pos.y - cursor_pos.y };
+		t_ms = getCurrentTimeMilliseconds();
 		//Sleep(5);
 	} while (abs(target_pos.x - cursor_pos.x) > 6 || abs(target_pos.y - cursor_pos.y) > 6);
 	switch (mode)
@@ -1945,11 +1946,17 @@ std::vector<POINT> WindowInfo::get_scene_npc_list() {
 	case 长安杂货店:
 		return changan_zahuodian_npc_list;
 	case 建邺城:
+		return jianyecheng_npc_list;
 	case 建邺衙门:
+		return jianyeyamen_npc_list;
 	case 建邺杂货店:
+		return jianyezahuodian_npc_list;
 	case 傲来客栈二楼:
+		return aolaikezhanerlou_npc_list;
 	case 傲来国药店:
+		return aolaiguo_yaodian_npc_list;
 	case 长寿村当铺:
+		return changshoucun_dangpu_npc_list;
 	default:
 		break;
 	}
