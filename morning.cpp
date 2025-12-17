@@ -280,10 +280,10 @@ void WindowInfo::datu() {
 		{
 			break;
 		}
-		case 建邺杂货店:
-		{
-			break;
-		}
+		//case 建邺杂货店:
+		//{
+		//	break;
+		//}
 		case 傲来客栈:
 		{
 			break;
@@ -297,6 +297,10 @@ void WindowInfo::datu() {
 			break;
 		}
 		//case 长寿村当铺:
+		//{
+		//	break;
+		//}
+		//case 长寿郊外:
 		//{
 		//	break;
 		//}
@@ -320,6 +324,7 @@ void WindowInfo::datu() {
 		else {
 			zeiwang_pos = zeiwang_pos_list.front();
 			zeiwang_pos_list.erase(zeiwang_pos_list.begin()); // Removes the first element
+			log_info("贼王坐标:%f,%f",zeiwang_pos.x,zeiwang_pos.y);
 			step.next();
 		}
 	}
@@ -985,7 +990,7 @@ void WindowInfo::move_cursor_center_bottom() {
 	serial_move_human({ rect.left + 515, rect.bottom - 100 }, 0);
 }
 void WindowInfo::move_cursor_right_top() {
-	serial_move_human({ rect.left + 820, rect.top + 125 }, 0);
+	serial_move_human({ rect.left + 820, rect.top + 95 }, 0);
 }
 void WindowInfo::move_cursor_left_bottom() {
 	serial_move_human({ rect.left + 250, rect.bottom - 100 }, 0);
@@ -1656,7 +1661,8 @@ bool WindowInfo::mouse_click_human(POINT pixel, int xs, int ys, int mode) {
 		}
 		serial_move_human(mouse_move_pos, 0);
 		cursor_pos = get_cursor_pos(mouse_move_pos);
-		if (cursor_pos.x < 0) continue;
+		//if (cursor_pos.x < 0) continue;
+		if (out_of_rect(cursor_pos)) continue;
 		mouse_move_pos = { mouse_move_pos.x + target_pos.x - cursor_pos.x, mouse_move_pos.y + target_pos.y - cursor_pos.y };
 		t_ms = getCurrentTimeMilliseconds();
 		//Sleep(5);
@@ -1703,7 +1709,6 @@ POINT WindowInfo::get_cursor_pos(POINT pos) {
 		tmp_pos.x = cursor_pos.x;
 		tmp_pos.y = cursor_pos.y;
 	}
-
 }
 
 bool WindowInfo::ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold, int match_method, int x_fix, int y_fix, int xs, int ys, int mode, int timeout) {
@@ -1787,7 +1792,7 @@ bool WindowInfo::is_moving() {
 			x0 = player_x;
 			y0 = player_y;
 		}
-		//Sleep(200);
+		Sleep(100);
 	}
 	return true;
 }
@@ -1945,7 +1950,7 @@ void WindowInfo::parse_baotu_task_info() {
 	int pre_symbol_len = 20;
 	int temp_count = 0;
 	int index = 0;
-	SIZE_T regionSize = 0x150; // 宝图任务的内容长度，这个长度应该够用了
+	SIZE_T regionSize = 0x200; // 宝图任务的内容长度，这个长度应该够用了
 	for (size_t i = 0; i < baotu_task_symbol_list.size(); ++i) {
 		BYTE* buffer = new BYTE[regionSize];
 		SIZE_T bytesRead;
@@ -2031,7 +2036,7 @@ void WindowInfo::parse_zeiwang_info() {
 	int tail_symbol_len = 0xC0;
 	if (zeiwang_symbol > 0) {
 		std::wstring content;
-		SIZE_T regionSize = 0x150; // 宝图任务的内容长度，这个长度应该够用了
+		SIZE_T regionSize = 0x200; // 宝图任务的内容长度，这个长度应该够用了
 		BYTE* buffer = new BYTE[regionSize];
 		SIZE_T bytesRead;
 		pNtReadVirtualMemory(hProcess, (PVOID)(zeiwang_symbol - regionSize + symbol_len + tail_symbol_len), buffer, regionSize, &bytesRead);
@@ -2171,6 +2176,7 @@ bool WindowInfo::talk_to_npc_fight(POINT dst, const char* templ) {
 			log_info("发起战斗成功");
 			return true;
 		}
+		update_player_float_pos();
 	}
 	//检查是否重叠NPC
 	//for (int i = 0;i < 2;i++) {
@@ -2268,6 +2274,9 @@ void WindowInfo::time_pawn_update() {
 	time_pawn.update();
 	//task_pawn.update();
 }
+bool WindowInfo::out_of_rect(POINT pixel) {
+	return pixel.x <rect.left || pixel.x>rect.right || pixel.y<rect.top || pixel.y>rect.bottom;
+}
 void WindowInfo::UpdateWindowRect() {
 	// 实际截图与窗口在屏幕上的坐标有偏差，修正
 	// 后台截图，窗口右偏8像素，窗口标题31像素
@@ -2363,7 +2372,7 @@ cv::Rect WindowInfo::ROI_changan777_huashengsi() {
 }
 cv::Rect WindowInfo::ROI_changan777_dangpu() {
 	log_info("长安合成旗-当铺");
-	return cv::Rect(750, 498, 50, 45);//todo
+	return cv::Rect(530, 490, 60, 50);
 }
 cv::Rect WindowInfo::ROI_changshoucun777_lucheng_n_qiangzhuan() {
 	// 落地坐标:125,110 钱庄
@@ -2517,11 +2526,12 @@ cv::Rect WindowInfo::ROI_fight_action() {
 void WindowInfo::test() {
 	// 玩家坐标地址
 	//is_verifying();
-	scan_npc_pos_addr(NPC_ZEIWANG);
+	//scan_npc_pos_addr(NPC_ZEIWANG);
 	////parse_baotu_task_info();
+	//parse_zeiwang_info();
 	//SetForegroundWindow(hwnd);
 	//update_scene_id();
-	//update_player_float_pos();
+	update_player_float_pos();
 	//move_to_position({ 460,140 }, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
 	while (1) {
 		//Sleep(2000);
@@ -2609,7 +2619,10 @@ void GoodMorning::work() {
 	// 创建线程池
 	std::vector<std::thread> threads;
 	for (int i = 0;i < this->winsInfo.size();i++) {
-		threads.emplace_back(&WindowInfo::scan_npc_pos_in_thread, this->winsInfo[i].get());
+		auto t1= std::thread(&WindowInfo::scan_npc_pos_in_thread, this->winsInfo[i].get());
+		t1.detach();
+		threads.emplace_back(std::move(t1));
+
 	}
 
 	while (true) {
@@ -3792,7 +3805,7 @@ int main(int argc, const char** argv)
 	
 	gm.init();
 	gm.hook_data();
-	//gm.test();
+	gm.test();
 	gm.work();
 	return 0;
 }

@@ -302,6 +302,7 @@ public:
 	void supply_mana_hero();
 	void handle_health();
 	void time_pawn_update();
+	bool out_of_rect(POINT pixel);
 
 	cv::Rect ROI_cursor(POINT pos);
 	cv::Rect ROI_beibao();
@@ -397,8 +398,8 @@ public:
 	RECT rect;
 	long wWidth = 1024;  // 游戏窗口大小
 	long wHeight = 768;  // 游戏窗口大小
-	int mScreen_x = 22;  // wWidth / 2 / 20  屏幕可以范围坐标跨度
-	int mScreen_y = 17;  // wHeight / 2 / 20 屏幕可以范围坐标跨度
+	int mScreen_x = 21;  // wWidth / 2 / 20  屏幕可以范围坐标跨度
+	int mScreen_y = 15;  // wHeight / 2 / 20 屏幕可以范围坐标跨度
 	HANDLE hProcess = 0;
 	HMODULE hNtdll = 0;
 	HMODULE mhmainDllBase = 0;
