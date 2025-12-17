@@ -25,13 +25,18 @@ typedef struct {
 #define 长安城 1001
 #define 化生寺 1002
 #define 桃源村 1003
-#define 长安国子监 1026
-#define 长安饰品店 1017
 #define 长安杂货店 1015
+#define 长安饰品店 1017
+#define 长安国子监 1026
 #define 长安酒店 1028
 #define	西梁女国 1040
 #define	长寿村 1070
+#define 长寿村当铺 1072
+#define 长寿郊外 1091
 #define	傲来国 1092
+#define 傲来客栈 1093
+#define 傲来客栈二楼 1535
+#define 傲来国药店 1104
 #define 大唐国境 1110
 #define 地府 1122
 #define 狮驼岭 1131
@@ -47,11 +52,9 @@ typedef struct {
 #define 建邺杂货店 1505
 #define 东海湾 1506
 #define 花果山 1514
-#define 长寿郊外 1091
-#define 傲来客栈 1093
-#define 傲来客栈二楼 1535
-#define 傲来国药店 1104
-#define 长寿村当铺 1072
+
+
+
 
 
 typedef map<int, vector<range>> MAZE;
@@ -2402,5 +2405,6 @@ const MAZE changanjiudian_maze{
 };
 
 POINT get_map_max_loc(unsigned int scene_id);
+unsigned int get_scene_id_by_name(std::wstring name);
 extern "C" ASTARALGO_API POINT astar(int startx, int starty, int endx, int endy, int m, int far_x=12, int far_y=10);
 extern "C" ASTARALGO_API char* astar_test();

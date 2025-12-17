@@ -6,9 +6,9 @@
 #include <filesystem>
 #include <cstdlib> // For rand() and srand()
 #include <chrono>
-//#include <process.h> // Required for _beginthreadex
-//#include <future>
-//#include <async>
+
+#include <future>
+
 #include <setupapi.h>
 #include <devguid.h> // For GUID_DEVINTERFACE_COMPORT
 
@@ -73,7 +73,7 @@ void WindowInfo::init() {
 	baotu_target_pos = { 0, 0 };
 	zeiwang_scene_id = 0;
 	zeiwang_pos_list.clear();
-	zeiwang_pos = { -1,-1 };
+	zeiwang_pos = { 0, 0 };
 	f_round = 0;
 	step.reset();
 }
@@ -153,6 +153,7 @@ void WindowInfo::datu() {
 		}
 		return;
 	}
+	if (tScan_npc != THREAD_IDLE) return;
 	if (is_fighting()) {
 		time_pawn_update();
 		handle_datu_fight();
@@ -170,14 +171,21 @@ void WindowInfo::datu() {
 		goto_changanjiudian();
 		step.next();
 	}
-	else if (step.current == &to_dianxiaoer) {
-		log_info("to_dianxiaoer");
+	else if (step.current == &scan_dianxiaoer_pos) {
+		log_info("scan_dianxiaoer");
 		update_scene_id();
 		if (m_scene_id != 长安酒店) step.set_current(&to_changan_jiudian);
 		else {
-			move_to_dianxiaoer();
+			tScan_npc = NPC_DIANXIAOER;
 			step.next();
 		}
+	}
+	else if (step.current == &to_dianxiaoer) {
+		//if (tScan_npc != THREAD_IDLE) return;
+		log_info("to_dianxiaoer");
+		//线程扫描结束，开始移动
+		move_to_dianxiaoer();
+		step.next();
 	}
 	else if (step.current == &talk_get_baoturenwu) {
 		log_info("talk_get_baoturenwu");
@@ -186,21 +194,16 @@ void WindowInfo::datu() {
 		}
 		else {
 			move_to_changanjidian_center();
-			step.set_current(&to_dianxiaoer);
+			step.set_current(&scan_dianxiaoer_pos);
 		}
 	}
-	else if (step.current == &parse_baotu_task) {
-		log_info("parse_baotu_task");
+	else if (step.current == &scan_baotu_task) {
+		log_info("scan_baotu_task");
 		if (!MatchingRectExist(ROI_npc_talk(), img_btn_tingtingwufang) && WaitMatchingRectExist(ROI_npc_talk(), img_npc_dianxiaoer, 1300)){
 			// 接任务后关闭对话窗
 			close_npc_talk_fast();
-			parse_baotu_task_info();
-			if (baotu_target_scene_id <= 0 || baotu_target_pos.x <= 0) {
-				log_info("解析宝图任务失败，需要手动处理");
-				play_mp3();
-				failure = true;
-			}
-			else step.next();
+			tScan_npc = TASK_BAOTU;
+			step.next();
 		}
 		else {
 			if (is_verifying()) {
@@ -211,12 +214,20 @@ void WindowInfo::datu() {
 				popup_verify = true;
 				for (int i = 0; i < 5; i++) { log_info("***宝图任务弹窗验证,请手动点击***"); }
 			}
-			step.set_current(&to_dianxiaoer);
+			step.set_current(&scan_dianxiaoer_pos);
 		}
 	}
 	else if (step.current == &goto_baotu_scene) {
-		if (goto_scene(baotu_target_pos, baotu_target_scene_id)) {
-			step.next();
+		//if (tScan_npc != THREAD_IDLE) return;
+		if (baotu_target_scene_id <= 0 || baotu_target_pos.x <= 0) {
+			log_info("解析宝图任务失败，需要手动处理");
+			play_mp3();
+			failure = true;
+		}
+		else {
+			if (goto_scene(baotu_target_pos, baotu_target_scene_id)) {
+				step.next();
+			}
 		}
 	}
 	else if (step.current == &attack_qiangdao) {
@@ -224,38 +235,101 @@ void WindowInfo::datu() {
 		talk_to_npc_fight(baotu_target_pos, img_btn_woshilaishoushinide);
 		step.next();
 	}
-	//else if (step.current == &fighting_qiangdao) {
-	//	if (true) step.set_current(&parse_zeiwang_task);
-	//	else step.set_current(&baotu_end);
-	//}g
-	else if (step.current == &parse_zeiwang_task) {
-		log_info("parse_zeiwang_task");
+	else if (step.current == &scan_zeiwang_task) {
+		log_info("scan_zeiwang_task");
 		if (WaitMatchingRectExist(ROI_npc_talk(), img_symbol_gaosunitadecangshenweizhi, 500)) {
 			//关闭贼王提示对话窗
 			close_npc_talk_fast();
-			parse_zeiwang_info();
-			if (zeiwang_scene_id <= 0) {
-				log_info("解析贼王失败，需要手动处理");
-				play_mp3();
-				failure = true;
-			}
-			else step.next();
+			tScan_npc = TASK_ZEIWANG;
+			step.next();
 		}
 		else { step.set_current(&baotu_end); }
 	}
 	else if (step.current == &goto_zeiwang_scene) {
-		if (goto_scene({0,0}, zeiwang_scene_id)) {
-			step.next();
+		//if (tScan_npc != THREAD_IDLE) return;
+		if (zeiwang_scene_id <= 0) {
+			log_info("解析贼王失败，需要手动处理");
+			play_mp3();
+			failure = true;
 		}
-		//if (moving)handle_health();
+		else {
+			if (goto_scene(zeiwang_pos, zeiwang_scene_id)) {
+				if (zeiwang_pos.x > 0) {
+					//对于有坐标的贼王，直接寻路到坐标点就行
+					step.set_current(&attack_zeiwang);
+				}
+				else {
+					step.next();
+				}
+			}
+		}
 	}
-	else if (step.current == &find_zeiwang_pos) {
-		find_zeiwang();
+	else if (step.current == &fix_my_pos_zeiwang) {
+		// 对于打地图，要走到能看到全图的特定位置再开始扫描
+		switch (zeiwang_scene_id)//todo
+		{
+		case 长安杂货店:
+		{
+			break;
+		}
+		case 长安饰品店:
+		{
+			break;
+		}
+		case 长安国子监:
+		{
+			break;
+		}
+		case 建邺杂货店:
+		{
+			break;
+		}
+		case 傲来客栈:
+		{
+			break;
+		}
+		case 傲来客栈二楼:
+		{
+			break;
+		}
+		case 傲来国药店:
+		{
+			break;
+		}
+		//case 长寿村当铺:
+		//{
+		//	break;
+		//}
+		default:
+			break;
+		}
 		step.next();
 	}
+	else if (step.current == &scan_zeiwang_pos) {
+		tScan_npc = NPC_ZEIWANG;
+		step.next();
+	}
+	else if (step.current == &try_zeiwang_pos) {
+		//if (tScan_npc != THREAD_IDLE) return;
+		// 地图内可能有其他玩家坐标，需要一个个尝试
+		if (zeiwang_pos_list.empty()) {
+			log_info("处理贼王坐标失败，需要手动处理");
+			play_mp3();
+			failure = true;
+		}
+		else {
+			zeiwang_pos = zeiwang_pos_list.front();
+			zeiwang_pos_list.erase(zeiwang_pos_list.begin()); // Removes the first element
+			step.next();
+		}
+	}
 	else if (step.current == &attack_zeiwang) {
-		//talk_to_npc_fight(zeiwang_pos, img_btn_zeiwang_benshaoxiashilaititianxingdaode);
-		step.set_current(&baotu_end);
+		if (talk_to_npc_fight(zeiwang_pos, img_btn_zeiwang_benshaoxiashilaititianxingdaode)) {
+			step.set_current(&baotu_end);
+		}
+		else {
+			step.set_current(&try_zeiwang_pos);
+		}
 	}
 	else if (step.current == &baotu_end) {
 		init();
@@ -601,7 +675,7 @@ POINT WindowInfo::WaitMatchingRectLoc(cv::Rect roi_rect, std::string templ_path,
 			log_info("超时: %s", templ_path.c_str());
 			return {-1,-1};
 		}
-		Sleep(5);
+		//Sleep(5);
 	}
 }
 
@@ -615,7 +689,7 @@ bool WindowInfo::WaitMatchingRectExist(cv::Rect roi_rect, std::string templ_path
 			log_info("超时: %s", templ_path.c_str());
 			return false;
 		}
-		Sleep(5);
+		//Sleep(5);
 	}
 }
 
@@ -687,6 +761,36 @@ void WindowInfo::update_scene_id() {
 	delete[] buffer;
 }
 
+void WindowInfo::scan_npc_pos_in_thread() {
+	while (1) {
+		//log_info("scan_npc_pos_in_thread");
+		switch (tScan_npc)
+		{
+			case NPC_DIANXIAOER:
+			case NPC_CHANGAN_YIZHANLAOBAN:
+			case NPC_ZEIWANG:
+			{
+				scan_npc_pos_addr(tScan_npc);
+				tScan_npc = THREAD_IDLE;
+				break;
+			}
+			case TASK_BAOTU:
+			{
+				parse_baotu_task_info();
+				tScan_npc = THREAD_IDLE;
+				break;
+			}
+			case TASK_ZEIWANG:
+			{
+				parse_zeiwang_info();
+				tScan_npc = THREAD_IDLE;
+				break;
+			}
+		}
+		Sleep(100);
+	}
+
+}
 void WindowInfo::scan_npc_pos_addr(int npc) {
 	// 这个结构不是每次都会出现的，如果找不到，可以先出去再进来，重复试几次一般都会产生这个内存结构
 	// 先找到 #c80c0ff挖宝图任务 这个地址
@@ -760,6 +864,9 @@ void WindowInfo::scan_npc_pos_addr(int npc) {
 		//	0,
 		//	struct_AoB,
 		//	"xxxxxxxxxxxxxxxx????????????????xxxxxxxx");
+
+		auto npc_list = get_scene_npc_list(zeiwang_scene_id);
+
 		for (const auto& item : scan_ret) {
 			SIZE_T regionSize = 0x38;
 			BYTE* buffer = new BYTE[regionSize];
@@ -801,8 +908,10 @@ void WindowInfo::scan_npc_pos_addr(int npc) {
 									}
 								}
 								else if (npc == NPC_ZEIWANG) {
-									
-									if(x>0&&y>0) log_info("npc坐标:%f,%f", x,y);
+									if (x > 0 && y > 0) log_info("npc坐标:%f,%f", x, y);
+									if (!is_given_pos(x,y,npc_list)) {
+										zeiwang_pos_list.push_back({ (long)x,(long)y });
+									}
 								}
 							}
 						}
@@ -948,7 +1057,7 @@ POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id,bool fix) {
 }
 
 void WindowInfo::move_to_dianxiaoer() {
-	scan_npc_pos_addr(NPC_DIANXIAOER);
+	//scan_npc_pos_addr(NPC_DIANXIAOER);
 
 	if (!is_near_dianxiaoer() && dianxiaoer_pos_x > 0) {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
@@ -983,7 +1092,11 @@ void WindowInfo::move_to_changanjidian_center() {
 }
 void WindowInfo::from_changan_fly_to_datangguojing() {
 	log_info("从长安长安驿站老板飞到大唐国境");
-	scan_npc_pos_addr(NPC_CHANGAN_YIZHANLAOBAN);
+	if (changan_yizhanlaoban_pos_addr == 0) {
+		tScan_npc = NPC_CHANGAN_YIZHANLAOBAN;
+		return;
+	}
+	//scan_npc_pos_addr(NPC_CHANGAN_YIZHANLAOBAN);
 
 	if (!is_near_changan_yizhanlaoban() && changan_yizhanlaoban_pos_x > 0) {
 		move_to_position({247,43}, NPC_CHANGAN_YIZHANLAOBAN, NPC_CHANGAN_YIZHANLAOBAN);  // 这个固定坐标可以和驿站老板对话
@@ -1021,336 +1134,335 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 	bool turn = true;
 	switch (scene_id)
 	{
-	case 长寿村:
-	{
-		if ((x <= 86 && y <= 13) || (x <= 62 && y <= 84) || (x <= 76 && 14 <= y && y <= 18)) use_changshoucun777(ROI_changshoucun777_taibaijinxing(), false, turn);
-		else if ((87 <= x && y <= 32) || (79 <= x && 12 <= y  && y <= 19) || (62 <= x && 20 <= y && y <= 26)) use_changshoucun777(ROI_changshoucun777_changshoujiaowai(), false, turn);
-		else if ((x <= 73 && 85 <= y && y <= 127) || (x <= 82 && 128 <= y && y <= 135)) use_changshoucun777(ROI_changshoucun777_dangpu(), false, turn);
-		else if (117 <= x && 124 <= y && y <= 162) use_changshoucun777(ROI_changshoucun777_lucheng_n_qiangzhuan(), true, turn);
-		else if (x <= 77 && 136 <= y) use_changshoucun777(ROI_changshoucun777_zhongshusheng(), false, turn);
-		else if (78 <= x && 163 <= y) use_changshoucun777(ROI_changshoucun777_fangcunshan(), false, turn);
-		else if ((62 <= x && 33 <= y && y <= 76) || (113 <= x && 77 <= y && y <= 87)) {
+		case 长寿村:
+		{
+			if ((x <= 86 && y <= 13) || (x <= 62 && y <= 84) || (x <= 76 && 14 <= y && y <= 18)) use_changshoucun777(ROI_changshoucun777_taibaijinxing(), false, turn);
+			else if ((87 <= x && y <= 32) || (79 <= x && 12 <= y  && y <= 19) || (62 <= x && 20 <= y && y <= 26)) use_changshoucun777(ROI_changshoucun777_changshoujiaowai(), false, turn);
+			else if ((x <= 73 && 85 <= y && y <= 127) || (x <= 82 && 128 <= y && y <= 135)) use_changshoucun777(ROI_changshoucun777_dangpu(), false, turn);
+			else if (117 <= x && 124 <= y && y <= 162) use_changshoucun777(ROI_changshoucun777_lucheng_n_qiangzhuan(), true, turn);
+			else if (x <= 77 && 136 <= y) use_changshoucun777(ROI_changshoucun777_zhongshusheng(), false, turn);
+			else if (78 <= x && 163 <= y) use_changshoucun777(ROI_changshoucun777_fangcunshan(), false, turn);
+			else if ((62 <= x && 33 <= y && y <= 76) || (113 <= x && 77 <= y && y <= 87)) {
+				use_feixingfu(scene_id);
+			}
+			else use_changshoucun777(ROI_changshoucun777_lucheng_n_qiangzhuan(), true, turn);
+			break;
+		}
+		case 傲来国:
+		{
+			if ((x <= 74 && y <= 38) || (x <= 65 && 39 <= y && y <= 60) || (x <= 93 && y <= 30)) use_aolaiguo777(ROI_aolaiguo777_yaodian(), false, turn);
+			else if ((121 <= x && y <= 34) || (188 <= x && 35 <= y && y <= 37)) use_aolaiguo777(ROI_aolaiguo777_donghaiwan(), true, turn);
+			else if ((143 <= x && 38 <= y && y <= 71) || (170 <= x && 72 <= y && y <= 89)) use_aolaiguo777(ROI_aolaiguo777_dangpu(), true, turn);
+			else if (167 <= x && 94 <= y) use_aolaiguo777(ROI_aolaiguo777_huaguoshan(), true, turn);
+			else if (71 <= x && x <= 166 && 72 <= y) {
+				use_feixingfu(scene_id);
+			}
+			else if ((x <= 62 && 61 <= y && y <= 112) || (63 <= x && x <= 70 && 75 <= y && y <= 112)) use_aolaiguo777(ROI_aolaiguo777_penglaixiandao(), false, turn);
+			else if (x <= 70 && 113 <= y) use_aolaiguo777(ROI_aolaiguo777_nvercun(), false, turn);
+			else use_aolaiguo777(ROI_aolaiguo777_qianzhuang(), true, turn);
+			break;
+		}
+		case 朱紫国:
+		{
+			if (x <= 43  && y <= 22) use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false, turn);
+			else if (44 <= x && x <= 111 && y <= 24) use_zhuziguo777(ROI_zhuziguo777_duanmuniangzi(), true, turn);
+			else if ((112 <= x && y <= 26) || (90 <= x && x <= 111 && 17 <= y && y <= 32)) use_zhuziguo777(ROI_zhuziguo777_sichouzhilu(), true, turn);
+			else if ((112 <= x && 27 <= y && y <= 65) || (104 <= x && x <= 111 && 33 <= y && y <= 65)) use_zhuziguo777(ROI_zhuziguo777_yaodian(), true, turn);
+			else if ((107 <= x && 66 <= y && y <= 107) || (114 <= x && 108 <= y)) {
+				use_feixingfu(scene_id);
+			}
+			else if ((39 <= x && x <= 106 && 73 <= y) || (107 <= x && x <= 113 && 107 <= y)) use_zhuziguo777(ROI_zhuziguo777_shenjidaozhang(), false, turn);
+			else if (x <= 38 && 71 <= y) use_zhuziguo777(ROI_zhuziguo777_qilinshan(), false, turn);
+			else use_zhuziguo777(ROI_zhuziguo777_jiudian(), false, turn);
+			break;
+		}
+		case 西梁女国:
+		{
+			// 西凉女国：1.飞行符 2.合成旗-朱紫国驿站-西凉女国(这条路复杂而且慢)
 			use_feixingfu(scene_id);
+			break;
 		}
-		else use_changshoucun777(ROI_changshoucun777_lucheng_n_qiangzhuan(), true, turn);
-		break;
-	}
-	case 傲来国:
-	{
-		if ((x <= 74 && y <= 38) || (x <= 65 && 39 <= y && y <= 60) || (x <= 93 && y <= 30)) use_aolaiguo777(ROI_aolaiguo777_yaodian(), false, turn);
-		else if ((121 <= x && y <= 34) || (188 <= x && 35 <= y && y <= 37)) use_aolaiguo777(ROI_aolaiguo777_donghaiwan(), true, turn);
-		else if ((143 <= x && 38 <= y && y <= 71) || (170 <= x && 72 <= y && y <= 89)) use_aolaiguo777(ROI_aolaiguo777_dangpu(), true, turn);
-		else if (167 <= x && 94 <= y) use_aolaiguo777(ROI_aolaiguo777_huaguoshan(), true, turn);
-		else if (71 <= x && x <= 166 && 72 <= y) {
+		case 宝象国:
+		{
 			use_feixingfu(scene_id);
+			break;
 		}
-		else if ((x <= 62 && 61 <= y && y <= 112) || (63 <= x && x <= 70 && 75 <= y && y <= 112)) use_aolaiguo777(ROI_aolaiguo777_penglaixiandao(), false, turn);
-		else if (x <= 70 && 113 <= y) use_aolaiguo777(ROI_aolaiguo777_nvercun(), false, turn);
-		else use_aolaiguo777(ROI_aolaiguo777_qianzhuang(), true, turn);
-		break;
-	}
-	case 朱紫国:
-	{
-		if (x <= 43  && y <= 22) use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false, turn);
-		else if (44 <= x && x <= 111 && y <= 24) use_zhuziguo777(ROI_zhuziguo777_duanmuniangzi(), true, turn);
-		else if ((112 <= x && y <= 26) || (90 <= x && x <= 111 && 17 <= y && y <= 32)) use_zhuziguo777(ROI_zhuziguo777_sichouzhilu(), true, turn);
-		else if ((112 <= x && 27 <= y && y <= 65) || (104 <= x && x <= 111 && 33 <= y && y <= 65)) use_zhuziguo777(ROI_zhuziguo777_yaodian(), true, turn);
-		else if ((107 <= x && 66 <= y && y <= 107) || (114 <= x && 108 <= y)) {
+		case 建邺城:
+		{
+			// 建邺城：1.飞行符 2.合成旗-傲来东海湾驿站-东海湾-建邺城
 			use_feixingfu(scene_id);
+			break;
 		}
-		else if ((39 <= x && x <= 106 && 73 <= y) || (107 <= x && x <= 113 && 107 <= y)) use_zhuziguo777(ROI_zhuziguo777_shenjidaozhang(), false, turn);
-		else if (x <= 38 && 71 <= y) use_zhuziguo777(ROI_zhuziguo777_qilinshan(), false, turn);
-		else use_zhuziguo777(ROI_zhuziguo777_jiudian(), false, turn);
-		break;
-	}
-	case 西梁女国:
-	{
-		// 西凉女国：1.飞行符 2.合成旗-朱紫国驿站-西凉女国(这条路复杂而且慢)
-		use_feixingfu(scene_id);
-		break;
-	}
-	case 宝象国:
-	{
-		use_feixingfu(scene_id);
-		break;
-	}
-	case 建邺城:
-	{
-		// 建邺城：1.飞行符 2.合成旗-傲来东海湾驿站-东海湾-建邺城
-		use_feixingfu(scene_id);
-		break;
-	}
-	case 大唐国境:
-	{
-		from_changan_to_datangguojing();
-		break;
-	}
-	case 大唐境外:
-	{
-		// 大唐境外：1.合成旗-朱紫国左下角-大唐境外 2.合成旗-罗道人旁的驿站老板-传送大唐国境-大唐境外
-		bool via_zhuziguo = true;
-		if (x <= 504) {
-			if(502 <= x and 25 <= y <= 41)via_zhuziguo = false;
-			else if(500 <= x and 26 <= y <= 42)via_zhuziguo = false;
-			else if (499 <= x and 27 <= y <= 43)via_zhuziguo = false;
-			else if (498 <= x and 28 <= y <= 43)via_zhuziguo = false;
-			else if (495 <= x and 29 <= y <= 43)via_zhuziguo = false;
-			else if (494 <= x <= 502 and 42 <= y <= 56)via_zhuziguo = false;
-			else if (493 <= x <= 502 and 42 <= y <= 57)via_zhuziguo = false;
-			else if (492 <= x <= 502 and 42 <= y <= 59)via_zhuziguo = false;
-			else if (491 <= x and 42 <= y <= 60)via_zhuziguo = false;
-			else if (496 <= x and 64 <= y <= 68)via_zhuziguo = false;
-			else if (503 <= x and 44 <= y <= 53)via_zhuziguo = false;
-		}
-		else via_zhuziguo = false;
-		if (via_zhuziguo) {
-			log_info("从朱紫国到大唐境外");
-			if (m_scene_id == 朱紫国) {
-				move_to_other_scene({ 2,4 }, 大唐境外, 30, -30);
+		case 大唐境外:
+		{
+			// 大唐境外：1.合成旗-朱紫国左下角-大唐境外 2.合成旗-罗道人旁的驿站老板-传送大唐国境-大唐境外
+			bool via_zhuziguo = true;
+			if (x <= 504) {
+				if(502 <= x and 25 <= y <= 41)via_zhuziguo = false;
+				else if(500 <= x and 26 <= y <= 42)via_zhuziguo = false;
+				else if (499 <= x and 27 <= y <= 43)via_zhuziguo = false;
+				else if (498 <= x and 28 <= y <= 43)via_zhuziguo = false;
+				else if (495 <= x and 29 <= y <= 43)via_zhuziguo = false;
+				else if (494 <= x <= 502 and 42 <= y <= 56)via_zhuziguo = false;
+				else if (493 <= x <= 502 and 42 <= y <= 57)via_zhuziguo = false;
+				else if (492 <= x <= 502 and 42 <= y <= 59)via_zhuziguo = false;
+				else if (491 <= x and 42 <= y <= 60)via_zhuziguo = false;
+				else if (496 <= x and 64 <= y <= 68)via_zhuziguo = false;
+				else if (503 <= x and 44 <= y <= 53)via_zhuziguo = false;
+			}
+			else via_zhuziguo = false;
+			if (via_zhuziguo) {
+				log_info("从朱紫国到大唐境外");
+				if (m_scene_id == 朱紫国) {
+					move_to_other_scene({ 2,4 }, 大唐境外, 30, -30);
+				}
+				else {
+					use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false);
+				}
 			}
 			else {
-				use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false);
+				if (m_scene_id == 大唐国境) {
+					from_datangguojing_to_datangjingwai();
+				}
+				else if (m_scene_id != 长安城) {
+					log_info("大唐国境到大唐境外");
+					use_changan777(ROI_changan777_yizhan_laoban(), false);
+				}
+				else{
+					from_changan_fly_to_datangguojing();
+				}
 			}
+			break;
 		}
-		else {
+		case 江南野外:
+		{
+			// 江南野外:1.合成旗-长安右下角-江南野外 2.飞行符-建邺城-江南野外
+			if (m_scene_id == 长安城) {
+				move_to_other_scene({ 542, 6 }, 江南野外, -30, -30);
+			}
+			else {
+				log_info("从长安到江南野外");
+				use_changan777(ROI_changan777_jiangnanyewai(), false);
+			}
+			break;
+		}
+		case 女儿村:
+		{
+			// 女儿村：合成旗-傲来国左上角-女儿村
+			if (m_scene_id == 傲来国) {
+				move_to_other_scene({ 5, 139 }, 女儿村, 30, 30);
+			}
+			else {
+				log_info("从傲来国到女儿村");
+				use_aolaiguo777(ROI_aolaiguo777_nvercun(), false);
+			}
+			break;
+		}
+		case 普陀山:
+		{
+			// 普陀山：合成旗-长安左下角-大唐国境-普陀接引仙女
+			if (m_scene_id == 大唐国境) {
+				POINT dst = { 221,60 };
+				if (!is_near_loc(dst, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
+					log_info("从大唐国境到普陀接引仙女");
+					move_to_position(dst, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
+					close_beibao_smart();
+					moving = true;
+				}
+				else {
+					log_info("传送普陀山");
+					ship_to_other_scene(dst, 普陀山);
+				}
+			}
+			else {
+				from_changan_to_datangguojing();
+			}
+			break;
+		}
+		case 五庄观:
+		{
+			// 五庄观:合成旗-长安城驿站老板-大唐国境-大唐境外-五庄观
 			if (m_scene_id == 大唐国境) {
 				from_datangguojing_to_datangjingwai();
 			}
+			else if (m_scene_id == 大唐境外) {
+				log_info("从大唐境外到五庄观");
+				move_to_other_scene({ 636,76 }, 五庄观,-30,0,true);
+			}
 			else if (m_scene_id != 长安城) {
-				log_info("大唐国境到大唐境外");
 				use_changan777(ROI_changan777_yizhan_laoban(), false);
 			}
 			else{
 				from_changan_fly_to_datangguojing();
 			}
+			break;
 		}
-		break;
-	}
-	case 江南野外:
-	{
-		// 江南野外:1.合成旗-长安右下角-江南野外 2.飞行符-建邺城-江南野外
-		if (m_scene_id == 长安城) {
-			move_to_other_scene({ 542, 6 }, 江南野外, -30, -30);
-		}
-		else {
-			log_info("从长安到江南野外");
-			use_changan777(ROI_changan777_jiangnanyewai(), false);
-		}
-		break;
-	}
-	case 女儿村:
-	{
-		// 女儿村：合成旗-傲来国左上角-女儿村
-		if (m_scene_id == 傲来国) {
-			move_to_other_scene({ 5, 139 }, 女儿村, 30, 30);
-		}
-		else {
-			log_info("从傲来国到女儿村");
-			use_aolaiguo777(ROI_aolaiguo777_nvercun(), false);
-		}
-		break;
-	}
-	case 普陀山:
-	{
-		// 普陀山：合成旗-长安左下角-大唐国境-普陀接引仙女
-		if (m_scene_id == 大唐国境) {
-			POINT dst = { 221,60 };
-			if (!is_near_loc(dst, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
-				log_info("从大唐国境到普陀接引仙女");
-				move_to_position(dst, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
-				close_beibao_smart();
-				moving = true;
+		case 化生寺:
+		{
+			if (m_scene_id == 长安城) {
+				move_to_other_scene({ 511, 274 }, 化生寺, 0, 30);
 			}
 			else {
-				log_info("传送普陀山");
-				ship_to_other_scene(dst, 普陀山);
+				log_info("从长安到化生寺");
+				use_changan777(ROI_changan777_huashengsi(), false);
 			}
+			break;
 		}
-		else {
+		case 长安杂货店:
+		{
+			if (m_scene_id == 长安城) {
+				move_to_other_scene({ 534,136 }, 长安杂货店);
+			}
+			else {
+				use_changan777(ROI_changan777_changanjiudian());
+			}
+			break;
+		}
+		case 长安饰品店:
+		{
+			if (m_scene_id == 长安城) {
+				move_to_other_scene({ 387,15 }, 长安饰品店);
+			}
+			else {
+				use_changan777(ROI_changan777_dangpu());
+			}
+			break;
+		}
+		case 长安国子监:
+		{
+			if (m_scene_id == 长安城) {
+				move_to_other_scene({ 275,204 }, 长安国子监);
+			}
+			else {
+				use_feixingfu(长安城);
+			}
+			break;
+		}
+		case 长寿村当铺:
+		{
+			if (m_scene_id == 长寿村) {
+				move_to_other_scene({ 15,128 }, 长寿村当铺);
+			}
+			else {
+				use_changshoucun777(ROI_changshoucun777_dangpu());
+			}
+			break;
+		}
+		case 长寿郊外:
+		{
+			if (m_scene_id != 长寿村) {
+				use_changshoucun777(ROI_changshoucun777_changshoujiaowai(), false);
+			}
+			else {
+				move_to_other_scene({ 147, 6 }, 长寿郊外, 0, 30);
+			}
+			break;
+		}
+		case 傲来客栈:
+		{
+			if (m_scene_id == 傲来国) {
+				move_to_other_scene({ 180,30 }, 傲来客栈);
+			}
+			else {
+				use_aolaiguo777(ROI_aolaiguo777_donghaiwan());
+			}
+			break;
+		}
+		case 傲来客栈二楼:
+		{
+			if (m_scene_id == 傲来国) {
+				move_to_other_scene({ 180,30 }, 傲来客栈);
+			}
+			else if (m_scene_id == 傲来客栈) {
+				move_to_other_scene({ 32,34 }, 傲来客栈二楼);
+			}
+			else {
+				use_aolaiguo777(ROI_aolaiguo777_donghaiwan());
+			}
+			break;
+		}
+		case 傲来国药店:
+		{
+			if (m_scene_id == 傲来国) {
+				move_to_other_scene({ 53,40 }, 傲来国药店);
+			}
+			else {
+				use_aolaiguo777(ROI_aolaiguo777_yaodian());
+			}
+			break;
+		}
+		case 大唐国境:
+		{
 			from_changan_to_datangguojing();
+			break;
 		}
-		break;
-	}
-	case 五庄观:
-	{
-		// 五庄观:合成旗-长安城驿站老板-大唐国境-大唐境外-五庄观
-		if (m_scene_id == 大唐国境) {
-			from_datangguojing_to_datangjingwai();
+		case 地府:
+		{
+			log_info("寻路到地府");
+			if (m_scene_id == 大唐国境) {
+				move_to_other_scene({ 48,328 }, 地府, 0, 30);
+			}
+			else if (m_scene_id == 长安城) {
+				from_changan_fly_to_datangguojing();
+			}
+			else { fly_to_changan_yizhan_laoban(); }
+			break;
 		}
-		else if (m_scene_id == 大唐境外) {
-			log_info("从大唐境外到五庄观");
-			move_to_other_scene({ 636,76 }, 五庄观,-30,0,true);
+		case 狮驼岭:
+		{
+			if (m_scene_id == 大唐境外) {
+				move_to_other_scene({ 5, 48 }, 狮驼岭, 30, 0);
+			}
+			else if (m_scene_id != 朱紫国) {
+				log_info("从朱紫国到狮驼岭");
+				use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false);
+			}
+			else {
+				move_to_other_scene({ 3, 4 }, 大唐境外, 30, -30);
+			}
+			break;
 		}
-		else if (m_scene_id != 长安城) {
-			use_changan777(ROI_changan777_yizhan_laoban(), false);
+		case 建邺衙门:
+		{
+			if (m_scene_id == 建邺城) {
+				move_to_other_scene({ 225,65 }, 建邺衙门);//todo
+			}
+			else {
+				use_feixingfu(建邺城);
+			}
+			break;
 		}
-		else{
-			from_changan_fly_to_datangguojing();
+		case 建邺杂货店:
+		{
+			if (m_scene_id == 建邺城) {
+				move_to_other_scene({ 115,130 }, 建邺杂货店);
+			}
+			else {
+				use_feixingfu(建邺城);
+			}
+			break;
 		}
-		break;
-	}
-	case 化生寺:
-	{
-		if (m_scene_id == 长安城) {
-			move_to_other_scene({ 511, 274 }, 化生寺, 0, 30);
+		case 东海湾:
+		{
+			if (m_scene_id == 傲来国) {
+				ship_to_other_scene({ 168, 15 }, 东海湾);
+			}
+			else {
+				log_info("从傲来国到东海湾");
+				use_aolaiguo777(ROI_aolaiguo777_donghaiwan(), false);
+			}
+			break;
 		}
-		else {
-			log_info("从长安到化生寺");
-			use_changan777(ROI_changan777_huashengsi(), false);
+		case 花果山:
+		{
+			if (m_scene_id != 傲来国) {
+				use_aolaiguo777(ROI_aolaiguo777_huaguoshan(), false);
+			}
+			else {
+				move_to_other_scene({ 218, 144 }, 花果山, -30, 30);
+			}
+			break;
 		}
-		break;
-	}
-	case 东海湾:
-	{
-		if (m_scene_id == 傲来国) {
-			ship_to_other_scene({ 168, 15 }, 东海湾);
-		}
-		else {
-			log_info("从傲来国到东海湾");
-			use_aolaiguo777(ROI_aolaiguo777_donghaiwan(), false);
-		}
-		break;
-	}
-	case 狮驼岭:
-	{
-		if (m_scene_id == 大唐境外) {
-			move_to_other_scene({ 5, 48 }, 狮驼岭, 30, 0);
-		}
-		else if (m_scene_id != 朱紫国) {
-			log_info("从朱紫国到狮驼岭");
-			use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false);
-		}else{
-			move_to_other_scene({ 3, 4 }, 大唐境外, 30, -30);
-		}
-		break;
-	}
-	case 地府:
-	{
-		log_info("寻路到地府");
-		if (m_scene_id == 大唐国境) {
-			move_to_other_scene({ 48,328 }, 地府, 0, 30);
-		}
-		else if (m_scene_id == 长安城) {
-			from_changan_fly_to_datangguojing();
-		}
-		else{ fly_to_changan_yizhan_laoban(); }
-		break;
-	}
-	case 花果山:
-	{
-		if (m_scene_id != 傲来国) {
-			use_aolaiguo777(ROI_aolaiguo777_huaguoshan(), false);
-		}
-		else {
-			move_to_other_scene({ 218, 144 }, 花果山, -30, 30);
-		}
-		break;
-	}
-	case 长寿郊外:
-	{
-		if (m_scene_id != 长寿村) {
-			use_changshoucun777(ROI_changshoucun777_changshoujiaowai(), false);
-		}
-		else {
-			move_to_other_scene({ 147, 6 }, 长寿郊外, 0, 30);
-		}
-		break;
-	}
-	case 长安国子监:
-	{
-		if (m_scene_id == 长安城) {
-			move_to_other_scene({ 275,204 }, 长安国子监);
-		}
-		else {
-			use_feixingfu(长安城);
-		}
-		break;
-	}
-	case 长安饰品店:
-	{
-		if (m_scene_id == 长安城) {
-			move_to_other_scene({ 387,15 }, 长安饰品店);
-		}
-		else {
-			use_changan777(ROI_changan777_dangpu());
-		}
-		break;
-	}
-	case 长安杂货店:
-	{
-		if (m_scene_id == 长安城) {
-			move_to_other_scene({ 534,136 }, 长安杂货店);
-		}
-		else {
-			use_changan777(ROI_changan777_changanjiudian());
-		}
-		break;
-	}
-	case 建邺衙门:
-	{
-		if (m_scene_id == 建邺城) {
-			move_to_other_scene({ 225,65 }, 建邺衙门);//todo
-		}
-		else {
-			use_feixingfu(建邺城);
-		}
-		break;
-	}
-	case 建邺杂货店:
-	{
-		if (m_scene_id == 建邺城) {
-			move_to_other_scene({ 225,65 }, 建邺杂货店);//todo
-		}
-		else {
-			use_feixingfu(建邺城);
-		}
-		break;
-	}
-	case 傲来客栈:
-	{
-		if (m_scene_id == 傲来国) {
-			move_to_other_scene({ 225,65 }, 傲来客栈);//todo
-		}
-		else {
-			use_aolaiguo777(ROI_aolaiguo777_donghaiwan());
-		}
-		break;
-	}
-	case 傲来客栈二楼:
-	{
-		if (m_scene_id == 傲来国) {
-			move_to_other_scene({ 225,65 }, 傲来客栈);//todo
-		}
-		else if (m_scene_id == 傲来客栈) {
-			move_to_other_scene({ 225,65 }, 傲来客栈二楼);//todo
-		}
-		else {
-			use_aolaiguo777(ROI_aolaiguo777_donghaiwan());
-		}
-		break;
-	}
-	case 傲来国药店:
-	{
-		if (m_scene_id == 傲来国) {
-			move_to_other_scene({ 225,65 }, 傲来国药店);//todo
-		}
-		else {
-			use_aolaiguo777(ROI_aolaiguo777_yaodian());
-		}
-		break;
-	}
-	case 长寿村当铺:
-	{
-		if (m_scene_id == 长寿村) {
-			move_to_other_scene({ 225,65 }, 长寿村当铺);//todo
-		}
-		else {
-			use_changshoucun777(ROI_changshoucun777_dangpu());
-		}
-		break;
-	}
-	default:
-		break;
 	}
 }
 bool WindowInfo::goto_scene(POINT dst, unsigned int scene_id) {
@@ -1624,7 +1736,7 @@ bool WindowInfo::talk_to_dianxiaoer() {
 				}
 				popup_verify = true;
 				for (int i = 0;i < 5;i++) { log_info("***宝图任务弹窗验证,请手动点击***"); }
-				step.set_current(&to_dianxiaoer);
+				step.set_current(&scan_dianxiaoer_pos);
 			}
 		}
 	}
@@ -1675,7 +1787,7 @@ bool WindowInfo::is_moving() {
 			x0 = player_x;
 			y0 = player_y;
 		}
-		Sleep(200);
+		//Sleep(200);
 	}
 	return true;
 }
@@ -1954,36 +2066,7 @@ void WindowInfo::parse_zeiwang_info() {
 	}
 	log_info("结束解析贼王内容:0x%X", hProcess);
 }
-void WindowInfo::find_zeiwang() {
-	scan_npc_pos_addr(NPC_ZEIWANG);
-	
-}
-std::vector<POINT> WindowInfo::get_scene_npc_list() {
-	switch (zeiwang_scene_id)
-	{
-	case 长安国子监:
-		return changan_guozijian_npc_list;
-	case 长安饰品店:
-		return changan_shipindian_npc_list;
-	case 长安杂货店:
-		return changan_zahuodian_npc_list;
-	case 建邺城:
-		return jianyecheng_npc_list;
-	case 建邺衙门:
-		return jianyeyamen_npc_list;
-	case 建邺杂货店:
-		return jianyezahuodian_npc_list;
-	case 傲来客栈二楼:
-		return aolaikezhanerlou_npc_list;
-	case 傲来国药店:
-		return aolaiguo_yaodian_npc_list;
-	case 长寿村当铺:
-		return changshoucun_dangpu_npc_list;
-	default:
-		break;
-	}
-	return std::vector<POINT>{};
-}
+
 void WindowInfo::move_to_position(POINT dst, long active_x, long active_y) {
 	// active_x, active_y:NPC在这个坐标范围内对话才有效
 	if (abs(player_pos.x - dst.x) <= active_x && abs(player_pos.y - dst.y) <= active_y) {
@@ -2106,32 +2189,7 @@ bool WindowInfo::talk_to_npc_fight(POINT dst, const char* templ) {
 	failure = true;
 	return false;
 }
-unsigned int WindowInfo::get_scene_id_by_name(std::wstring name) {
-	unsigned int scene_id = 0;
-	if (name == L"狮驼岭") {scene_id = 狮驼岭;}
-	else if (name == L"建邺城") {scene_id = 建邺城;}
-	else if (name == L"建邺衙门") {scene_id = 建邺衙门;}
-	else if (name == L"建邺杂货店") {scene_id = 建邺杂货店;}
-	else if (name == L"女儿村") {scene_id = 女儿村;}
-	else if (name == L"化生寺") {scene_id = 化生寺;}
-	else if (name == L"长寿村") {scene_id = 长寿村;}
-	else if (name == L"西梁女国") {scene_id = 西梁女国;}
-	else if (name == L"傲来国") {scene_id = 傲来国;}
-	else if (name == L"大唐国境") {scene_id = 大唐国境;}
-	else if (name == L"地府") {scene_id = 地府;}
-	else if (name == L"普陀山") {scene_id = 普陀山;}
-	else if (name == L"五庄观") {scene_id = 五庄观;}
-	else if (name == L"大唐境外") {scene_id = 大唐境外;}
-	else if (name == L"江南野外") {scene_id = 江南野外;}
-	else if (name == L"朱紫国") {scene_id = 朱紫国;}
-	else if (name == L"宝象国") {scene_id = 宝象国;}
-	else if (name == L"花果山") {scene_id = 花果山;}
-	else if (name == L"东海湾") {scene_id = 东海湾;}
-	else if (name == L"长寿郊外") { scene_id = 长寿郊外; }
-	else if (name == L"傲来客栈二楼") { scene_id = 傲来客栈二楼; }
-	else if (name == L"傲来国药店") { scene_id = 傲来国药店; }
-	return scene_id;
-}
+
 bool WindowInfo::low_health(cv::Rect roi, int deadline) {
 	vector<const char*> templ_list = {
 		img_fight_health_100,
@@ -2458,21 +2516,21 @@ cv::Rect WindowInfo::ROI_fight_action() {
 }
 void WindowInfo::test() {
 	// 玩家坐标地址
-	is_verifying();
-	//scan_npc_pos_addr(NPC_ZEIWANG);
-	//parse_baotu_task_info();
-	SetForegroundWindow(hwnd);
-	update_scene_id();
-	update_player_float_pos();
-	move_to_position({ 460,140 }, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
-}
-unsigned int __stdcall WindowInfo::test1(void*) {
+	//is_verifying();
+	scan_npc_pos_addr(NPC_ZEIWANG);
+	////parse_baotu_task_info();
+	//SetForegroundWindow(hwnd);
+	//update_scene_id();
+	//update_player_float_pos();
+	//move_to_position({ 460,140 }, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
 	while (1) {
-		log_info("11111");
-		Sleep(1000);
+		//Sleep(2000);
+		update_scene_id();
+		update_player_float_pos();
+		log_info("测试日志22222");
 	}
-	return 0;
 }
+
 TimeProcessor::TimeProcessor() {
 	mTime_ms = getCurrentTimeMilliseconds();
 }
@@ -2498,9 +2556,9 @@ void GoodMorning::init() {
 	if (stat("screenshot", &st) == -1) {
 		_mkdir("screenshot");
 	}
-	for (WindowInfo& winfo : this->winsInfo) {
-		winfo.UpdateWindowRect();
-		winfo.SplitTitleAsPlayerId();
+	for (auto& winfo : this->winsInfo) {
+		winfo->UpdateWindowRect();
+		winfo->SplitTitleAsPlayerId();
 	}
 	if (!fs::exists(dbFile)) {
 		std::ofstream outFile(dbFile);
@@ -2518,22 +2576,22 @@ void GoodMorning::init() {
 		db = json();
 	}
 	bool update = false;
-	for (WindowInfo& winfo : this->winsInfo) {
-		if (!winfo.player_id.empty()) {
+	for (auto& winfo : this->winsInfo) {
+		if (!winfo->player_id.empty()) {
 			bool new_content = false;
-			auto player = db[winfo.player_id];
+			auto player = db[winfo->player_id];
 			bool no_key = false;
 			if (player.empty()) {
-				player["title"] = AnsiToUtf8(winfo.player_name);
+				player["title"] = AnsiToUtf8(winfo->player_name);
 				player["round"] = 0;
 				new_content = true;
 			}
 			else if (!player.contains("title")) {
-				player["title"] = AnsiToUtf8(winfo.player_name);
+				player["title"] = AnsiToUtf8(winfo->player_name);
 				new_content = true;
 			}
 			if (new_content) {
-				db[winfo.player_id] = player;
+				db[winfo->player_id] = player;
 				update = true;
 			}
 		}
@@ -2542,51 +2600,46 @@ void GoodMorning::init() {
 }
 
 void GoodMorning::hook_data() {
-	for (WindowInfo& winfo : this->winsInfo) {
-		winfo.hook_init();
+	for (auto& winfo : this->winsInfo) {
+		winfo->hook_init();
 	}
 }
 
 void GoodMorning::work() {
-	//for (WindowInfo& winfo : this->winsInfo) {
-	//	auto t1 = std::thread(&WindowInfo::test, winfo);
-	//	winfo.threading = true;
-	//}
+	// 创建线程池
+	std::vector<std::thread> threads;
+	for (int i = 0;i < this->winsInfo.size();i++) {
+		threads.emplace_back(&WindowInfo::scan_npc_pos_in_thread, this->winsInfo[i].get());
+	}
+
 	while (true) {
 		//std::thread t1;
-		for (WindowInfo& winfo : this->winsInfo) {
+		for (const auto& winfo : this->winsInfo) {
 			//log_info("测试日志");
-			//if (winfo.threading)continue;
-			//t1 = std::thread(&WindowInfo::parse_baotu_task_info, winfo);
-			// 使用 std::async 异步执行成员函数
-			// 参数顺序：[策略], [成员函数指针], [对象实例], [函数参数]
-			//std::future<void> future_result = std::async(
-			//	std::launch::async,          // 确保立即在新线程中执行
-			//	&WindowInfo::parse_baotu_task_info,        // 成员函数指针
-			//	winfo             // 对象实例（std::async 自动处理 this 指针）
-			//);
-			//log_info("测试日志222222");
-			//winfo.threading = true;
-			if (winfo.popup_verify) {
+			//winfo->tScan_npc = 1;
+			//Sleep(3000);
+			//continue;
+
+			if (winfo->popup_verify) {
 				// 验证窗口出现，等待手动验证完成再继续
-				while(winfo.popup_verify) winfo.datu();
+				while(winfo->popup_verify) winfo->datu();
 			}
 			else {
-				winfo.datu();
+				winfo->datu();
 			}
-			if (winfo.time_pawn.timeout(300000)) {
+			if (winfo->time_pawn.timeout(300000)) {
 				play_mp3();
 				for (int i = 0;i < 5;i++) { log_info("运行超时，退出"); }
 				return;
 			}
-			if (winfo.failure) {
+			if (winfo->failure) {
 				play_mp3();
 				for (int i = 0;i < 5;i++) { log_info("运行失败，请重新运行程序退出"); }
 				return;
 			}
 
 		}
-		Sleep(10);
+		//Sleep(10);
 	}
 }
 //void GoodMorning::time_pawn_update() {
@@ -2607,7 +2660,7 @@ void GoodMorning::test() {
 	//RECT rect;
 	//cv::Rect roi_test;
 	//MatchingRectPos(roi_test, "screenshot\\2025-12-09 01-11-22-r30319.png", "object\\btn\\tingtingwufang.png","",0.78);
-	for (WindowInfo& winfo : this->winsInfo) {
+	for (const auto& winfo : this->winsInfo) {
 		//cv::Rect roi_test(450, 338, 300, 300);
 		//cv::Rect roi_test;
 		//MatchingRectPos(roi_test, "screenshot\\2025-12-09 01-11-22-r30319.png", "object\\btn\\tingtingwufang.png");
@@ -2633,7 +2686,7 @@ void GoodMorning::test() {
 		//winfo.parse_zeiwang_info();
 		while (true) {
 			//winfo.update_player_float_pos();
-			winfo.test();
+			winfo->test();
 			//winfo.update_scene_id();
 			//winfo.from_changan_fly_to_datangguojing();
 			//winfo.click_position({189, 130});
@@ -2896,11 +2949,11 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 			//win_hwnd = hwnd;
 			// 如果是多标签模式,只有mhtab.exe有窗口
 			//SetForegroundWindow(hwnd);
-
-			WindowInfo winfo((HANDLE)targetProcessId);
-			winfo.hwnd = hwnd;
-			winfo.player_name = pszMem;
-			gm.winsInfo.push_back(winfo);
+			auto winfo = std::make_unique<WindowInfo>((HANDLE)targetProcessId);
+			//WindowInfo winfo((HANDLE)targetProcessId);
+			winfo->hwnd = hwnd;
+			winfo->player_name = pszMem;
+			gm.winsInfo.push_back(std::move(winfo));
 			printf("窗口句柄回调成功：%s\n", pszMem);
 			VirtualFree(
 				pszMem,       // Base address of block
@@ -2945,6 +2998,12 @@ uint64_t getCurrentTimeMilliseconds() {
 }
 int randint(int min, int max) {
 	return (std::rand() % (max - min + 1)) + min;
+}
+void test222(void* uintptr_t) {
+	while (1) {
+		log_info("测试日志22222");
+		Sleep(2000);
+	}
 }
 void test() {
 	HANDLE hSerial;
@@ -3643,7 +3702,6 @@ POINT get_map_max_pixel(unsigned int scene_id) {
 			break;
 		case 长安城:
 			return { 545, 276 };
-			break;
 		case 东海湾:
 			return { 276, 276 };
 		case 化生寺:
@@ -3651,29 +3709,52 @@ POINT get_map_max_pixel(unsigned int scene_id) {
 		case 长安国子监:
 			return { 384, 284 };
 		case 长安杂货店:
-			return { 31, 38 };  //todo
+			return { 31, 38 };  //乱写，目前不用到
 		case 地府:
 			return { 369, 276 };
 		case 狮驼岭:
 			return { 369, 276 };
 		case 建邺杂货店:
-			return { 119, 119 }; //todo
+			return { 119, 119 }; //乱写，目前不用到
 		case 花果山:
 			return { 369, 276 };
 		case 长寿郊外:
 			return { 316, 276 };
 		case 傲来客栈:
-			return { 119, 119 }; //todo
+			return { 119, 119 }; //乱写，目前不用到
 		case 傲来客栈二楼:
 			return { 384, 284 };
 		case 傲来国药店:
-			return { 119, 119 }; //todo
-		default:
-			break;
+			return { 119, 119 }; //乱写，目前不用到
 	}
 	return { -1, -1 };
 }
-
+std::vector<POINT> get_scene_npc_list(unsigned int scene_id) {
+	switch (scene_id)
+	{
+		case 长安杂货店:
+			return changan_zahuodian_npc_list;
+		case 长安饰品店:
+			return changan_shipindian_npc_list;
+		case 长安国子监:
+			return changan_guozijian_npc_list;
+		case 建邺城:
+			return jianyecheng_npc_list;
+		//case 建邺衙门:
+		//	return jianyeyamen_npc_list;
+		case 建邺杂货店:
+			return jianyezahuodian_npc_list;
+		case 傲来客栈二楼:
+			return aolaikezhanerlou_npc_list;
+		case 傲来国药店:
+			return aolaiguo_yaodian_npc_list;
+		case 长寿村当铺:
+			return changshoucun_dangpu_npc_list;
+		//case 长寿郊外:
+		//	return changshoujiaowai_npc_list;
+	}
+	return std::vector<POINT>{};
+}
 int main(int argc, const char** argv)
 {
 	init_log();
@@ -3687,6 +3768,10 @@ int main(int argc, const char** argv)
 	//cv::Mat image_inRange = ThresholdinginRange(image);
 	//MatchingLoc(image_inRange,ROI_NULL(), img_cursors_cursor,"",0.7,cv::TM_CCORR_NORMED);
 
+	//std:;vector<POINT> ssss = { {10,10},{20,30} };
+	//auto ss = ssss.front();
+	//ssss.erase(ssss.begin());
+
 	//test();
 	//SerialWrite(STOP_MP3);
 	//serial_move_human(67, 84, 1);
@@ -3698,7 +3783,8 @@ int main(int argc, const char** argv)
 	for (auto processID : FindPidsByName(TARGET_APP_NAME)) {
 		EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
 	}
-	Sleep(50);  // 等一下枚举窗口句柄回调完成再执行
+	Sleep(10);  // 等一下枚举窗口句柄回调完成再执行
+	log_info("开始，检测到窗口数量:%d个.", gm.winsInfo.size());
 
 	// SEED the generator ONCE at the start of the program
 	std::srand(static_cast<unsigned int>(time(nullptr)));

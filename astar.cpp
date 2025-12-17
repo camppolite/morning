@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <math.h>
 #include <queue>
+#include <string>
 #include "astar.h"
 
 #define TILE_COST 1
@@ -37,8 +38,6 @@ MAZE get_maze(unsigned int scene_id) {
 			return xiliangnvguo_maze;
 		case 长安酒店:
 			return changanjiudian_maze;
-		//default:
-		//	break;
 	}
 	return MAZE();
 }
@@ -46,64 +45,99 @@ MAZE get_maze(unsigned int scene_id) {
 POINT get_map_max_loc(unsigned int scene_id) {
 	switch (scene_id)
 	{
-		case 女儿村:
-			return { 126, 142 };
-		case 普陀山:
-			return { 94, 70 };
-		case 江南野外:
-			return { 158, 118 };
-		case 大唐国境:
-			return { 351, 335 };
-		case 大唐境外:
-			return { 637, 117 };
-		case 朱紫国:
-			return { 190, 118 };
-		case 傲来国:
-			return { 222, 149 };
-		case 宝象国:
-			return { 158, 118 };
-		case 建邺城:
-			return { 286, 143 };
-		case 五庄观:
-			return { 98, 73 };
-		case 长寿村:
-			return { 158, 208 };
-		case 西梁女国:
-			return { 162, 122 };
-		case 长安酒店:
-			return { 66, 49 };
 		case 长安城:
 			return { 548, 279 };
-		case 东海湾:
-			return { 119, 119 };
 		case 化生寺:
 			return { 127, 95 };
-		case 长安国子监:
-			return { 79, 59 };
 		case 长安杂货店:
 			return { 31, 29 };
 		case 长安饰品店:
 			return { 51, 38 };
-		case 地府:
-			return { 159, 119 };
-		case 狮驼岭:
-			return { 131, 98 };
-		case 建邺杂货店:
-			return { 35, 24 }; //todo
-		case 花果山:
-			return { 159, 119 };
+		case 长安国子监:
+			return { 79, 59 };
+		case 长安酒店:
+			return { 66, 49 };
+		case 西梁女国:
+			return { 162, 122 };
+		case 长寿村:
+			return { 158, 208 };
+		case 长寿村当铺:
+			return { 26, 25 };
 		case 长寿郊外:
 			return { 190, 167 };
+		case 傲来国:
+			return { 222, 149 };
 		case 傲来客栈:
 			return { 57, 38 };
 		case 傲来客栈二楼:
 			return { 60, 43 };
 		case 傲来国药店:
 			return { 50, 44 };
-		default:
-			break;
+		case 大唐国境:
+			return { 351, 335 };
+		case 地府:
+			return { 159, 119 };
+		case 狮驼岭:
+			return { 131, 98 };
+		case 普陀山:
+			return { 94, 70 };
+		case 女儿村:
+			return { 126, 142 };
+		case 五庄观:
+			return { 98, 73 };
+		case 大唐境外:
+			return { 637, 117 };
+		case 江南野外:
+			return { 158, 118 };
+		case 朱紫国:
+			return { 190, 118 };
+		case 宝象国:
+			return { 158, 118 };
+		case 建邺城:
+			return { 286, 143 };
+		case 建邺杂货店:
+			return { 35, 39 };
+		case 东海湾:
+			return { 119, 119 };
+		case 花果山:
+			return { 159, 119 };
 	}
 	return { -1, -1 };
+}
+
+unsigned int get_scene_id_by_name(std::wstring name) {
+	unsigned int scene_id = 0;
+	if (name == L"长安城") { scene_id = 长安城; }
+	else if (name == L"化生寺") { scene_id = 化生寺; }
+	else if (name == L"桃源村") { scene_id = 桃源村; }
+	else if (name == L"长安杂货店") { scene_id = 长安杂货店; }
+	else if (name == L"长安饰品店") { scene_id = 长安饰品店; }
+	else if (name == L"长安国子监") { scene_id = 长安国子监; }
+	else if (name == L"长安酒店") { scene_id = 长安酒店; }
+	else if (name == L"西梁女国") { scene_id = 西梁女国; }
+	else if (name == L"长寿村") { scene_id = 长寿村; }
+	else if (name == L"长寿村当铺") { scene_id = 长寿村当铺; }
+	else if (name == L"长寿郊外") { scene_id = 长寿郊外; }
+	else if (name == L"傲来国") { scene_id = 傲来国; }
+	else if (name == L"傲来客栈") { scene_id = 傲来客栈; }
+	else if (name == L"傲来客栈二楼") { scene_id = 傲来客栈二楼; }
+	else if (name == L"傲来国药店") { scene_id = 傲来国药店; }
+	else if (name == L"大唐国境") { scene_id = 大唐国境; }
+	else if (name == L"地府") { scene_id = 地府; }
+	else if (name == L"狮驼岭") { scene_id = 狮驼岭; }
+	else if (name == L"普陀山") { scene_id = 普陀山; }
+	else if (name == L"女儿村") { scene_id = 女儿村; }
+	else if (name == L"五庄观") { scene_id = 五庄观; }
+	else if (name == L"大唐境外") { scene_id = 大唐境外; }
+	else if (name == L"江南野外") { scene_id = 江南野外; }
+	else if (name == L"朱紫国") { scene_id = 朱紫国; }
+	else if (name == L"宝象国") { scene_id = 宝象国; }
+	else if (name == L"建邺城") { scene_id = 建邺城; }
+	else if (name == L"建邺衙门") { scene_id = 建邺衙门; }
+	else if (name == L"建邺杂货店") { scene_id = 建邺杂货店; }
+	else if (name == L"东海湾") { scene_id = 东海湾; }
+	else if (name == L"花果山") { scene_id = 花果山; }
+	return scene_id;
 }
 
 class AStarNode

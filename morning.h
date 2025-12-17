@@ -60,9 +60,12 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define MATCHLEFTTOP 2
 #define MATCHEXIST 3
 
+#define THREAD_IDLE 0  // 线程空闲
 #define NPC_DIANXIAOER 1  // 店小二
 #define NPC_CHANGAN_YIZHANLAOBAN 2  // 长安驿站老板
 #define NPC_ZEIWANG 3  // 贼王
+#define TASK_BAOTU 4  // 宝图任务
+#define TASK_ZEIWANG 5  // 贼王任务
 
 const char* PLAY_MP3 = "mmp3:PLAY_%d\n";
 const char* STOP_MP3 = "mmp3:STOP\n";
@@ -136,28 +139,32 @@ const char* img_cursors_cursor = "object\\cursors\\cursor.png";
 const char* img_cursors_cursor_mask = "object\\cursors\\cursor_mask.png";
 
 std::string to_changan_jiudian("to_changan_jiudian");
+std::string scan_dianxiaoer_pos("scan_dianxiaoer");
 std::string to_dianxiaoer("to_dianxiaoer");
 std::string talk_get_baoturenwu("talk_get_baoturenwu");
-std::string parse_baotu_task("parse_baotu_task");
+std::string scan_baotu_task("scan_baotu_task");
 std::string goto_baotu_scene("goto_baotu_scene");
 std::string attack_qiangdao("attack_qiangdao");
-//std::string fighting_qiangdao("fighting_qiangdao");
-std::string parse_zeiwang_task("parse_zeiwang_task");
+std::string scan_zeiwang_task("scan_zeiwang_task");
 std::string goto_zeiwang_scene("goto_zeiwang_scene");
-std::string find_zeiwang_pos("find_zeiwang_pos");
+std::string fix_my_pos_zeiwang("fix_my_pos_zeiwang");
+std::string scan_zeiwang_pos("scan_zeiwang_pos");
+std::string try_zeiwang_pos("try_zeiwang_pos");
 std::string attack_zeiwang("attack_zeiwang");
 std::string baotu_end("baotu_end");
 std::vector<std::string*> datu_step = {
 	&to_changan_jiudian,
+	& scan_dianxiaoer_pos,
 	&to_dianxiaoer, 
 	&talk_get_baoturenwu,
-	&parse_baotu_task,
+	&scan_baotu_task,
 	&goto_baotu_scene,
 	&attack_qiangdao,
-	//&fighting_qiangdao,
-	&parse_zeiwang_task,
+	&scan_zeiwang_task,
 	& goto_zeiwang_scene,
-	& find_zeiwang_pos,
+	& fix_my_pos_zeiwang,
+	& scan_zeiwang_pos,
+	& try_zeiwang_pos,
 	& attack_zeiwang,
 	&baotu_end
 };
@@ -166,15 +173,17 @@ double gThreshold = 0.81;  // 默认值
 int gMatchMethod = cv::TM_CCOEFF_NORMED;  // 默认值
 
 // 场景NPC固定坐标
-std::vector<POINT> changan_guozijian_npc_list = {  };//todo
-std::vector<POINT> changan_shipindian_npc_list = { {530,350} };   //长安饰品店
 std::vector<POINT> changan_zahuodian_npc_list = { {370,250} };  //长安杂货店
-std::vector<POINT> jianyecheng_npc_list = {  };//todo
-std::vector<POINT> jianyeyamen_npc_list = {  };//todo
-std::vector<POINT> jianyezahuodian_npc_list = {  };//todo
-std::vector<POINT> aolaikezhanerlou_npc_list = {  };//todo
-std::vector<POINT> aolaiguo_yaodian_npc_list = {  };//todo
-std::vector<POINT> changshoucun_dangpu_npc_list = {  };//todo
+std::vector<POINT> changan_shipindian_npc_list = { {530,350} };   //长安饰品店
+std::vector<POINT> changan_guozijian_npc_list = {  };// 长安国子监 todo
+std::vector<POINT> jianyecheng_npc_list = {  };//建邺城 todo
+//std::vector<POINT> jianyeyamen_npc_list = {  };//建邺衙门 todo
+std::vector<POINT> jianyezahuodian_npc_list = { {690,510} };//建邺杂货店 todo
+std::vector<POINT> aolaikezhanerlou_npc_list = {  };//傲来客栈二楼 todo
+std::vector<POINT> aolaiguo_yaodian_npc_list = {  };//傲来药店 todo
+std::vector<POINT> changshoucun_dangpu_npc_list = { {410,250} };//长寿村当铺 todo
+//std::vector<POINT> changshoujiaowai_npc_list = {  };//长寿郊外 todo
+
 
 class Step {
 public:
@@ -206,7 +215,6 @@ public:
 	void hook_init();
 	void datu();
 	void test();
-	unsigned int __stdcall test1(void*);
 
 	std::vector<uintptr_t> ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, const BYTE* pattern, size_t pattern_size, const char* mask);
 	std::vector<uintptr_t> PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask);
@@ -224,12 +232,12 @@ public:
 	bool mouse_click_human(POINT pos, int xs = 0, int ys = 0, int mode = 1);
 	POINT get_cursor_pos(POINT pos);
 	bool ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int x_fix = 0, int y_fix = 0, int xs = 0, int ys = 0, int mode = 1, int timeout = 500);
+	void scan_npc_pos_in_thread();
 	void scan_npc_pos_addr(int npc);
 	void update_player_float_pos();
 	void update_scene();
 	void update_scene_id();
 	void update_npc_pos(int npc);
-	std::vector<POINT> get_scene_npc_list();
 	void move_cursor_center_top();
 	void move_cursor_center_bottom();
 	void move_cursor_right_top();
@@ -258,7 +266,6 @@ public:
 	bool talk_to_dianxiaoer();
 	void parse_baotu_task_info();
 	void parse_zeiwang_info();
-	void find_zeiwang();
 	bool goto_scene(POINT dst, unsigned int scene_id);
 	void move_to_position(POINT dst, long active_x = 0, long active_y = 0);
 	void move_via_map(POINT dst);
@@ -288,7 +295,6 @@ public:
 	bool wait_scene_change(unsigned int scene_id, int timeout = 1700);
 	void close_npc_talk();
 	void close_npc_talk_fast();
-	unsigned int get_scene_id_by_name(std::wstring name);
 	bool low_health(cv::Rect roi, int deadline);
 	bool low_mana(cv::Rect roi, int deadline);
 	void supply_health_hero();
@@ -369,7 +375,7 @@ public:
 	unsigned int baotu_task_count = 0;  // 今日领取第几次任务
 	unsigned int zeiwang_scene_id = 0;
 	std::vector<POINT> zeiwang_pos_list;
-	POINT zeiwang_pos = {-1,-1};
+	POINT zeiwang_pos = {0,0};
 
 	uintptr_t scene_id_addr = 0;
 	std::string scene;
@@ -382,6 +388,9 @@ public:
 	bool popup_verify = false;
 	int f_round = 0;
 	uint64_t wait_hero_action_time = 0;
+	int tScan_npc = THREAD_IDLE;  //线程后台扫描内存
+	// Atomic variable shared across threads
+	//std::atomic<int> tScan_npc{ NPC_IDLE }; //线程后台扫描内存
 
 	HANDLE pid;
 	HWND hwnd;
@@ -413,7 +422,7 @@ public:
 	const char* dbFile = "database";
 	json db;
 	bool waiting = false;
-	std::vector<WindowInfo> winsInfo;
+	std::vector<std::unique_ptr<WindowInfo>> winsInfo;
 	HANDLE hSerial;
 	//TimeProcessor time_knight = TimeProcessor();
 	//TimeProcessor time_pawn = TimeProcessor();
@@ -438,13 +447,14 @@ std::wstring bytes_to_wstring(const unsigned char* buffer, size_t size);
 std::vector<std::wstring> findContentBetweenTags(const std::wstring& source, const std::wstring& startTag, const std::wstring& endTag);
 std::string AnsiToUtf8(const std::string& ansiStr);
 POINT get_map_max_pixel(unsigned int scene_id);
+std::vector<POINT> get_scene_npc_list(unsigned int scene_id);
 cv::Mat CannyThreshold(cv::Mat src);
 cv::Mat ThresholdinginRange(cv::Mat frame);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
 void init_log();
 int randint(int min, int max);
 cv::Rect ROI_NULL();
-
+void test222(WindowInfo& winfo);
 
 int Serial();
 void SerialWrite(const char* data);
