@@ -2531,6 +2531,7 @@ void WindowInfo::test() {
 	//parse_zeiwang_info();
 	//SetForegroundWindow(hwnd);
 	//update_scene_id();
+	scan_npc_pos_addr(NPC_DIANXIAOER);
 	update_player_float_pos();
 	//move_to_position({ 460,140 }, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
 	while (1) {
