@@ -88,9 +88,9 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		case 大唐境外:
 			return { 637, 117 };
 		case 江南野外:
-			return { 158, 118 };
+			return { 159, 119 };
 		case 朱紫国:
-			return { 190, 118 };
+			return { 191, 119 };
 		case 宝象国:
 			return { 158, 118 };
 		case 建邺城:

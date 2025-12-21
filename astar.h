@@ -33,6 +33,7 @@ typedef struct {
 #define	长寿村 1070
 #define 长寿村当铺 1072
 #define 长寿郊外 1091
+#define 长寿村酒店 11191 // todo
 #define	傲来国 1092
 #define 傲来客栈 1093
 #define 傲来客栈二楼 1535

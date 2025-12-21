@@ -70,7 +70,9 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 const char* PLAY_MP3 = "mmp3:PLAY_%d\n";
 const char* STOP_MP3 = "mmp3:STOP\n";
 
-const char* MS_MOVE_HUMAN_SYMBOL = "movehm:%d,%d,%d,%d,%d\n";  // cx, cy, x, y, mode
+//# ƒ‚»À
+const char* MS_MOVE_SYMBOL = "movedf:%d,%d,%d\n";  // x,y,mode
+//const char* MS_MOVE_HUMAN_SYMBOL = "movehm:%d,%d,%d,%d,%d\n";  // cx, cy, x, y, mode
 const char* CLICK_CURRENT_SYMBOL = "hkeyCC\n";
 const char* RIGHT_CLICK_CURRENT_SYMBOL = "hkeyRCC\n";
 const char* KEY_ALT_xxx = "hkey:ALT_%s\n";
@@ -134,15 +136,19 @@ const char* img_symbol_feixingfu_zhuziguo = "object\\symbol\\feixingfu_zhuziguo.
 const char* img_symbol_ciyushunxu_gray = "object\\symbol\\ciyushunxu_gray.png";
 const char* img_symbol_yidongdezi_gray = "object\\symbol\\yidongdezi_gray.png";
 const char* img_symbol_gaosunitadecangshenweizhi = "object\\symbol\\gaosunitadecangshenweizhi.png";
+const char* img_symbol_wabao_title_gray = "object\\symbol\\wabao_title_gray.png";
+const char* img_symbol_task_track_gray = "object\\symbol\\task_track_gray.png";
+const char* img_symbol_zeiwang = "object\\symbol\\zeiwang.png";
 
 const char* img_cursors_cursor = "object\\cursors\\cursor.png";
 const char* img_cursors_cursor_mask = "object\\cursors\\cursor_mask.png";
 
+std::string work_start("work_start");
 std::string to_changan_jiudian("to_changan_jiudian");
 std::string scan_dianxiaoer_pos("scan_dianxiaoer");
-std::string to_dianxiaoer("to_dianxiaoer");
-std::string talk_get_baoturenwu("talk_get_baoturenwu");
-std::string scan_baotu_task("scan_baotu_task");
+std::string to_dianxiaoer_get_task("to_dianxiaoer_get_task");
+//std::string talk_get_baoturenwu("talk_get_baoturenwu");
+//std::string scan_baotu_task("scan_baotu_task");
 std::string goto_baotu_scene("goto_baotu_scene");
 std::string attack_qiangdao("attack_qiangdao");
 std::string scan_zeiwang_task("scan_zeiwang_task");
@@ -153,11 +159,12 @@ std::string try_zeiwang_pos("try_zeiwang_pos");
 std::string attack_zeiwang("attack_zeiwang");
 std::string baotu_end("baotu_end");
 std::vector<std::string*> datu_step = {
+	&work_start,
 	&to_changan_jiudian,
 	& scan_dianxiaoer_pos,
-	&to_dianxiaoer, 
-	&talk_get_baoturenwu,
-	&scan_baotu_task,
+	&to_dianxiaoer_get_task, 
+	//&talk_get_baoturenwu,
+	//&scan_baotu_task,
 	&goto_baotu_scene,
 	&attack_qiangdao,
 	&scan_zeiwang_task,
@@ -286,16 +293,16 @@ public:
 	void UpdateWindowRect();
 	void SplitTitleAsPlayerId();
 	void use_beibao_prop(const char* image, bool turn = true, bool keep = false);
-	void use_changan777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false);
-	void use_zhuziguo777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false);
-	void use_changshoucun777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false);
-	void use_aolaiguo777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false);
-	void use_feixingfu(unsigned int scene_id);
+	void use_changan777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false, bool wait_scene = true);
+	void use_zhuziguo777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false, bool wait_scene = true);
+	void use_changshoucun777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false, bool wait_scene = true);
+	void use_aolaiguo777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false, bool wait_scene = true);
+	void use_feixingfu(unsigned int scene_id, bool wait_scene = true);
 	void handle_sheyaoxiang_time();
 
 	bool wait_scene_change(unsigned int scene_id, int timeout = 1700);
 	void close_npc_talk();
-	void close_npc_talk_fast();
+	bool close_npc_talk_fast();
 	bool low_health(cv::Rect roi, int deadline);
 	bool low_mana(cv::Rect roi, int deadline);
 	void supply_health_hero();
@@ -310,6 +317,7 @@ public:
 	cv::Rect ROI_map();
 	cv::Rect ROI_npc_talk();
 	cv::Rect ROI_beibao_props();
+	cv::Rect ROI_task();
 	cv::Rect ROI_changan777_changanjiudian();
 	cv::Rect ROI_changan777_yizhan_laoban();
 	cv::Rect ROI_changan777_datangguojing();
@@ -463,8 +471,8 @@ void SerialWrite(const char* data);
 void SerialRead();
 void serial_click_cur();
 void serial_right_click_cur();
-void serial_move_human(POINT pos, int mode=1);
-
+void serial_move(POINT pos, int mode=1);
+//void serial_move_human(POINT pos, int mode = 1);
 
 void input_alt_xxx(const char* data);
 void input_alt_a();
@@ -472,6 +480,7 @@ void input_alt_e();
 void input_key_xxx(const char* data);
 void input_tab();
 void input_f1();
+void hide_player();
 void stop_laba();
 void play_mp3();
 
