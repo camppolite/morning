@@ -260,6 +260,7 @@ public:
 	bool is_fighting();
 	bool is_verifying();
 	void handle_datu_fight();
+	POINT compute_dianxiaoer_pos_lazy();
 	POINT compute_pos_pixel(POINT dst, unsigned int scene_id, bool fix = false);
 	int convert_to_map_pos_x(float x);
 	int convert_to_map_pos_y(float y);

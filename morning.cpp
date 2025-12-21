@@ -43,16 +43,17 @@ auto current_path = fs::current_path();
 
 WindowInfo::WindowInfo(HANDLE processID) {
 	pid = processID;
-	dianxiaoer_pos_list.push_back(POINT{ 450, 850 });
-	dianxiaoer_pos_list.push_back(POINT{ 710, 710 });
-	dianxiaoer_pos_list.push_back(POINT{ 570, 450 });
-	dianxiaoer_pos_list.push_back(POINT{ 890, 690 });
-	dianxiaoer_pos_list.push_back(POINT{ 410, 850 });
-	dianxiaoer_pos_list.push_back(POINT{ 230, 750 });
-	dianxiaoer_pos_list.push_back(POINT{ 230, 630 });
-	dianxiaoer_pos_list.push_back(POINT{ 470, 650 });
-	dianxiaoer_pos_list.push_back(POINT{ 750, 610 });
-	dianxiaoer_pos_list.push_back(POINT{ 650, 790 });
+
+	dianxiaoer_pos_list.push_back(POINT{ 650, 790 }); // (32,10)
+	dianxiaoer_pos_list.push_back(POINT{ 750, 610 }); // (37,19)
+	dianxiaoer_pos_list.push_back(POINT{ 890, 690 }); // (44,15)
+	dianxiaoer_pos_list.push_back(POINT{ 410, 850 }); // (20,7)
+	dianxiaoer_pos_list.push_back(POINT{ 230, 750 }); // (11,12)
+	dianxiaoer_pos_list.push_back(POINT{ 230, 630 }); // (11,18)
+	dianxiaoer_pos_list.push_back(POINT{ 470, 650 }); // (23,17)
+	dianxiaoer_pos_list.push_back(POINT{ 450, 850 }); // (22,7)
+	dianxiaoer_pos_list.push_back(POINT{ 710, 710 }); // (35,14)
+	dianxiaoer_pos_list.push_back(POINT{ 570, 450 }); // (28,27)
 
 	changan_yizhanlaoban_pos_list.push_back(POINT{ 5570, 4710 });
 	changan_yizhanlaoban_pos_list.push_back(POINT{ 5570, 4750 });
@@ -188,14 +189,17 @@ void WindowInfo::datu() {
 		step.next();
 	}
 	else if (step.current == &talk_get_baoturenwu) {
-		log_info("talk_get_baoturenwu");
-		if (talk_to_dianxiaoer()) {
-			step.next();
+		if (is_near_dianxiaoer()) {
+			log_info("talk_get_baoturenwu");
+			if (talk_to_dianxiaoer()) {
+				step.next();
+			}
+			else {
+				move_to_changanjidian_center();
+				step.set_current(&scan_dianxiaoer_pos);
+			}
 		}
-		else {
-			move_to_changanjidian_center();
-			step.set_current(&scan_dianxiaoer_pos);
-		}
+		else{ step.set_current(&to_dianxiaoer); }
 	}
 	else if (step.current == &scan_baotu_task) {
 		log_info("scan_baotu_task");
@@ -890,6 +894,7 @@ void WindowInfo::scan_npc_pos_addr(int npc) {
 						if (heap_child_addr5 == 0 && heap_child_addr6 == 0) {
 							auto x = *reinterpret_cast<float*>(buffer1 + 0x30);
 							auto y = *reinterpret_cast<float*>(buffer1 + 0x34);
+							//log_info("npc坐标:%f,%f", x, y);
 							// 长安酒店内有自己坐标，酒店老板坐标，店小二坐标 酒店老板坐标(910, 570)
 							update_player_float_pos();
 							if (x != player_x && y != player_y) {
@@ -958,6 +963,10 @@ void WindowInfo::update_npc_pos(int npc) {
 					if (is_given_pos(x, y, dianxiaoer_pos_list)) {
 						dianxiaoer_pos_x = x;
 						dianxiaoer_pos_y = y;
+						log_info("店小二坐标地址:%f,%f", x,y);
+						auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
+						auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
+						log_info("店小二坐标:%d, %d", dxe_x, dxe_y);
 					}
 				}
 				else if (npc == NPC_CHANGAN_YIZHANLAOBAN) {
@@ -1028,6 +1037,14 @@ void WindowInfo::close_map() {
 }
 void WindowInfo::close_beibao_smart(bool keep) {
 	if (!keep && MatchingRectExist(ROI_beibao(), img_btn_beibao)) input_alt_e();
+}
+POINT WindowInfo::compute_dianxiaoer_pos_lazy() {
+	const POINT* vector_arrary = &dianxiaoer_pos_list[0];
+	POINT dxe={ dianxiaoer_pos_x, dianxiaoer_pos_y };
+
+	for (int i = 0;i < dianxiaoer_pos_list.size();i++) {
+		if (dianxiaoer_pos_list[i] == dxe) return {};
+	}
 }
 POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id,bool fix) {
 	// 根据坐标计算相对自己在屏幕上的像素
@@ -1718,31 +1735,29 @@ bool WindowInfo::ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std:
 }
 
 bool WindowInfo::talk_to_dianxiaoer() {
-	if (is_near_dianxiaoer()) {
-		// 对话店小二
-		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
-		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
-		log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
-		//log_info("店小二坐标:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
-		log_info("店小二坐标:%d,%d", dxe_x, dxe_y);
-		click_position({ dxe_x, dxe_y });  // 点击与店小二对话
-		auto pos = WaitMatchingRectLoc(ROI_npc_talk(), img_btn_tingtingwufang);
-		if (pos.x > 0) {
-			mouse_click_human(pos, 0, 0, 1);			// 弹出对话框，接任务
-			return true;
-		}
-		else {
-			// 没有对话框，检查是否有验证窗口
-			log_info("没有对话框，检查是否有验证窗口");
-			if (is_verifying()) {
-				if (!mp3_playing) {
-					play_mp3();
-					mp3_playing = true;
-				}
-				popup_verify = true;
-				for (int i = 0;i < 5;i++) { log_info("***宝图任务弹窗验证,请手动点击***"); }
-				step.set_current(&scan_dianxiaoer_pos);
+	// 对话店小二
+	auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
+	auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
+	log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
+	//log_info("店小二坐标:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
+	log_info("店小二坐标:%d,%d", dxe_x, dxe_y);
+	click_position({ dxe_x, dxe_y });  // 点击与店小二对话
+	auto pos = WaitMatchingRectLoc(ROI_npc_talk(), img_btn_tingtingwufang);
+	if (pos.x > 0) {
+		mouse_click_human(pos, 0, 0, 1);			// 弹出对话框，接任务
+		return true;
+	}
+	else {
+		// 没有对话框，检查是否有验证窗口
+		log_info("没有对话框，检查是否有验证窗口");
+		if (is_verifying()) {
+			if (!mp3_playing) {
+				play_mp3();
+				mp3_playing = true;
 			}
+			popup_verify = true;
+			for (int i = 0;i < 5;i++) { log_info("***宝图任务弹窗验证,请手动点击***"); }
+			step.set_current(&scan_dianxiaoer_pos);
 		}
 	}
 	return false;
@@ -2536,6 +2551,7 @@ void WindowInfo::test() {
 	//move_to_position({ 460,140 }, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
 	while (1) {
 		//Sleep(2000);
+		update_npc_pos(NPC_DIANXIAOER);
 		update_scene_id();
 		update_player_float_pos();
 		log_info("测试日志22222");
