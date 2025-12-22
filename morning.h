@@ -61,8 +61,8 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define MATCHEXIST 3
 
 #define THREAD_IDLE 0  // 线程空闲
-#define NPC_DIANXIAOER 1  // 店小二
-#define NPC_CHANGAN_YIZHANLAOBAN 2  // 长安驿站老板
+#define 店小二 536871319 // 店小二
+#define 长安驿站老板 536870914  // 长安驿站老板
 #define NPC_ZEIWANG 3  // 贼王
 #define TASK_BAOTU 4  // 宝图任务
 #define TASK_ZEIWANG 5  // 贼王任务
@@ -240,7 +240,8 @@ public:
 	POINT get_cursor_pos(POINT pos);
 	bool ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int x_fix = 0, int y_fix = 0, int xs = 0, int ys = 0, int mode = 1, int timeout = 500);
 	void scan_npc_pos_in_thread();
-	void scan_npc_pos_addr(int npc);
+	//void scan_npc_pos_addr(int npc);
+	void scan_npc_pos_addr_by_id(int npc);
 	void update_player_float_pos();
 	void update_scene();
 	void update_scene_id();
@@ -263,6 +264,7 @@ public:
 	bool is_near_dianxiaoer();
 	bool is_near_changan_yizhanlaoban();
 	bool is_near_loc(POINT dst, int near_x, int near_y);
+	bool is_npc_visible(uintptr_t npc_loc_addr);
 	bool wait_fighting();
 	bool is_fighting();
 	bool is_verifying();
@@ -367,10 +369,13 @@ public:
 	uintptr_t map_info_addr = 0;
 	SIZE_T map_offset = 0x14;
 
+	uintptr_t npc_first_static_addr = 0;
+	uintptr_t npc_loc_first_static_addr = 0;
+	bool npc_found = false;
 	//这个结构包含所有NPC和玩家（包括自己）的坐标
-	uintptr_t location_first_static_addr = 0;
-	uintptr_t location_second_static_addr = 0;
-	uintptr_t location_dynamic_addr_third_child_first_static_addr = 0;
+	//uintptr_t location_first_static_addr = 0;
+	//uintptr_t location_second_static_addr = 0;
+	//uintptr_t location_dynamic_addr_third_child_first_static_addr = 0;
 	uintptr_t dianxiaoer_pos_addr = 0;
 	uintptr_t changan_yizhanlaoban_pos_addr = 0;
 	std::vector<POINT> dianxiaoer_pos_list;  // 店小二固定移动的几个坐标
