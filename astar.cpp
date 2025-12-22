@@ -58,7 +58,7 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		case 长安酒店:
 			return { 66, 49 };
 		case 西梁女国:
-			return { 162, 122 };
+			return { 163, 123 };
 		case 长寿村:
 			return { 158, 208 };
 		case 长寿村当铺:
@@ -66,7 +66,7 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		case 长寿郊外:
 			return { 190, 167 };
 		case 傲来国:
-			return { 222, 149 };
+			return { 223, 150 };
 		case 傲来客栈:
 			return { 57, 38 };
 		case 傲来客栈二楼:
@@ -80,7 +80,7 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		case 狮驼岭:
 			return { 131, 98 };
 		case 普陀山:
-			return { 94, 70 };
+			return { 95, 71 };
 		case 女儿村:
 			return { 126, 142 };
 		case 五庄观:

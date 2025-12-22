@@ -241,7 +241,7 @@ public:
 	bool ClickMatchImage(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int x_fix = 0, int y_fix = 0, int xs = 0, int ys = 0, int mode = 1, int timeout = 500);
 	void scan_npc_pos_in_thread();
 	//void scan_npc_pos_addr(int npc);
-	void scan_npc_pos_addr_by_id(int npc);
+	void scan_npc_pos_addr_by_id(unsigned int npc);
 	void update_player_float_pos();
 	void update_scene();
 	void update_scene_id();

@@ -85,7 +85,6 @@ void WindowInfo::init() {
 	zeiwang_pos = { 0, 0 };
 	f_round = 0;
 	npc_found = false;
-	step.reset();
 }
 void WindowInfo::hook_init() {
 	hNtdll = GetModuleHandleA("ntdll.dll");
@@ -327,7 +326,10 @@ void WindowInfo::datu() {
 				step.next();
 			}
 		}
-		else { init(); }
+		else { 
+			init(); 	
+			step.reset();
+		}
 	}
 	else if (step.current == &goto_zeiwang_scene) {
 		//if (tScan_npc != THREAD_IDLE) return;
@@ -418,6 +420,7 @@ void WindowInfo::datu() {
 		if (talk_to_npc_fight(zeiwang_pos, img_btn_zeiwang_benshaoxiashilaititianxingdaode)) {
 			//step.set_current(&baotu_end);
 			init();
+			step.reset();
 		}
 		else {
 			step.set_current(&try_zeiwang_pos);
@@ -425,6 +428,7 @@ void WindowInfo::datu() {
 	}
 	else if (step.current == &baotu_end) {
 		init();
+		step.reset();
 	}
 }
 std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, const BYTE* pattern, size_t pattern_size, const char* mask)
@@ -1019,7 +1023,7 @@ void WindowInfo::scan_npc_pos_in_thread() {
 //	}
 //}
 
-void WindowInfo::scan_npc_pos_addr_by_id(int npc) {
+void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 	// 根据NPC id得到坐标,适用玩家+自己坐标
 	// 扫描包含NPC id的结构体，具体为：开头静态地址+一个动态地址+NPC_ID(4byte)
 	//坐标地址: [[[[addr + 0x28]+ 0xA0] + 0x10] ] + 0x4C
@@ -1036,9 +1040,9 @@ void WindowInfo::scan_npc_pos_addr_by_id(int npc) {
 		struct_AoB += hexStr;
 	}
 	struct_AoB += "? ? ? ? ? ? ? ?";
-	unsigned int var = 店小二;
+	//unsigned int var = 店小二;
 	//unsigned int var = 16710472;
-	auto ptr2 = reinterpret_cast<unsigned char*>(&var);
+	auto ptr2 = reinterpret_cast<unsigned char*>(&npc);
 	for (int i = 0; i < 4; i++) {
 		auto c = *reinterpret_cast<const unsigned char*>(ptr2 + i);
 		char hexStr[3];
@@ -1212,13 +1216,13 @@ void WindowInfo::move_cursor_center_top() {
 }
 
 void WindowInfo::move_cursor_center_bottom() {
-	serial_move({ rect.left + 515, rect.bottom - 100 }, 0);
+	serial_move({ rect.left + 515, rect.bottom - 150 }, 0);
 }
 void WindowInfo::move_cursor_right_top() {
 	serial_move({ rect.left + 820, rect.top + 95 }, 0);
 }
 void WindowInfo::move_cursor_left_bottom() {
-	serial_move({ rect.left + 250, rect.bottom - 100 }, 0);
+	serial_move({ rect.left + 250, rect.bottom - 150 }, 0);
 }
 void WindowInfo::open_beibao() {
 	move_cursor_center_top();
@@ -1263,10 +1267,10 @@ POINT WindowInfo::compute_dianxiaoer_pos_lazy() {
 			switch (i)
 			{
 			case 0:
-			case 2:
-				return {18,13};
 			case 1:
-				return { 13,15 };
+				return {14,14};
+			case 2:
+				return { 21,14 };
 			case 3:
 				return { 18,11 };
 			case 4:
@@ -1279,7 +1283,7 @@ POINT WindowInfo::compute_dianxiaoer_pos_lazy() {
 			case 8:
 				return { 34,16 };
 			case 9:
-				return { 30,23 };
+				return { 30,24 };
 			}
 			break;
 		}
@@ -1748,10 +1752,10 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 		{
 			if (m_scene_id != 傲来国) {
 				use_aolaiguo777(ROI_aolaiguo777_huaguoshan(), false);
-				move_to_other_scene({ 216, 144 }, 花果山, -30, 30);
+				move_to_other_scene({ 216, 145 }, 花果山, -30, 30);
 			}
 			else {
-				move_to_other_scene({ 216, 144 }, 花果山, -30, 30);
+				move_to_other_scene({ 216, 145 }, 花果山, -30, 30);
 			}
 			break;
 		}
@@ -2341,7 +2345,7 @@ void WindowInfo::parse_zeiwang_info() {
 	int tail_symbol_len = 0xC0;
 	if (zeiwang_symbol > 0) {
 		std::wstring content;
-		SIZE_T regionSize = 0x200; // 宝图任务的内容长度，这个长度应该够用了
+		SIZE_T regionSize = 0x240; // 宝图任务的内容长度，这个长度应该够用了
 		BYTE* buffer = new BYTE[regionSize];
 		SIZE_T bytesRead;
 		pNtReadVirtualMemory(hProcess, (PVOID)(zeiwang_symbol - regionSize + symbol_len + tail_symbol_len), buffer, regionSize, &bytesRead);
@@ -2479,12 +2483,13 @@ bool WindowInfo::talk_to_npc_fight(POINT dst, const char* templ) {
 		log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
 		log_info("点击的坐标:%d,%d", dst.x, dst.y);
 		int ys = -5;
-		if (i ==1)ys = -40;
+		if (i > 0)ys = -40;
 		click_position_at_edge(dst,0,0,0,ys);
 		if (ClickMatchImage(ROI_npc_talk(), templ, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 1, 2000) && wait_fighting()) {
 			log_info("发起战斗成功");
 			return true;
 		}
+		close_npc_talk_fast();
 	}
 	//检查是否重叠NPC
 	//for (int i = 0;i < 2;i++) {
@@ -2841,10 +2846,11 @@ void WindowInfo::test() {
 	//parse_zeiwang_info();
 	//SetForegroundWindow(hwnd);
 	//update_scene_id();
-	scan_npc_pos_addr_by_id(店小二);
+	//scan_npc_pos_addr_by_id(店小二);
 	//scan_npc_pos_addr(店小二);
+	scan_npc_pos_addr_by_id(长安驿站老板);
 	update_player_float_pos();
-	update_npc_pos(店小二);
+	//update_npc_pos(店小二);
 	//move_to_position({ 460,140 }, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
 	while (1) {
 		//Sleep(2000);
@@ -2951,7 +2957,6 @@ void GoodMorning::work() {
 			winfo->datu();
 			if (winfo->popup_verify) {
 				winfo->datu();
-				return;
 			}
 			if (winfo->time_pawn.timeout(300000)) {
 				play_mp3();
@@ -3050,6 +3055,7 @@ Step::Step() {}
 Step::Step(std::vector<std::string*> step_list) {
 	steps = step_list;
 	current = steps[0];
+	index = 0;
 }
 
 void Step::reset() {
@@ -4135,7 +4141,7 @@ int main(int argc, const char** argv)
 	
 	gm.init();
 	gm.hook_data();
-	gm.test();
+	//gm.test();
 	gm.work();
 	return 0;
 }
