@@ -96,7 +96,7 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		case 宝象国:
 			return { 158, 118 };
 		case 建邺城:
-			return { 286, 143 };
+			return { 287, 143 };
 		case 建邺杂货店:
 			return { 35, 39 };
 		case 东海湾:

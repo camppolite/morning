@@ -1,6 +1,6 @@
 ﻿#include "morning.h"
 #include "log.h"
-#include "astar.h"
+
 
 #include <fstream> 
 #include <filesystem>
@@ -39,8 +39,6 @@ typedef unsigned long long QWORD;
 
 GoodMorning gm;
 auto current_path = fs::current_path();
-
-vector<unsigned int>monster_scene_list = { 大唐国境,狮驼岭,普陀山,大唐境外,江南野外,东海湾,花果山,长寿郊外 };//野外遇怪场景
 
 WindowInfo::WindowInfo(HANDLE processID) {
 	pid = processID;
@@ -81,8 +79,9 @@ void WindowInfo::init() {
 	baotu_target_scene_id = 0;
 	baotu_target_pos = { 0, 0 };
 	zeiwang_scene_id = 0;
-	zeiwang_pos_list.clear();
-	zeiwang_pos = { 0, 0 };
+	zeiwang_id = 0;
+	zeiwang_name.clear();
+	zeiwang_pos = { 0,0 };
 	f_round = 0;
 	npc_found = false;
 	step.reset();
@@ -346,6 +345,7 @@ void WindowInfo::datu() {
 			if (goto_scene(zeiwang_pos, zeiwang_scene_id)) {
 				if (zeiwang_pos.x > 0) {
 					//对于有坐标的贼王，直接寻路到坐标点就行
+					tScan_npc = 贼王;
 					step.set_current(&attack_zeiwang);
 				}
 				else {
@@ -1071,7 +1071,7 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 				memset(buffer, 0, regionSize);
 				pNtReadVirtualMemory(hProcess, (PVOID)heap_child1_addr, buffer, regionSize, &bytesRead);
 				if (bytesRead > 0) {
-					auto p_npc_loc_addr = *reinterpret_cast<QWORD*>(buffer + 0x10);
+					auto p_npc_loc_addr = *reinterpret_cast<QWORD*>(buffer + 0x20);
 					bytesRead = 0;
 					memset(buffer, 0, regionSize);
 					pNtReadVirtualMemory(hProcess, (PVOID)p_npc_loc_addr, buffer, regionSize, &bytesRead);
@@ -1100,7 +1100,19 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 	}
 	log_info("查找坐标结束:%s", player_id);
 }
-
+void WindowInfo::scan_zeiwang_id() {
+	if (!zeiwang_name.empty()) {
+		std::string struct_AoB;
+		auto ptr1 = reinterpret_cast<char*>(&npc_first_static_addr);
+		for (int i = 0; i < 8; i++) {
+			auto c = *reinterpret_cast<const unsigned char*>(ptr1 + i);
+			char hexStr[3];
+			sprintf(hexStr, "%2X ", c);
+			struct_AoB += hexStr;
+		}
+		struct_AoB += "? ? ? ? ? ? ? ?";
+	}
+}
 //void WindowInfo::update_npc_pos(int npc) {
 //	// 读取更新坐标
 //	uintptr_t pos_addr = -1;
@@ -2202,6 +2214,14 @@ bool WindowInfo::is_hangup(cv::Mat image) {
 	else if (MatchingExist(image, ROI_NULL(), img_btn_cancel_zhanli))hangup = true;
 	return hangup;
 }
+bool WindowInfo::is_in_mini_scene() {
+	//小场景没有小地图，只能通过点击屏幕移动
+	const auto* vector_arrary = &mini_scene_list[0];
+	for (int i = 0;i < mini_scene_list.size();i++) {
+		if (vector_arrary[i] == m_scene_id) return true;
+	}
+	return false;
+}
 void WindowInfo::handle_datu_fight() {
 	// 自动战斗挂机处理
 	auto image = hwnd2mat(hwnd);
@@ -2410,7 +2430,15 @@ void WindowInfo::parse_zeiwang_info() {
 				}
 			}
 			if (zeiwang_scene_id > 0) {
-				log_info("%d", zeiwang_scene_id);
+				bytesRead = 0;
+				memset(buffer, 0, regionSize);
+				pNtReadVirtualMemory(hProcess, (PVOID)zeiwang_symbol_list[s], buffer, 0x18, &bytesRead);
+				if (bytesRead > 0) {
+					auto name_content = bytes_to_wstring(buffer, bytesRead);
+					auto tags_str = findContentBetweenTags(content, L"\"estr\":\"", L"\",\"");
+					if (!tags_str.empty()) zeiwang_name = tags_str[0];
+				}
+				log_info("%d %ls", zeiwang_scene_id, zeiwang_name.c_str());
 				break;
 			}
 		}
@@ -2439,14 +2467,20 @@ void WindowInfo::move_to_position(POINT dst, long active_x, long active_y) {
 		}
 		log_info("寻路坐标:%d,%d", astar_pos.x, astar_pos.y);
 	}
-
+	if (is_in_mini_scene()) {
+		log_info("屏幕视线内移动");
+		click_position_at_edge(astar_pos);
+	}
+	else {
+		move_via_map(astar_pos);
+	}
 	//if (abs(player_pos.x - astar_pos.x) <= mScreen_x && abs(player_pos.y - astar_pos.y) <= mScreen_y) {
 	//	log_info("屏幕视线内移动");
 	//	click_position(astar_pos);
 	//}
 	//else {
 	//log_info("地图移动");
-	move_via_map(astar_pos);
+	//move_via_map(astar_pos);
 	handle_health();
 	//}
 	moving = true;
@@ -2882,13 +2916,14 @@ void WindowInfo::test() {
 	//is_verifying();
 	//scan_npc_pos_addr(NPC_ZEIWANG);
 	////parse_baotu_task_info();
-	parse_zeiwang_info();
+	//parse_zeiwang_info();
 	//SetForegroundWindow(hwnd);
 	//update_scene_id();
 	//scan_npc_pos_addr_by_id(店小二);
 	//scan_npc_pos_addr(店小二);
 	//scan_npc_pos_addr_by_id(长安驿站老板);
-	scan_npc_pos_addr_by_id(贼王);
+	//scan_npc_pos_addr_by_id(贼王);
+	scan_npc_pos_addr_by_id(1073742636);
 	update_player_float_pos();
 	//update_npc_pos(店小二);
 	//move_to_position({ 460,140 }, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
@@ -4183,7 +4218,7 @@ int main(int argc, const char** argv)
 	
 	gm.init();
 	gm.hook_data();
-	//gm.test();
+	gm.test();
 	gm.work();
 	return 0;
 }

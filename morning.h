@@ -12,6 +12,8 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include <opencv2/highgui/highgui.hpp>
 
+#include "astar.h"
+
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
@@ -63,7 +65,7 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define THREAD_IDLE 0  // 线程空闲
 #define 店小二 536871319 // 店小二
 #define 长安驿站老板 536870914  // 长安驿站老板
-#define 贼王 538155549  // 贼王
+#define 贼王 2  // 贼王
 #define TASK_BAOTU 4  // 宝图任务
 #define TASK_ZEIWANG 5  // 贼王任务
 
@@ -191,6 +193,10 @@ std::vector<POINT> aolaiguo_yaodian_npc_list = {  };//傲来药店 todo
 std::vector<POINT> changshoucun_dangpu_npc_list = { {410,250} };//长寿村当铺 todo
 //std::vector<POINT> changshoujiaowai_npc_list = {  };//长寿郊外 todo
 
+vector<unsigned int>monster_scene_list = { 大唐国境,狮驼岭,普陀山,大唐境外,江南野外,东海湾,花果山,长寿郊外 };//野外遇怪场景
+
+//小场景没有小地图，只能通过点击屏幕移动
+std::vector<unsigned int> mini_scene_list = { 长安杂货店,长安饰品店,建邺杂货店,傲来客栈,傲来客栈二楼,傲来国药店,长寿村当铺,长寿村酒店 }; //todo
 
 class Step {
 public:
@@ -242,6 +248,7 @@ public:
 	void scan_npc_pos_in_thread();
 	//void scan_npc_pos_addr(int npc);
 	void scan_npc_pos_addr_by_id(unsigned int npc);
+	void scan_zeiwang_id();
 	void update_player_float_pos();
 	void update_scene();
 	void update_scene_id();
@@ -269,6 +276,7 @@ public:
 	bool is_fighting();
 	bool is_verifying();
 	bool is_hangup(cv::Mat image);
+	bool is_in_mini_scene();
 	void handle_datu_fight();
 	POINT compute_dianxiaoer_pos_lazy();
 	POINT compute_pos_pixel(POINT dst, unsigned int scene_id, bool fix = false);
@@ -390,6 +398,8 @@ public:
 	POINT baotu_target_pos = { 0, 0 };
 	unsigned int baotu_task_count = 0;  // 今日领取第几次任务
 	unsigned int zeiwang_scene_id = 0;
+	unsigned int zeiwang_id = 0;
+	std::wstring zeiwang_name;
 	std::vector<POINT> zeiwang_pos_list;
 	POINT zeiwang_pos = {0,0};
 
