@@ -65,6 +65,8 @@ POINT get_map_max_loc(unsigned int scene_id) {
 			return { 26, 25 };
 		case 长寿郊外:
 			return { 190, 167 };
+		case 长寿村酒店:
+			return { 190, 167 };//todo
 		case 傲来国:
 			return { 223, 150 };
 		case 傲来客栈:
@@ -118,6 +120,7 @@ unsigned int get_scene_id_by_name(std::wstring name) {
 	else if (name == L"长寿村") { scene_id = 长寿村; }
 	else if (name == L"长寿村当铺") { scene_id = 长寿村当铺; }
 	else if (name == L"长寿郊外") { scene_id = 长寿郊外; }
+	else if (name == L"长寿村酒店") { scene_id = 长寿村酒店; }
 	else if (name == L"傲来国") { scene_id = 傲来国; }
 	else if (name == L"傲来客栈") { scene_id = 傲来客栈; }
 	else if (name == L"傲来客栈二楼") { scene_id = 傲来客栈二楼; }

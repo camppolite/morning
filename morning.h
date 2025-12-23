@@ -63,7 +63,7 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define THREAD_IDLE 0  // 线程空闲
 #define 店小二 536871319 // 店小二
 #define 长安驿站老板 536870914  // 长安驿站老板
-#define NPC_ZEIWANG 3  // 贼王
+#define 贼王 538155549  // 贼王
 #define TASK_BAOTU 4  // 宝图任务
 #define TASK_ZEIWANG 5  // 贼王任务
 
@@ -203,7 +203,7 @@ public:
 
 	std::vector<std::string*> steps;
 	std::string* current;
-	int index;
+	int index=0;
 	bool end = false;
 };
 class TimeProcessor {
@@ -224,12 +224,12 @@ public:
 	void test();
 
 	std::vector<uintptr_t> ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, const BYTE* pattern, size_t pattern_size, const char* mask);
-	std::vector<uintptr_t> PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask);
+	std::vector<uintptr_t> PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern);
 
 	uintptr_t ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, const BYTE* pattern, size_t pattern_size, const char* mask);
-	uintptr_t PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern, const char* mask);
-	uintptr_t getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
-	uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, const char* mask, size_t offset);
+	uintptr_t PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern);
+	uintptr_t getRelativeStaticAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, size_t offset);
+	uintptr_t getRelativeCallAddressByAoB(HANDLE hProcess, HMODULE ModuleBase, std::string AoB, size_t offset);
 	bool MatchingRectExist(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
 	bool MatchingGrayRectExist(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = cv::TM_CCORR_NORMED);
 	POINT MatchingRectLoc(cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
@@ -268,6 +268,7 @@ public:
 	bool wait_fighting();
 	bool is_fighting();
 	bool is_verifying();
+	bool is_hangup(cv::Mat image);
 	void handle_datu_fight();
 	POINT compute_dianxiaoer_pos_lazy();
 	POINT compute_pos_pixel(POINT dst, unsigned int scene_id, bool fix = false);
@@ -453,8 +454,8 @@ DWORD GetModuleSize(HANDLE hProcess, HMODULE hModule);
 cv::Mat hwnd2mat(HWND hwnd);
 void save_screenshot(cv::Mat& image);
 bool MatchingExist(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
-POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, cv::Mat templ, std::string mask_path, double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
-POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std::string mask_path, double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
+POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, cv::Mat templ, std::string mask_path="", double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
+POINT MatchingLoc(cv::Mat image, cv::Rect roi_rect, std::string templ_path, std::string mask_path="", double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
 POINT MatchingRectLoc(cv::Rect roi_rect, std::string image_path, std::string templ_path, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
 
 uint64_t getCurrentTimeMilliseconds();
