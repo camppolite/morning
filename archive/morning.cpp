@@ -1113,63 +1113,6 @@ void WindowInfo::scan_zeiwang_id() {
 		struct_AoB += "? ? ? ? ? ? ? ?";
 	}
 }
-void WindowInfo::scan_current_scene_npc_id() {
-	std::string struct_AoB;
-	auto ptr1 = reinterpret_cast<char*>(&npc_first_static_addr);
-	for (int i = 0; i < 8; i++) {
-		auto c = *reinterpret_cast<const unsigned char*>(ptr1 + i);
-		char hexStr[3];
-		sprintf(hexStr, "%2X ", c);
-		struct_AoB += hexStr;
-	}
-	struct_AoB.substr(0, struct_AoB.size() - 1);
-	auto npc_id_addrs = PerformAoBScanEx(
-		hProcess,
-		0,
-		struct_AoB);
-	for (const auto &npc_id_addr : npc_id_addrs) {
-		SIZE_T regionSize = 0xA8;
-		BYTE* buffer = new BYTE[regionSize];
-		SIZE_T bytesRead;
-		pNtReadVirtualMemory(hProcess, (PVOID)npc_id_addr, buffer, regionSize, &bytesRead);  // 静态地址
-		if (bytesRead > 0) {
-			auto npc_id = *reinterpret_cast<QWORD*>(buffer + 0x10);
-			auto heap_add = *reinterpret_cast<QWORD*>(buffer + 0x28);
-			bytesRead = 0;
-			memset(buffer, 0, regionSize);
-			pNtReadVirtualMemory(hProcess, (PVOID)heap_add, buffer, regionSize, &bytesRead);
-			if (bytesRead > 0) {
-				auto heap_child1_addr = *reinterpret_cast<QWORD*>(buffer + 0xA0);
-				bytesRead = 0;
-				memset(buffer, 0, regionSize);
-				pNtReadVirtualMemory(hProcess, (PVOID)heap_child1_addr, buffer, regionSize, &bytesRead);
-				if (bytesRead > 0) {
-					auto p_npc_loc_addr = *reinterpret_cast<QWORD*>(buffer + 0x20);
-					bytesRead = 0;
-					memset(buffer, 0, regionSize);
-					pNtReadVirtualMemory(hProcess, (PVOID)p_npc_loc_addr, buffer, regionSize, &bytesRead);
-					if (bytesRead > 0) {
-						auto npc_loc_addr = *reinterpret_cast<QWORD*>(buffer);
-						if (is_npc_visible(npc_loc_addr)) {
-							bytesRead = 0;
-							memset(buffer, 0, regionSize);
-							pNtReadVirtualMemory(hProcess, (PVOID)npc_loc_addr, buffer, regionSize, &bytesRead);
-							if (bytesRead > 0) {
-								auto float_x = *reinterpret_cast<float*>(buffer + 0x4C);
-								auto float_y = *reinterpret_cast<float*>(buffer + 0x50);
-								auto x = convert_to_map_pos_x(float_x);
-								auto y = convert_to_map_pos_y(float_y);
-
-								log_info("找到id:%d, (%d,%d)", npc_id, x, y);
-							}
-						}
-					}
-				}
-			}
-		}
-		delete[] buffer;
-	}
-}
 //void WindowInfo::update_npc_pos(int npc) {
 //	// 读取更新坐标
 //	uintptr_t pos_addr = -1;
@@ -2285,22 +2228,22 @@ void WindowInfo::handle_datu_fight() {
 	auto hangup = is_hangup(image);
 	if (hangup) {
 		//检查重置自动战斗挂机剩余回合
-		//if (gm.db[player_id]["round"] >= randint(19, 24) && f_round == 0) {
-		//	log_info("重置自动战斗挂机剩余回合");
-		//	//SetForegroundWindow(hwnd);
-		//	move_cursor_center_top();
-		//	auto btn_pos = WaitMatchingRectLoc(ROI_NULL(), img_btn_reset_auto_round, 500, "", 0.95);
-		//	if (btn_pos.x > 0) {
-		//		for (int i = 0; i < 3; i++) {
-		//			if (mouse_click_human(btn_pos, 0, 30))break;
-		//		}
-		//		if (WaitMatchingRectExist(ROI_NULL(), img_fight_auto_round30, 300, "", 0.95)) {
-		//			gm.db[player_id]["round"] = 0;
-		//			gm.update_db();
-		//			log_info("重置完毕.");
-		//		}
-		//	}
-		//}
+		if (gm.db[player_id]["round"] >= randint(19, 24) && f_round == 0) {
+			log_info("重置自动战斗挂机剩余回合");
+			//SetForegroundWindow(hwnd);
+			move_cursor_center_top();
+			auto btn_pos = WaitMatchingRectLoc(ROI_NULL(), img_btn_reset_auto_round, 500, "", 0.95);
+			if (btn_pos.x > 0) {
+				for (int i = 0; i < 3; i++) {
+					if (mouse_click_human(btn_pos, 0, 30))break;
+				}
+				if (WaitMatchingRectExist(ROI_NULL(), img_fight_auto_round30, 300, "", 0.95)) {
+					gm.db[player_id]["round"] = 0;
+					gm.update_db();
+					log_info("重置完毕.");
+				}
+			}
+		}
 	}
 	else {
 		// 四小人验证处理
@@ -2975,23 +2918,21 @@ void WindowInfo::test() {
 	////parse_baotu_task_info();
 	//parse_zeiwang_info();
 	//SetForegroundWindow(hwnd);
-	//update_scene_id();
+	update_scene_id();
 	//scan_npc_pos_addr_by_id(店小二);
 	//scan_npc_pos_addr(店小二);
 	//scan_npc_pos_addr_by_id(长安驿站老板);
 	//scan_npc_pos_addr_by_id(贼王);
-	//scan_npc_pos_addr_by_id(26946341);
+	//scan_npc_pos_addr_by_id(1073742636);
 	update_player_float_pos();
-	scan_current_scene_npc_id();
 	//update_npc_pos(店小二);
 	//move_to_position({ 460,140 }, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
-	hwnd2mat(hwnd);
 	while (1) {
 		//Sleep(2000);
 		update_npc_pos(店小二);
 		update_scene_id();
 		update_player_float_pos();
-		//log_info("测试日志22222");
+		log_info("测试日志22222");
 	}
 }
 
@@ -3021,7 +2962,7 @@ void GoodMorning::init() {
 		_mkdir("screenshot");
 	}
 	for (auto& winfo : this->winsInfo) {
-		//winfo->UpdateWindowRect();
+		winfo->UpdateWindowRect();
 		winfo->SplitTitleAsPlayerId();
 	}
 	if (!fs::exists(dbFile)) {
@@ -3371,7 +3312,7 @@ cv::Mat hwnd2mat(HWND hwnd) {
 	// 2. Use cvtColor with the COLOR_BGRA2BGR conversion code
 	cv::cvtColor(src, image_bgr, cv::COLOR_BGRA2BGR);
 
-	save_screenshot(image_bgr);
+	//save_screenshot(image_bgr);
 
 	return image_bgr;
 }

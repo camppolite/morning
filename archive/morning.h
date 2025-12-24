@@ -63,8 +63,8 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define MATCHEXIST 3
 
 #define THREAD_IDLE 0  // 线程空闲
-#define 店小二 1073742231 // 店小二
-#define 长安驿站老板 1073741826  // 长安驿站老板
+#define 店小二 536871319 // 店小二
+#define 长安驿站老板 536870914  // 长安驿站老板
 #define 贼王 2  // 贼王
 #define TASK_BAOTU 4  // 宝图任务
 #define TASK_ZEIWANG 5  // 贼王任务
@@ -88,7 +88,7 @@ const char* img_btn_flag_loc = "object\\btn\\flag_loc.png";
 const char* img_btn_shide_woyaoqu = "object\\btn\\shide_woyaoqu.png";
 const char* img_btn_cancel_auto_round = "object\\btn\\cancel_auto_round.png";
 const char* img_btn_cancel_zhanli = "object\\btn\\cancel_zhanli.png";
-//const char* img_btn_reset_auto_round = "object\\btn\\reset_auto_round.png";
+const char* img_btn_reset_auto_round = "object\\btn\\reset_auto_round.png";
 const char* img_btn_woshilaishoushinide = "object\\btn\\woshilaishoushinide.png";
 const char* img_btn_zeiwang_benshaoxiashilaititianxingdaode = "object\\btn\\zeiwang_benshaoxiashilaititianxingdaode.png";
 
@@ -249,7 +249,6 @@ public:
 	//void scan_npc_pos_addr(int npc);
 	void scan_npc_pos_addr_by_id(unsigned int npc);
 	void scan_zeiwang_id();
-	void scan_current_scene_npc_id();
 	void update_player_float_pos();
 	void update_scene();
 	void update_scene_id();
