@@ -81,71 +81,6 @@ const char* KEY_ALT_xxx = "hkey:ALT_%s\n";
 const char* KEY_PRESS = "hkey:%s\n";
 const char* KEY_HIDE = "hide\n";
 
-cv::Mat cv_imread(const char* filename, int flags = cv::IMREAD_COLOR);
-
-const cv::Mat img_btn_beibao = cv_imread("object\\btn\\beibao.png");
-const cv::Mat img_btn_package_prop = cv_imread("object\\btn\\package_prop.png");
-const cv::Mat img_btn_tingtingwufang = cv_imread("object\\btn\\tingtingwufang.png");
-const cv::Mat img_btn_npc_talk_close = cv_imread("object\\btn\\npc_talk_close.png");
-const cv::Mat img_btn_flag_loc = cv_imread("object\\btn\\flag_loc.png");
-const cv::Mat img_btn_shide_woyaoqu = cv_imread("object\\btn\\shide_woyaoqu.png");
-const cv::Mat img_btn_cancel_auto_round = cv_imread("object\\btn\\cancel_auto_round.png");
-const cv::Mat img_btn_cancel_zhanli = cv_imread("object\\btn\\cancel_zhanli.png");
-const cv::Mat img_btn_woshilaishoushinide = cv_imread("object\\btn\\woshilaishoushinide.png");
-const cv::Mat img_btn_zeiwang_benshaoxiashilaititianxingdaode = cv_imread("object\\btn\\zeiwang_benshaoxiashilaititianxingdaode.png");
-
-
-const cv::Mat img_props_red_777 = cv_imread("object\\props\\red_777.png");
-const cv::Mat img_props_white_777 = cv_imread("object\\props\\white_777.png");
-const cv::Mat img_props_green_777 = cv_imread("object\\props\\green_777.png");
-const cv::Mat img_props_yellow_777 = cv_imread("object\\props\\yellow_777.png");
-const cv::Mat img_props_sheyaoxiang = cv_imread("object\\props\\sheyaoxiang.png");
-const cv::Mat img_npc_dianxiaoer = cv_imread("object\\npc\\dianxiaoer.png");
-
-
-const cv::Mat img_fight_health_100 = cv_imread("object\\fight\\health_100.png");
-const cv::Mat img_fight_health_95 = cv_imread("object\\fight\\health_95.png");
-const cv::Mat img_fight_health_90 = cv_imread("object\\fight\\health_90.png");
-const cv::Mat img_fight_health_85 = cv_imread("object\\fight\\health_85.png");
-const cv::Mat img_fight_health_80 = cv_imread("object\\fight\\health_80.png");
-const cv::Mat img_fight_health_75 = cv_imread("object\\fight\\health_75.png");
-const cv::Mat img_fight_health_70 = cv_imread("object\\fight\\health_70.png");
-const cv::Mat img_fight_health_65 = cv_imread("object\\fight\\health_65.png");
-const cv::Mat img_fight_health_60 = cv_imread("object\\fight\\health_60.png");
-const cv::Mat img_fight_health_55 = cv_imread("object\\fight\\health_55.png");
-const cv::Mat img_fight_health_50 = cv_imread("object\\fight\\health_50.png");
-const cv::Mat img_fight_mana_100 = cv_imread("object\\fight\\mana_100.png");
-const cv::Mat img_fight_mana_95 = cv_imread("object\\fight\\mana_95.png");
-const cv::Mat img_fight_mana_90 = cv_imread("object\\fight\\mana_90.png");
-const cv::Mat img_fight_mana_85 = cv_imread("object\\fight\\mana_85.png");
-const cv::Mat img_fight_mana_80 = cv_imread("object\\fight\\mana_80.png");
-const cv::Mat img_fight_mana_75 = cv_imread("object\\fight\\mana_75.png");
-const cv::Mat img_fight_mana_70 = cv_imread("object\\fight\\mana_70.png");
-const cv::Mat img_fight_mana_65 = cv_imread("object\\fight\\mana_65.png");
-const cv::Mat img_fight_mana_60 = cv_imread("object\\fight\\mana_60.png");
-const cv::Mat img_fight_mana_55 = cv_imread("object\\fight\\mana_55.png");
-const cv::Mat img_fight_mana_50 = cv_imread("object\\fight\\mana_50.png");
-const cv::Mat img_fight_fourman_title_gray = cv_imread("object\\fight\\fourman_title_gray.png", cv::IMREAD_GRAYSCALE);
-const cv::Mat img_fight_do_hero_action = cv_imread("object\\fight\\do_hero_action.png");
-const cv::Mat img_fight_do_peg_action = cv_imread("object\\fight\\do_peg_action.png");
-const cv::Mat img_fight_auto = cv_imread("object\\fight\\auto.png");
-
-const cv::Mat img_symbol_map = cv_imread("object\\symbol\\map.png");
-const cv::Mat img_symbol_feixingfu_xiliangnvguo = cv_imread("object\\symbol\\feixingfu_xiliangnvguo.png");
-const cv::Mat img_symbol_feixingfu_baoxiangguo = cv_imread("object\\symbol\\feixingfu_baoxiangguo.png");
-const cv::Mat img_symbol_feixingfu_jianyecheng = cv_imread("object\\symbol\\feixingfu_jianyecheng.png");
-const cv::Mat img_symbol_feixingfu_changshoucun = cv_imread("object\\symbol\\feixingfu_changshoucun.png");
-const cv::Mat img_symbol_feixingfu_aolaiguo = cv_imread("object\\symbol\\feixingfu_aolaiguo.png");
-const cv::Mat img_symbol_feixingfu_zhuziguo = cv_imread("object\\symbol\\feixingfu_zhuziguo.png");
-const cv::Mat img_symbol_ciyushunxu_gray = cv_imread("object\\symbol\\ciyushunxu_gray.png", cv::IMREAD_GRAYSCALE);
-const cv::Mat img_symbol_yidongdezi_gray = cv_imread("object\\symbol\\yidongdezi_gray.png", cv::IMREAD_GRAYSCALE);
-const cv::Mat img_symbol_gaosunitadecangshenweizhi = cv_imread("object\\symbol\\gaosunitadecangshenweizhi.png");
-const cv::Mat img_symbol_wabao_title_gray = cv_imread("object\\symbol\\wabao_title_gray.png", cv::IMREAD_GRAYSCALE);
-const cv::Mat img_symbol_task_track_gray = cv_imread("object\\symbol\\task_track_gray.png", cv::IMREAD_GRAYSCALE);
-const cv::Mat img_symbol_zeiwang = cv_imread("object\\symbol\\zeiwang.png");
-
-const cv::Mat img_cursors_cursor = cv_imread("object\\cursors\\cursor.png");
-
 std::string work_start("work_start");
 std::string to_changan_jiudian("to_changan_jiudian");
 std::string scan_dianxiaoer_pos("scan_dianxiaoer");
@@ -177,33 +112,6 @@ std::vector<std::string*> datu_step = {
 	& try_zeiwang_pos,
 	& attack_zeiwang,
 	&baotu_end
-};
-
-vector<cv::Mat> health_list = {
-	img_fight_health_100,
-	img_fight_health_95,
-	img_fight_health_90,
-	img_fight_health_85,
-	img_fight_health_80,
-	img_fight_health_75,
-	img_fight_health_70,
-	img_fight_health_65,
-	img_fight_health_60,
-	img_fight_health_55,
-	img_fight_health_50
-};
-vector<cv::Mat> mana_list = {
-	img_fight_mana_100,
-	img_fight_mana_95,
-	img_fight_mana_90,
-	img_fight_mana_85,
-	img_fight_mana_80,
-	img_fight_mana_75,
-	img_fight_mana_70,
-	img_fight_mana_65,
-	img_fight_mana_60,
-	img_fight_mana_55,
-	img_fight_mana_50
 };
 //std::vector<std::thread>
 double gThreshold = 0.81;  // Ä¬ÈÏÖµ
@@ -486,6 +394,7 @@ private:
 
 };
 
+cv::Mat cv_imread(const char* filename, int flags = cv::IMREAD_COLOR);
 void parseAobString(const std::string& aobStr, std::vector<unsigned char>& pattern, std::vector<char>& mask);
 std::vector<DWORD> FindPidsByName(const wchar_t* name);
 HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName);

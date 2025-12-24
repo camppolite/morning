@@ -40,6 +40,97 @@ typedef unsigned long long QWORD;
 GoodMorning gm;
 auto current_path = fs::current_path();
 
+const cv::Mat img_btn_beibao = cv_imread("object\\btn\\beibao.png");
+const cv::Mat img_btn_package_prop = cv_imread("object\\btn\\package_prop.png");
+const cv::Mat img_btn_tingtingwufang = cv_imread("object\\btn\\tingtingwufang.png");
+const cv::Mat img_btn_npc_talk_close = cv_imread("object\\btn\\npc_talk_close.png");
+const cv::Mat img_btn_flag_loc = cv_imread("object\\btn\\flag_loc.png");
+const cv::Mat img_btn_shide_woyaoqu = cv_imread("object\\btn\\shide_woyaoqu.png");
+const cv::Mat img_btn_cancel_auto_round = cv_imread("object\\btn\\cancel_auto_round.png");
+const cv::Mat img_btn_cancel_zhanli = cv_imread("object\\btn\\cancel_zhanli.png");
+const cv::Mat img_btn_woshilaishoushinide = cv_imread("object\\btn\\woshilaishoushinide.png");
+const cv::Mat img_btn_zeiwang_benshaoxiashilaititianxingdaode = cv_imread("object\\btn\\zeiwang_benshaoxiashilaititianxingdaode.png");
+
+
+const cv::Mat img_props_red_777 = cv_imread("object\\props\\red_777.png");
+const cv::Mat img_props_white_777 = cv_imread("object\\props\\white_777.png");
+const cv::Mat img_props_green_777 = cv_imread("object\\props\\green_777.png");
+const cv::Mat img_props_yellow_777 = cv_imread("object\\props\\yellow_777.png");
+const cv::Mat img_props_sheyaoxiang = cv_imread("object\\props\\sheyaoxiang.png");
+const cv::Mat img_npc_dianxiaoer = cv_imread("object\\npc\\dianxiaoer.png");
+
+
+const cv::Mat img_fight_health_100 = cv_imread("object\\fight\\health_100.png");
+const cv::Mat img_fight_health_95 = cv_imread("object\\fight\\health_95.png");
+const cv::Mat img_fight_health_90 = cv_imread("object\\fight\\health_90.png");
+const cv::Mat img_fight_health_85 = cv_imread("object\\fight\\health_85.png");
+const cv::Mat img_fight_health_80 = cv_imread("object\\fight\\health_80.png");
+const cv::Mat img_fight_health_75 = cv_imread("object\\fight\\health_75.png");
+const cv::Mat img_fight_health_70 = cv_imread("object\\fight\\health_70.png");
+const cv::Mat img_fight_health_65 = cv_imread("object\\fight\\health_65.png");
+const cv::Mat img_fight_health_60 = cv_imread("object\\fight\\health_60.png");
+const cv::Mat img_fight_health_55 = cv_imread("object\\fight\\health_55.png");
+const cv::Mat img_fight_health_50 = cv_imread("object\\fight\\health_50.png");
+const cv::Mat img_fight_mana_100 = cv_imread("object\\fight\\mana_100.png");
+const cv::Mat img_fight_mana_95 = cv_imread("object\\fight\\mana_95.png");
+const cv::Mat img_fight_mana_90 = cv_imread("object\\fight\\mana_90.png");
+const cv::Mat img_fight_mana_85 = cv_imread("object\\fight\\mana_85.png");
+const cv::Mat img_fight_mana_80 = cv_imread("object\\fight\\mana_80.png");
+const cv::Mat img_fight_mana_75 = cv_imread("object\\fight\\mana_75.png");
+const cv::Mat img_fight_mana_70 = cv_imread("object\\fight\\mana_70.png");
+const cv::Mat img_fight_mana_65 = cv_imread("object\\fight\\mana_65.png");
+const cv::Mat img_fight_mana_60 = cv_imread("object\\fight\\mana_60.png");
+const cv::Mat img_fight_mana_55 = cv_imread("object\\fight\\mana_55.png");
+const cv::Mat img_fight_mana_50 = cv_imread("object\\fight\\mana_50.png");
+const cv::Mat img_fight_fourman_title_gray = cv_imread("object\\fight\\fourman_title_gray.png", cv::IMREAD_GRAYSCALE);
+const cv::Mat img_fight_do_hero_action = cv_imread("object\\fight\\do_hero_action.png");
+const cv::Mat img_fight_do_peg_action = cv_imread("object\\fight\\do_peg_action.png");
+const cv::Mat img_fight_auto = cv_imread("object\\fight\\auto.png");
+
+const cv::Mat img_symbol_map = cv_imread("object\\symbol\\map.png");
+const cv::Mat img_symbol_feixingfu_xiliangnvguo = cv_imread("object\\symbol\\feixingfu_xiliangnvguo.png");
+const cv::Mat img_symbol_feixingfu_baoxiangguo = cv_imread("object\\symbol\\feixingfu_baoxiangguo.png");
+const cv::Mat img_symbol_feixingfu_jianyecheng = cv_imread("object\\symbol\\feixingfu_jianyecheng.png");
+const cv::Mat img_symbol_feixingfu_changshoucun = cv_imread("object\\symbol\\feixingfu_changshoucun.png");
+const cv::Mat img_symbol_feixingfu_aolaiguo = cv_imread("object\\symbol\\feixingfu_aolaiguo.png");
+const cv::Mat img_symbol_feixingfu_zhuziguo = cv_imread("object\\symbol\\feixingfu_zhuziguo.png");
+const cv::Mat img_symbol_ciyushunxu_gray = cv_imread("object\\symbol\\ciyushunxu_gray.png", cv::IMREAD_GRAYSCALE);
+const cv::Mat img_symbol_yidongdezi_gray = cv_imread("object\\symbol\\yidongdezi_gray.png", cv::IMREAD_GRAYSCALE);
+const cv::Mat img_symbol_gaosunitadecangshenweizhi = cv_imread("object\\symbol\\gaosunitadecangshenweizhi.png");
+const cv::Mat img_symbol_wabao_title_gray = cv_imread("object\\symbol\\wabao_title_gray.png", cv::IMREAD_GRAYSCALE);
+const cv::Mat img_symbol_task_track_gray = cv_imread("object\\symbol\\task_track_gray.png", cv::IMREAD_GRAYSCALE);
+const cv::Mat img_symbol_zeiwang = cv_imread("object\\symbol\\zeiwang.png");
+
+const cv::Mat img_cursors_cursor = cv_imread("object\\cursors\\cursor.png");
+
+vector<cv::Mat> health_list = {
+	img_fight_health_100,
+	img_fight_health_95,
+	img_fight_health_90,
+	img_fight_health_85,
+	img_fight_health_80,
+	img_fight_health_75,
+	img_fight_health_70,
+	img_fight_health_65,
+	img_fight_health_60,
+	img_fight_health_55,
+	img_fight_health_50
+};
+vector<cv::Mat> mana_list = {
+	img_fight_mana_100,
+	img_fight_mana_95,
+	img_fight_mana_90,
+	img_fight_mana_85,
+	img_fight_mana_80,
+	img_fight_mana_75,
+	img_fight_mana_70,
+	img_fight_mana_65,
+	img_fight_mana_60,
+	img_fight_mana_55,
+	img_fight_mana_50
+};
+
+
 WindowInfo::WindowInfo(HANDLE processID) {
 	pid = processID;
 
@@ -1409,7 +1500,7 @@ void WindowInfo::move_to_dianxiaoer() {
 void WindowInfo::goto_changanjiudian() {
 	update_player_float_pos();
 	//SetForegroundWindow(hwnd);
-	POINT jiudian = { 469, 170 };	// 长安酒店入口(464,168)
+	POINT jiudian = { 471, 170 };	// 长安酒店入口(464,168)
 	if (m_scene_id != 长安城 || !(abs(player_pos.x - jiudian.x) <= 22 && abs(player_pos.y - jiudian.y) <= 18)) {
 		// 不在酒店门口，
 		log_info("不在酒店门口，使用飞行棋");
@@ -1464,7 +1555,7 @@ void WindowInfo::from_changan_to_datangguojing() {
 	}
 }
 void WindowInfo::fly_to_changanjiudian() {
-	use_changan777(ROI_changan777_changanjiudian(), false);
+	use_changan777(ROI_changan777_changanjiudian(), true);
 }
 void WindowInfo::fly_to_changan_yizhan_laoban() {
 	use_changan777(ROI_changan777_yizhan_laoban(), false);
@@ -2357,14 +2448,14 @@ void WindowInfo::parse_baotu_task_info() {
 	//◆正在#K狮驼岭#B拦路抢劫的#K<EvalFunc>{"str":"强盗凌豹羽","evalID":2755,}</EvalFunc>#B喜欢把他的宝贝藏在#R56，76#B附近，先到先得啊。(今天已领取#R1#B次)#r
 	// 宝图内容格式：◆xxxx(今天已领取xxx次)#r
 	// ◆:C6 25
-	// "08 FF CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00 39 00 23 00 6E 00 2F 00 35 00 30 00 21 6B 09 FF",  // (今天已领取#R1#B次)#r
+	// "08 FF CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00 ? ? 23 00 6E 00 2F 00 35 00 30 00 21 6B 09 FF",  // （今天已领取#R8#n/50次）
 	auto baotu_task_symbol_list = PerformAoBScanEx(
 		hProcess,
 		0,
-		"? ? 23 00 42 00 21 6B 29 00 23 00 72 00 00 00"  // （今天已领取#R8#n/50次）
+		"08 FF CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00"  // （今天已领取#R8#n/50次）
 	);
-	int symbol_len = 16;
-	int pre_symbol_len = 20;
+	int symbol_len = 66;
+	int pre_symbol_len = 0;
 	int temp_count = 0;
 	int index = 0;
 	SIZE_T regionSize = 0x200; // 宝图任务的内容长度，这个长度应该够用了
@@ -2374,7 +2465,7 @@ void WindowInfo::parse_baotu_task_info() {
 		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[i] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
 		if (bytesRead > 0) {
 			auto today_num = bytes_to_wstring(&buffer[regionSize - symbol_len - pre_symbol_len], symbol_len + pre_symbol_len);
-			auto tag_number = findContentBetweenTags(today_num, L"(今天已领取#R", L"#B次)");
+			auto tag_number = findContentBetweenTags(today_num, L"（今天已领取#R", L"#n/50次）");
 			int num = 0;
 			try {
 				num = std::stoi(tag_number.at(0));
@@ -2406,10 +2497,10 @@ void WindowInfo::parse_baotu_task_info() {
 		std::wstring content;
 		BYTE* buffer = new BYTE[regionSize];
 		SIZE_T bytesRead;
-		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[index] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
+		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[index] - regionSize + symbol_len + 100), buffer, regionSize, &bytesRead);
 		if (bytesRead > 0) {
 			for (int i = 0; i < bytesRead - 1; i++) {
-				if (buffer[i] == 0xC6 && buffer[i + 1] == 0x25) {
+				if (buffer[i] == 0x23 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0x57 && buffer[i + 3] == 0x00) {
 					content = bytes_to_wstring(&buffer[i], bytesRead - i - symbol_len - pre_symbol_len + 4);
 					break;
 				}
@@ -2418,23 +2509,60 @@ void WindowInfo::parse_baotu_task_info() {
 		if (!content.empty()) {
 			baotu_task_count = temp_count;
 			log_info("今天已领取:%d次", baotu_task_count);
-			std::vector<std::wstring> all_tags_wstr;
-			auto tag_wstr1 = findContentBetweenTags(content, L"#K", L"#B");
-			auto tag_wstr2 = findContentBetweenTags(content, L"#R", L"#B");
-			all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr1.begin(), tag_wstr1.end());
-			all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr2.begin(), tag_wstr2.end());
-			for (auto& wstr : all_tags_wstr)
-			{
-				if (baotu_target_scene_id <= 0) baotu_target_scene_id = get_scene_id_by_name(wstr);
-				if (baotu_target_pos.x <= 0) {
-					size_t pos = wstr.find(L"，", 0);
-					if (pos != std::wstring::npos) {
-						baotu_target_pos.x = std::stoi(wstr.substr(0, pos));
-						baotu_target_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
-					}
+			auto tags_wstr = findContentBetweenTags(content, L",\"estr\":\"", L"\",\"evalID\"");
+			if (!tags_wstr.empty()) {
+				std::string struct_AoB = "7B 00 22 00 73 00 74 00 72 00 22 00 3A 00 22 00 ";
+				std::wstring name = tags_wstr[0].c_str();
+				auto ptr1 = reinterpret_cast<char*>(&name);
+				for (int i = 0; i < name.size()*2; i++) {
+					auto c = *reinterpret_cast<const unsigned char*>(ptr1 + i);
+					char hexStr[3];
+					sprintf(hexStr, "%2X ", c);
+					struct_AoB += hexStr;
 				}
+				struct_AoB += "22 00 2C 00 22 00 65 00 76 00 61 00 6C 00 49 00 44 00 22 00 3A 00";
+				auto baotu_task_content_list = PerformAoBScanEx(
+					hProcess,
+					0,
+					struct_AoB.c_str()
+				);
+				int symbol_len = 160;
+				SIZE_T regionSize = 0x200; // 宝图任务的内容长度，这个长度应该够用了
+				for (size_t i = 0; i < baotu_task_content_list.size(); ++i) {
+					std::wstring qiangdao_content;
+					BYTE* buffer = new BYTE[regionSize];
+					SIZE_T bytesRead;
+					pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_content_list[i] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
+					if (bytesRead > 0) {
+						for (int i = 0; i < bytesRead - 1; i++) {
+							if (buffer[i] == 0xC6 && buffer[i + 1] == 0x25) {
+								qiangdao_content = bytes_to_wstring(&buffer[i], bytesRead - i + regionSize + symbol_len);
+								break;
+							}
+						}
+					}
+					if (!qiangdao_content.empty()) {
+						std::vector<std::wstring> all_tags_wstr;
+						auto tag_wstr1 = findContentBetweenTags(qiangdao_content, L"#K", L"#B");
+						auto tag_wstr2 = findContentBetweenTags(qiangdao_content, L"#R", L"#B");
+						all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr1.begin(), tag_wstr1.end());
+						all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr2.begin(), tag_wstr2.end());
+						for (auto& wstr : all_tags_wstr)
+						{
+							if (baotu_target_scene_id <= 0) baotu_target_scene_id = get_scene_id_by_name(wstr);
+							if (baotu_target_pos.x <= 0) {
+								size_t pos = wstr.find(L"，", 0);
+								if (pos != std::wstring::npos) {
+									baotu_target_pos.x = std::stoi(wstr.substr(0, pos));
+									baotu_target_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
+								}
+							}
+						}
+					}
+					delete[]buffer;
+				}
+				if (baotu_target_scene_id <= 0) log_info("未支持的场景，等待添加");
 			}
-			if (baotu_target_scene_id <= 0) log_info("未支持的场景，等待添加");
 		}
 		delete[]buffer;
 	}
@@ -3072,7 +3200,11 @@ bool TimeProcessor::time_wait(uint64_t time) {
 	return getCurrentTimeMilliseconds() - mTime_ms >= time;
 }
 
-GoodMorning::GoodMorning() {}
+GoodMorning::GoodMorning() {
+	for (auto processID : FindPidsByName(TARGET_APP_NAME)) {
+		EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
+	}
+}
 
 void GoodMorning::init() {
 	struct stat st = { 0 };
@@ -3080,7 +3212,7 @@ void GoodMorning::init() {
 		_mkdir("screenshot");
 	}
 	for (auto& winfo : this->winsInfo) {
-		//winfo->UpdateWindowRect();
+		winfo->UpdateWindowRect();
 		winfo->SplitTitleAsPlayerId();
 	}
 	if (!fs::exists(dbFile)) {
@@ -4309,17 +4441,10 @@ std::vector<POINT> get_scene_npc_list(unsigned int scene_id) {
 }
 int main(int argc, const char** argv)
 {
-	HWND hwnd = GetConsoleWindow();
-	// 2. Set new position (x=100, y=100)
-	// SWP_NOSIZE: Keeps the current width and height
-	// SWP_NOZORDER: Keeps the window's current place in the stack (front/back)
-	SetWindowPos(hwnd, NULL, 1280, 510, 640, 530, SWP_NOZORDER);
-
-	init_log();
 	//log_info("日志输出测试");
 
 	//CannyThreshold(0, 0);
-	Image2Gray();
+	//Image2Gray();
 	//ThresholdinginRange();
 
 	//auto image = cv::imread("111.png", cv::IMREAD_COLOR);
@@ -4338,10 +4463,18 @@ int main(int argc, const char** argv)
 	//SerialWrite(send_data);
 	//SerialRead();
 	//Sleep(10000);
-	for (auto processID : FindPidsByName(TARGET_APP_NAME)) {
-		EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
-	}
-	Sleep(10);  // 等一下枚举窗口句柄回调完成再执行
+	//for (auto processID : FindPidsByName(TARGET_APP_NAME)) {
+	//	EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
+	//}
+	//Sleep(10);  // 等一下枚举窗口句柄回调完成再执行
+
+	HWND hwnd = GetConsoleWindow();
+	// 2. Set new position (x=100, y=100)
+	// SWP_NOSIZE: Keeps the current width and height
+	// SWP_NOZORDER: Keeps the window's current place in the stack (front/back)
+	SetWindowPos(hwnd, NULL, 1280, 510, 640, 530, SWP_NOZORDER);
+
+	init_log();
 	log_info("开始，检测到窗口数量:%d个.", gm.winsInfo.size());
 
 	// SEED the generator ONCE at the start of the program
@@ -4350,7 +4483,7 @@ int main(int argc, const char** argv)
 	
 	gm.init();
 	gm.hook_data();
-	gm.test();
+	//gm.test();
 	gm.work();
 	return 0;
 }
