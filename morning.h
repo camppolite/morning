@@ -224,6 +224,7 @@ public:
 	void parse_zeiwang_info();
 	bool goto_scene(POINT dst, unsigned int scene_id);
 	void move_to_position(POINT dst, long active_x = 0, long active_y = 0);
+	void move_to_position_flat(POINT dst, long active_x = 0, long active_y = 0);
 	void move_via_map(POINT dst);
 	void move_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao=false);
 	void ship_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao = false);

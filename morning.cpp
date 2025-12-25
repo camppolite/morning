@@ -361,10 +361,12 @@ void WindowInfo::datu() {
 					if (!MatchingRectExist(ROI_npc_talk(), img_btn_tingtingwufang) && WaitMatchingRectExist(ROI_npc_talk(), img_npc_dianxiaoer, 1000)) {
 						// 接任务后关闭对话窗
 						//SetForegroundWindow(hwnd);
-						if (close_npc_talk_fast()) {
-							tScan_npc = TASK_BAOTU;
-							step.next();
-						}
+						//if (close_npc_talk_fast()) {
+						//	tScan_npc = TASK_BAOTU;
+						//	step.next();
+						//}
+						tScan_npc = TASK_BAOTU;
+						step.next();
 					}
 					else {
 						if (is_verifying()) {
@@ -400,6 +402,7 @@ void WindowInfo::datu() {
 		}
 		else {
 			//SetForegroundWindow(hwnd);
+			close_npc_talk_fast();
 			if (goto_scene(baotu_target_pos, baotu_target_scene_id)) {
 				step.next();
 			}
@@ -508,7 +511,7 @@ void WindowInfo::datu() {
 			init();
 		}
 		else {
-			step.set_current(&try_zeiwang_pos);
+			step.set_current(&fix_my_pos_zeiwang);
 		}
 	}
 	else if (step.current == &baotu_end) {
@@ -955,6 +958,7 @@ void WindowInfo::scan_npc_pos_in_thread() {
 			}
 			case TASK_BAOTU:
 			{
+				//Sleep(1500);// 刚接任务，内容没生成，等待一下再开始扫描
 				parse_baotu_task_info();
 				tScan_npc = THREAD_IDLE;
 				break;
@@ -1511,7 +1515,7 @@ void WindowInfo::move_to_dianxiaoer() {
 		//log_info("店小二坐标:%d, %d", dst.x, dst.y);
 		//log_info("A星寻路结果:%d, %d", astar_pos.x, astar_pos.y);
 		//SetForegroundWindow(hwnd);
-		click_position(dst);
+		move_to_position_flat(dst);
 		wait_moving_stop(5000);
 	}
 }
@@ -1943,10 +1947,10 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 		{
 			if (m_scene_id != 傲来国) {
 				use_aolaiguo777(ROI_aolaiguo777_huaguoshan(), false);
-				move_to_other_scene({ 216, 145 }, 花果山, -30, 30);
+				move_to_other_scene({ 216, 147 }, 花果山, -30, 30);
 			}
 			else {
-				move_to_other_scene({ 216, 145 }, 花果山, -30, 30);
+				move_to_other_scene({ 216, 147 }, 花果山, -30, 30);
 			}
 			break;
 		}
@@ -2772,6 +2776,20 @@ void WindowInfo::move_to_position(POINT dst, long active_x, long active_y) {
 	//}
 	moving = true;
 }
+void WindowInfo::move_to_position_flat(POINT dst, long active_x, long active_y) {
+	// active_x, active_y:NPC在这个坐标范围内对话才有效
+	// 针对没有障碍物的地图，随意点击任何地方都能移动
+	// 有些图有大障碍物，点击了是不会移动的
+	if (abs(player_pos.x - dst.x) <= mScreen_x && abs(player_pos.y - dst.y) <= mScreen_y) {
+		log_info("屏幕视线内移动");
+		click_position_at_edge(dst);
+	}
+	else {
+		log_info("地图移动");
+		move_via_map(dst);
+	}
+	moving = true;
+}
 void WindowInfo::move_via_map(POINT dst) {
 	// 目标不在视野范围内，通过地图进行移动
 	// dst:目的坐标
@@ -3125,27 +3143,27 @@ cv::Rect WindowInfo::ROI_zhuziguo777_sichouzhilu() {
 }
 cv::Rect WindowInfo::ROI_feixingfu_baoxiangguo() {
 	log_info("飞行符-宝象国");
-	return cv::Rect(375, 390, 55, 50);
+	return cv::Rect(375, 390, 55, 60);
 }
 cv::Rect WindowInfo::ROI_feixingfu_xiliangnvguo() {
 	log_info("飞行符-西凉女国");
-	return cv::Rect(385, 310, 50, 45);
+	return cv::Rect(385, 310, 50, 60);
 }
 cv::Rect WindowInfo::ROI_feixingfu_jianyecheng() {
 	log_info("飞行符-建邺城");
-	return cv::Rect(610, 415, 65, 50);
+	return cv::Rect(610, 410, 65, 70);
 }
 cv::Rect WindowInfo::ROI_feixingfu_changshoucun() {
 	log_info("飞行符-长寿村");
-	return cv::Rect(390, 240, 50, 55);
+	return cv::Rect(390, 240, 50, 70);
 }
 cv::Rect WindowInfo::ROI_feixingfu_zhuziguo() {
 	log_info("飞行符-朱紫国");
-	return cv::Rect(440, 450, 45, 50);
+	return cv::Rect(440, 450, 45, 60);
 }
 cv::Rect WindowInfo::ROI_feixingfu_aolaiguo() {
 	log_info("飞行符-傲来国");
-	return cv::Rect(755, 465, 70, 60);
+	return cv::Rect(755, 465, 70, 70);
 }
 //cv::Rect WindowInfo::ROI_fighting() {
 //	return cv::Rect(1004, 115, 20, 65);
@@ -4399,7 +4417,7 @@ POINT get_map_max_pixel(unsigned int scene_id) {
 		case 西梁女国:
 			return { 371, 281 };
 		case 长安酒店:
-			break;
+			return { 384, 285 };
 		case 长安城:
 			return { 545, 276 };
 		case 东海湾:
@@ -4499,7 +4517,7 @@ int main(int argc, const char** argv)
 	
 	gm.init();
 	gm.hook_data();
-	gm.test();
+	//gm.test();
 	gm.work();
 	return 0;
 }
