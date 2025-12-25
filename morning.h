@@ -93,7 +93,7 @@ std::string scan_zeiwang_task("scan_zeiwang_task");
 std::string goto_zeiwang_scene("goto_zeiwang_scene");
 std::string fix_my_pos_zeiwang("fix_my_pos_zeiwang");
 std::string scan_zeiwang_pos("scan_zeiwang_pos");
-std::string try_zeiwang_pos("try_zeiwang_pos");
+//std::string try_zeiwang_pos("try_zeiwang_pos");
 std::string attack_zeiwang("attack_zeiwang");
 std::string baotu_end("baotu_end");
 std::vector<std::string*> datu_step = {
@@ -109,7 +109,7 @@ std::vector<std::string*> datu_step = {
 	& goto_zeiwang_scene,
 	& fix_my_pos_zeiwang,
 	& scan_zeiwang_pos,
-	& try_zeiwang_pos,
+	//& try_zeiwang_pos,
 	& attack_zeiwang,
 	&baotu_end
 };
@@ -337,7 +337,6 @@ public:
 	unsigned int zeiwang_scene_id = 0;
 	unsigned int zeiwang_id = 0;
 	std::wstring zeiwang_name;
-	std::vector<POINT> zeiwang_pos_list;
 	POINT zeiwang_pos = {0,0};
 
 	uintptr_t scene_id_addr = 0;
@@ -360,8 +359,8 @@ public:
 	RECT rect;
 	long wWidth = 1024;  // 游戏窗口大小
 	long wHeight = 768;  // 游戏窗口大小
-	int mScreen_x = 21;  // wWidth / 2 / 20  屏幕可以范围坐标跨度
-	int mScreen_y = 15;  // wHeight / 2 / 20 屏幕可以范围坐标跨度
+	int mScreen_x = 17;  // wWidth / 2 / 25  屏幕可以范围坐标跨度
+	int mScreen_y = 12;  // wHeight / 2 / 25 屏幕可以范围坐标跨度
 	HANDLE hProcess = 0;
 	HMODULE hNtdll = 0;
 	HMODULE mhmainDllBase = 0;

@@ -494,23 +494,15 @@ void WindowInfo::datu() {
 		tScan_npc = 贼王;
 		step.next();
 	}
-	else if (step.current == &try_zeiwang_pos) {
-		//if (tScan_npc != THREAD_IDLE) return;
-		// 地图内可能有其他玩家坐标，需要一个个尝试
-		if (zeiwang_pos_list.empty()) {
+	else if (step.current == &attack_zeiwang) {
+		//SetForegroundWindow(hwnd);
+		if (zeiwang_pos.x <= 0) {
 			log_info("处理贼王坐标失败，需要手动处理");
 			play_mp3();
 			failure = true;
+			return;
 		}
-		else {
-			zeiwang_pos = zeiwang_pos_list.front();
-			zeiwang_pos_list.erase(zeiwang_pos_list.begin()); // Removes the first element
-			log_info("贼王坐标:%f,%f",zeiwang_pos.x,zeiwang_pos.y);
-			step.next();
-		}
-	}
-	else if (step.current == &attack_zeiwang) {
-		//SetForegroundWindow(hwnd);
+		log_info("贼王坐标:%f,%f", zeiwang_pos.x, zeiwang_pos.y);
 		if (talk_to_npc_fight(zeiwang_pos, img_btn_zeiwang_benshaoxiashilaititianxingdaode)) {
 			//step.set_current(&baotu_end);
 			init();
@@ -1192,16 +1184,42 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 }
 void WindowInfo::scan_zeiwang_id() {
 	if (!zeiwang_name.empty()) {
-		std::string struct_AoB;
 		auto ptr1 = reinterpret_cast<char*>(&npc_first_static_addr);
 		for (int i = 0; i < 8; i++) {
 			auto c = *reinterpret_cast<const unsigned char*>(ptr1 + i);
 			char hexStr[3];
 			sprintf(hexStr, "%2X ", c);
-			struct_AoB += hexStr;
 		}
-		struct_AoB += "? ? ? ? ? ? ? ?";
+		auto npc_waixing_list = PerformAoBScanEx(
+			hProcess,
+			0,
+			"A0 52 7D 8F 18 4F 48 51 A7 7E 3D 00 38 00 20 00 16 59 62 5F 3D 00 32 00 30 00 34 00 34 00 20 00 F6 65 C5 88 35 00 3D 00 30 00 20 00"  //加载优先级=8 外形=2044 时装5=0 特效=0 
+		);
+		int symbol_len = 44;
+		for (const auto& wai_xing : npc_waixing_list) {
+			SIZE_T regionSize = 0x200;
+			BYTE* buffer = new BYTE[regionSize];
+			SIZE_T bytesRead;
+			pNtReadVirtualMemory(hProcess, (PVOID)(wai_xing - regionSize + symbol_len), buffer, regionSize, &bytesRead);  // 静态地址
+			if (bytesRead > 0) {
+				std::wstring content;
+				for (int i = 0; i < bytesRead - 6; i++) {
+					if (buffer[i] == 0xB9 && buffer[i + 1] == 0x65 && buffer[i + 2] == 0x11 && buffer[i + 3] == 0x54 && buffer[i + 4] == 0x3D && buffer[i + 5] == 0x00) {	// 方向=:B9 65 11 54 3D 00
+						content = bytes_to_wstring(&buffer[i], bytesRead - i - symbol_len);
+						break;
+					}
+				}
+				if (!content.empty()) {
+					auto tags_wstr = findContentBetweenTags(content, L"id=", L" X=");
+					if (!tags_wstr.empty()) {
+						zeiwang_id = std::stoi(tags_wstr.at(0));
+					}
+				}
+
+			}
+		}
 	}
+
 }
 void WindowInfo::scan_current_scene_npc_id() {
 	std::string struct_AoB;
@@ -1458,7 +1476,7 @@ POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id,bool fix) {
 	int center_y = wHeight / 2;  // 中点坐标 768 / 2 + y_rim
 	int x_edge = 25;  // 超过这个坐标，人物会在窗口中间
 	int y_edge = 19;  // 超过这个坐标，人物会在窗口中间
-	int pixel = 20;	 // 20像素一个坐标点
+	int pixel = 25;	 // 25像素一个坐标点
 
 	auto max_loc = get_map_max_loc(scene_id);
 
@@ -1500,7 +1518,7 @@ void WindowInfo::move_to_dianxiaoer() {
 void WindowInfo::goto_changanjiudian() {
 	update_player_float_pos();
 	//SetForegroundWindow(hwnd);
-	POINT jiudian = { 471, 170 };	// 长安酒店入口(464,168)
+	POINT jiudian = { 470, 170 };	// 长安酒店入口(464,168)
 	if (m_scene_id != 长安城 || !(abs(player_pos.x - jiudian.x) <= 22 && abs(player_pos.y - jiudian.y) <= 18)) {
 		// 不在酒店门口，
 		log_info("不在酒店门口，使用飞行棋");
@@ -2418,13 +2436,13 @@ void WindowInfo::handle_datu_fight() {
 				gm.update_db();
 			}
 			if (!hangup) {
-				//SetForegroundWindow(hwnd);
+				SetForegroundWindow(hwnd);
 				ClickMatchImage(ROI_fight_action(), img_fight_auto);
 			}
 		}
 		else if (MatchingExist(image, ROI_fight_action(), img_fight_do_peg_action)) {
 			log_info("宠物平A");
-			//SetForegroundWindow(hwnd);
+			SetForegroundWindow(hwnd);
 			input_alt_a();
 		}
 	}
@@ -2452,20 +2470,20 @@ void WindowInfo::parse_baotu_task_info() {
 	auto baotu_task_symbol_list = PerformAoBScanEx(
 		hProcess,
 		0,
-		"08 FF CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00"  // （今天已领取#R8#n/50次）
+		"23 00 6E 00 2F 00 35 00 30 00 21 6B 09 FF"  // （今天已领取#R8#n/50次）
 	);
-	int symbol_len = 66;
-	int pre_symbol_len = 0;
 	int temp_count = 0;
 	int index = 0;
-	SIZE_T regionSize = 0x200; // 宝图任务的内容长度，这个长度应该够用了
+	SIZE_T regionSize = 0x240; // 宝图任务的内容长度，这个长度应该够用了
+	BYTE* buffer = new BYTE[regionSize];
+	SIZE_T bytesRead;
+	SIZE_T symbol_len = 14;
 	for (size_t i = 0; i < baotu_task_symbol_list.size(); ++i) {
-		BYTE* buffer = new BYTE[regionSize];
-		SIZE_T bytesRead;
-		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[i] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
+		int pre_len = 22;
+		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[i] - pre_len), buffer, symbol_len + pre_len, &bytesRead);
 		if (bytesRead > 0) {
-			auto today_num = bytes_to_wstring(&buffer[regionSize - symbol_len - pre_symbol_len], symbol_len + pre_symbol_len);
-			auto tag_number = findContentBetweenTags(today_num, L"（今天已领取#R", L"#n/50次）");
+			auto today_num = bytes_to_wstring(buffer, bytesRead);
+			auto tag_number = findContentBetweenTags(today_num, L"#R", L"#n");
 			int num = 0;
 			try {
 				num = std::stoi(tag_number.at(0));
@@ -2476,6 +2494,8 @@ void WindowInfo::parse_baotu_task_info() {
 			catch (std::out_of_range& e) {
 				continue;
 			}
+			memset(buffer, bytesRead, 0);
+			bytesRead = 0;
 			if (baotu_task_count > 0) {
 				if (num <= baotu_task_count) { continue; }  // 领取次数小于等于上一次的记录，说明是以前的内存没有被释放，忽略掉
 				else {
@@ -2491,17 +2511,14 @@ void WindowInfo::parse_baotu_task_info() {
 				}
 			}
 		}
-		delete[]buffer;
 	}
 	if (temp_count > 0) {
 		std::wstring content;
-		BYTE* buffer = new BYTE[regionSize];
-		SIZE_T bytesRead;
-		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[index] - regionSize + symbol_len + 100), buffer, regionSize, &bytesRead);
+		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[index] - regionSize), buffer, regionSize, &bytesRead);
 		if (bytesRead > 0) {
 			for (int i = 0; i < bytesRead - 1; i++) {
-				if (buffer[i] == 0x23 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0x57 && buffer[i + 3] == 0x00) {
-					content = bytes_to_wstring(&buffer[i], bytesRead - i - symbol_len - pre_symbol_len + 4);
+				if (buffer[i] == 0x23 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0x57 && buffer[i + 3] == 0x00) {	// #W:23 00 57 00
+					content = bytes_to_wstring(&buffer[i], bytesRead - i);
 					break;
 				}
 			}
@@ -2514,8 +2531,8 @@ void WindowInfo::parse_baotu_task_info() {
 				std::string struct_AoB = "7B 00 22 00 73 00 74 00 72 00 22 00 3A 00 22 00 ";
 				std::wstring name = tags_wstr[0].c_str();
 				auto ptr1 = reinterpret_cast<char*>(&name);
-				for (int i = 0; i < name.size()*2; i++) {
-					auto c = *reinterpret_cast<const unsigned char*>(ptr1 + i);
+				for (int j = 0; j < name.size()*2; j++) {
+					auto c = *reinterpret_cast<const unsigned char*>(ptr1 + j);
 					char hexStr[3];
 					sprintf(hexStr, "%2X ", c);
 					struct_AoB += hexStr;
@@ -2526,17 +2543,16 @@ void WindowInfo::parse_baotu_task_info() {
 					0,
 					struct_AoB.c_str()
 				);
-				int symbol_len = 160;
-				SIZE_T regionSize = 0x200; // 宝图任务的内容长度，这个长度应该够用了
-				for (size_t i = 0; i < baotu_task_content_list.size(); ++i) {
+				int end_len = 0xA0;
+				for (size_t j = 0; j < baotu_task_content_list.size(); ++j) {
 					std::wstring qiangdao_content;
-					BYTE* buffer = new BYTE[regionSize];
-					SIZE_T bytesRead;
-					pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_content_list[i] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
+					memset(buffer, bytesRead, 0);
+					bytesRead = 0;
+					pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_content_list[j] - regionSize + end_len * 2), buffer, regionSize, &bytesRead);
 					if (bytesRead > 0) {
-						for (int i = 0; i < bytesRead - 1; i++) {
-							if (buffer[i] == 0xC6 && buffer[i + 1] == 0x25) {
-								qiangdao_content = bytes_to_wstring(&buffer[i], bytesRead - i + regionSize + symbol_len);
+						for (int k = 0; k < bytesRead - 1; k++) {
+							if (buffer[k] == 0xC6 && buffer[k + 1] == 0x25) {	// ◆:C6 25
+								qiangdao_content = bytes_to_wstring(&buffer[k], bytesRead - k + end_len * 2);
 								break;
 							}
 						}
@@ -2558,8 +2574,8 @@ void WindowInfo::parse_baotu_task_info() {
 								}
 							}
 						}
+						if (baotu_target_scene_id > 0 && baotu_target_pos.x > 0)break;
 					}
-					delete[]buffer;
 				}
 				if (baotu_target_scene_id <= 0) log_info("未支持的场景，等待添加");
 			}
@@ -3159,7 +3175,7 @@ void WindowInfo::test() {
 	// 玩家坐标地址
 	//is_verifying();
 	//scan_npc_pos_addr(NPC_ZEIWANG);
-	parse_baotu_task_info();
+	//parse_baotu_task_info();
 	//parse_zeiwang_info();
 	//SetForegroundWindow(hwnd);
 	//update_scene_id();
@@ -3168,7 +3184,7 @@ void WindowInfo::test() {
 	//scan_npc_pos_addr_by_id(长安驿站老板);
 	//scan_npc_pos_addr_by_id(贼王);
 	//scan_npc_pos_addr_by_id(26946341);
-	update_player_float_pos();
+	//update_player_float_pos();
 	scan_current_scene_npc_id();
 	//update_npc_pos(店小二);
 	//move_to_position({ 460,140 }, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
@@ -4483,7 +4499,7 @@ int main(int argc, const char** argv)
 	
 	gm.init();
 	gm.hook_data();
-	//gm.test();
+	gm.test();
 	gm.work();
 	return 0;
 }
