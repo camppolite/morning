@@ -87,6 +87,7 @@ std::string scan_dianxiaoer_pos("scan_dianxiaoer");
 std::string to_dianxiaoer_get_task("to_dianxiaoer_get_task");
 //std::string talk_get_baoturenwu("talk_get_baoturenwu");
 //std::string scan_baotu_task("scan_baotu_task");
+std::string close_dianxiaoer("close_dianxiaoer");
 std::string goto_baotu_scene("goto_baotu_scene");
 std::string attack_qiangdao("attack_qiangdao");
 std::string scan_zeiwang_task("scan_zeiwang_task");
@@ -103,6 +104,7 @@ std::vector<std::string*> datu_step = {
 	&to_dianxiaoer_get_task, 
 	//&talk_get_baoturenwu,
 	//&scan_baotu_task,
+	& close_dianxiaoer,
 	&goto_baotu_scene,
 	&attack_qiangdao,
 	&scan_zeiwang_task,

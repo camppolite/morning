@@ -192,6 +192,11 @@ y:4byte(方向倒过来)
 在xy目的值打断点，查看调用堆栈，逐个函数查看参数有用的值
 kernelbase.GetQueuedCompletionStatus
 
+'taskID'
+#Effffff
+#c6df33a  绿色
+#Effffff#c6df33a 开头就是任务追踪的任务名称
+
 任务追踪 0x013A
 师门任务id=314
 巡逻 0x4D

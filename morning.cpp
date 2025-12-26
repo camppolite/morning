@@ -269,7 +269,7 @@ void WindowInfo::datu() {
 		return;
 	}
 	if (tScan_npc != THREAD_IDLE) return;
-
+	if (baotu_task_count >= 50)return;//一天只能打50次
 	if (is_fighting()) {
 		//if (time_pawn.timeout(5000)) {
 		//	SetForegroundWindow(hwnd);
@@ -318,7 +318,7 @@ void WindowInfo::datu() {
 				else {
 					log_info("已接打图任务，继续任务,%s", player_id);
 					tScan_npc = TASK_BAOTU;
-					step.set_current(&goto_baotu_scene);
+					step.set_current(&close_dianxiaoer);
 				}
 				auto pixel = MatchingLoc(image,ROI_npc_talk(), img_btn_npc_talk_close);
 				if (pixel.x > -1) {
@@ -393,6 +393,19 @@ void WindowInfo::datu() {
 			move_to_changanjidian_center();
 		}
 	}
+	else if (step.current == &close_dianxiaoer) {
+		if (baotu_target_scene_id <= 0 || baotu_target_pos.x <= 0) {
+			log_info("解析宝图任务失败，需要手动处理");
+			play_mp3();
+			failure = true;
+		}
+		else {
+			//SetForegroundWindow(hwnd);
+			close_npc_talk_fast();
+			goto_scene(baotu_target_pos, baotu_target_scene_id);
+			step.next();
+		}
+	}
 	else if (step.current == &goto_baotu_scene) {
 		//if (tScan_npc != THREAD_IDLE) return;
 		if (baotu_target_scene_id <= 0 || baotu_target_pos.x <= 0) {
@@ -402,7 +415,6 @@ void WindowInfo::datu() {
 		}
 		else {
 			//SetForegroundWindow(hwnd);
-			close_npc_talk_fast();
 			if (goto_scene(baotu_target_pos, baotu_target_scene_id)) {
 				step.next();
 			}
@@ -958,7 +970,7 @@ void WindowInfo::scan_npc_pos_in_thread() {
 			}
 			case TASK_BAOTU:
 			{
-				//Sleep(1500);// 刚接任务，内容没生成，等待一下再开始扫描
+				Sleep(1500);// 刚接任务，内容没生成，等待一下再开始扫描
 				parse_baotu_task_info();
 				tScan_npc = THREAD_IDLE;
 				break;
@@ -2478,16 +2490,19 @@ void WindowInfo::parse_baotu_task_info() {
 	);
 	int temp_count = 0;
 	int index = 0;
-	SIZE_T regionSize = 0x240; // 宝图任务的内容长度，这个长度应该够用了
+	SIZE_T regionSize = 0x300; // 宝图任务的内容长度，这个长度应该够用了
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
 	SIZE_T symbol_len = 14;
+	// 先根据和店小二的对话，找到今日领取次数
 	for (size_t i = 0; i < baotu_task_symbol_list.size(); ++i) {
 		int pre_len = 22;
 		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[i] - pre_len), buffer, symbol_len + pre_len, &bytesRead);
 		if (bytesRead > 0) {
 			auto today_num = bytes_to_wstring(buffer, bytesRead);
 			auto tag_number = findContentBetweenTags(today_num, L"#R", L"#n");
+			memset(buffer, bytesRead, 0);
+			bytesRead = 0;
 			int num = 0;
 			try {
 				num = std::stoi(tag_number.at(0));
@@ -2498,8 +2513,6 @@ void WindowInfo::parse_baotu_task_info() {
 			catch (std::out_of_range& e) {
 				continue;
 			}
-			memset(buffer, bytesRead, 0);
-			bytesRead = 0;
 			if (baotu_task_count > 0) {
 				if (num <= baotu_task_count) { continue; }  // 领取次数小于等于上一次的记录，说明是以前的内存没有被释放，忽略掉
 				else {
@@ -2517,73 +2530,84 @@ void WindowInfo::parse_baotu_task_info() {
 		}
 	}
 	if (temp_count > 0) {
-		std::wstring content;
-		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[index] - regionSize), buffer, regionSize, &bytesRead);
-		if (bytesRead > 0) {
-			for (int i = 0; i < bytesRead - 1; i++) {
-				if (buffer[i] == 0x23 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0x57 && buffer[i + 3] == 0x00) {	// #W:23 00 57 00
-					content = bytes_to_wstring(&buffer[i], bytesRead - i);
+		baotu_task_count = temp_count;
+		log_info("今天已领取:%d次", baotu_task_count);
+		std::vector<uintptr_t>baotu_task_content_list;
+		//找到强盗名字
+		for (int m = 0;m < baotu_task_symbol_list.size();m++) {
+			std::wstring content;
+			pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[m] - regionSize), buffer, regionSize, &bytesRead);
+			if (bytesRead > 0) {
+				for (int i = 0; i < bytesRead - 4; i++) {
+					if (buffer[i] == 0x23 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0x57 && buffer[i + 3] == 0x00) {	// #W:23 00 57 00
+						content = bytes_to_wstring(&buffer[i], bytesRead - i);
+						break;
+					}
+				}
+			}
+			memset(buffer, bytesRead, 0);
+			bytesRead = 0;
+			if (!content.empty()) {
+				auto tags_wstr = findContentBetweenTags(content, L",\"estr\":\"", L"\",\"evalID\"");
+				if (!tags_wstr.empty()) {
+					std::string struct_AoB = "7B 00 22 00 73 00 74 00 72 00 22 00 3A 00 22 00 ";
+					std::wstring name = tags_wstr[0].c_str();
+					auto ptr1 = reinterpret_cast<char*>(&name);
+					for (int j = 0; j < name.size() * 2; j++) {
+						auto c = *reinterpret_cast<const unsigned char*>(ptr1 + j);
+						char hexStr[3];
+						sprintf(hexStr, "%2X ", c);
+						struct_AoB += hexStr;
+					}
+					struct_AoB += "22 00 2C 00 22 00 65 00 76 00 61 00 6C 00 49 00 44 00 22 00 3A 00";
+					baotu_task_content_list = PerformAoBScanEx(
+						hProcess,
+						0,
+						struct_AoB.c_str()
+					);
 					break;
 				}
 			}
 		}
-		if (!content.empty()) {
-			baotu_task_count = temp_count;
-			log_info("今天已领取:%d次", baotu_task_count);
-			auto tags_wstr = findContentBetweenTags(content, L",\"estr\":\"", L"\",\"evalID\"");
-			if (!tags_wstr.empty()) {
-				std::string struct_AoB = "7B 00 22 00 73 00 74 00 72 00 22 00 3A 00 22 00 ";
-				std::wstring name = tags_wstr[0].c_str();
-				auto ptr1 = reinterpret_cast<char*>(&name);
-				for (int j = 0; j < name.size()*2; j++) {
-					auto c = *reinterpret_cast<const unsigned char*>(ptr1 + j);
-					char hexStr[3];
-					sprintf(hexStr, "%2X ", c);
-					struct_AoB += hexStr;
-				}
-				struct_AoB += "22 00 2C 00 22 00 65 00 76 00 61 00 6C 00 49 00 44 00 22 00 3A 00";
-				auto baotu_task_content_list = PerformAoBScanEx(
-					hProcess,
-					0,
-					struct_AoB.c_str()
-				);
-				int end_len = 0xA0;
-				for (size_t j = 0; j < baotu_task_content_list.size(); ++j) {
-					std::wstring qiangdao_content;
-					memset(buffer, bytesRead, 0);
-					bytesRead = 0;
-					pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_content_list[j] - regionSize + end_len * 2), buffer, regionSize, &bytesRead);
-					if (bytesRead > 0) {
-						for (int k = 0; k < bytesRead - 1; k++) {
-							if (buffer[k] == 0xC6 && buffer[k + 1] == 0x25) {	// ◆:C6 25
-								qiangdao_content = bytes_to_wstring(&buffer[k], bytesRead - k + end_len * 2);
-								break;
-							}
-						}
-					}
-					if (!qiangdao_content.empty()) {
-						std::vector<std::wstring> all_tags_wstr;
-						auto tag_wstr1 = findContentBetweenTags(qiangdao_content, L"#K", L"#B");
-						auto tag_wstr2 = findContentBetweenTags(qiangdao_content, L"#R", L"#B");
-						all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr1.begin(), tag_wstr1.end());
-						all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr2.begin(), tag_wstr2.end());
-						for (auto& wstr : all_tags_wstr)
-						{
-							if (baotu_target_scene_id <= 0) baotu_target_scene_id = get_scene_id_by_name(wstr);
-							if (baotu_target_pos.x <= 0) {
-								size_t pos = wstr.find(L"，", 0);
-								if (pos != std::wstring::npos) {
-									baotu_target_pos.x = std::stoi(wstr.substr(0, pos));
-									baotu_target_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
-								}
-							}
-						}
-						if (baotu_target_scene_id > 0 && baotu_target_pos.x > 0)break;
+		//根据强盗名字找到强盗坐标和场景
+		for (size_t j = 0; j < baotu_task_content_list.size(); ++j) {
+			int end_len = 0xA0;
+			std::wstring qiangdao_content;
+			memset(buffer, bytesRead, 0);
+			bytesRead = 0;
+			pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_content_list[j] - regionSize + end_len * 2), buffer, regionSize, &bytesRead);
+			if (bytesRead > 0) {
+				for (int k = 0; k < bytesRead - 2; k++) {
+					if (buffer[k] == 0xC6 && buffer[k + 1] == 0x25) {	// ◆:C6 25
+						qiangdao_content = bytes_to_wstring(&buffer[k], bytesRead - k + end_len * 2);
+						break;
 					}
 				}
-				if (baotu_target_scene_id <= 0) log_info("未支持的场景，等待添加");
+			}
+			if (!qiangdao_content.empty()) {
+				std::vector<std::wstring> all_tags_wstr;
+				auto tag_wstr1 = findContentBetweenTags(qiangdao_content, L"#K", L"#B");
+				auto tag_wstr2 = findContentBetweenTags(qiangdao_content, L"#R", L"#B");
+				all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr1.begin(), tag_wstr1.end());
+				all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr2.begin(), tag_wstr2.end());
+				for (auto& wstr : all_tags_wstr)
+				{
+					if (baotu_target_scene_id <= 0) baotu_target_scene_id = get_scene_id_by_name(wstr);
+					if (baotu_target_pos.x <= 0) {
+						size_t pos = wstr.find(L"，", 0);
+						if (pos != std::wstring::npos) {
+							baotu_target_pos.x = std::stoi(wstr.substr(0, pos));
+							baotu_target_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
+						}
+					}
+				}
+				if (baotu_target_scene_id > 0 && baotu_target_pos.x > 0) {
+					log_info("解析宝图任务成功");
+					break;
+				}
 			}
 		}
+		if (baotu_target_scene_id <= 0) log_info("未支持的场景，等待添加");
 		delete[]buffer;
 	}
 	log_info("结束解析宝图任务内容:0x%p", hProcess);
@@ -2691,7 +2715,7 @@ void WindowInfo::parse_zeiwang_info() {
 	for(int s=0;s < zeiwang_symbol_list.size();s++){
 		//log_info("找到贼王任务内容，开始解析");
 		std::wstring content;
-		SIZE_T regionSize = 0x240; // 宝图任务的内容长度，这个长度应该够用了
+		SIZE_T regionSize = 0x300; // 宝图任务的内容长度，这个长度应该够用了
 		BYTE* buffer = new BYTE[regionSize];
 		SIZE_T bytesRead=0;
 		pNtReadVirtualMemory(hProcess, (PVOID)(zeiwang_symbol_list[s] - regionSize + symbol_len + tail_symbol_len), buffer, regionSize, &bytesRead);
@@ -3193,7 +3217,7 @@ void WindowInfo::test() {
 	// 玩家坐标地址
 	//is_verifying();
 	//scan_npc_pos_addr(NPC_ZEIWANG);
-	//parse_baotu_task_info();
+	parse_baotu_task_info();
 	//parse_zeiwang_info();
 	//SetForegroundWindow(hwnd);
 	//update_scene_id();
@@ -3203,7 +3227,7 @@ void WindowInfo::test() {
 	//scan_npc_pos_addr_by_id(贼王);
 	//scan_npc_pos_addr_by_id(26946341);
 	//update_player_float_pos();
-	scan_current_scene_npc_id();
+	//scan_current_scene_npc_id();
 	//update_npc_pos(店小二);
 	//move_to_position({ 460,140 }, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
 	//hwnd2mat(hwnd);
@@ -4517,7 +4541,7 @@ int main(int argc, const char** argv)
 	
 	gm.init();
 	gm.hook_data();
-	//gm.test();
+	gm.test();
 	gm.work();
 	return 0;
 }
