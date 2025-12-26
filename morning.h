@@ -306,7 +306,7 @@ public:
 	cv::Rect ROI_health_peg();
 	cv::Rect ROI_mana_hero();
 	cv::Rect ROI_four_man();
-	cv::Rect ROI_ciyushunxu();
+	cv::Rect ROI_paixu_verify();
 	cv::Rect ROI_yidongdezi();
 	cv::Rect ROI_fight_action();
 
@@ -327,6 +327,7 @@ public:
 	//uintptr_t location_dynamic_addr_third_child_first_static_addr = 0;
 	uintptr_t dianxiaoer_pos_addr = 0;
 	uintptr_t changan_yizhanlaoban_pos_addr = 0;
+	uintptr_t zeiwang_pos_addr = 0;
 	std::vector<POINT> dianxiaoer_pos_list;  // 店小二固定移动的几个坐标
 	std::vector<POINT> changan_yizhanlaoban_pos_list;  // 长安驿站老板固定移动的几个坐标
 	float dianxiaoer_pos_x = 0;

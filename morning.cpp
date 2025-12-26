@@ -94,12 +94,14 @@ const cv::Mat img_symbol_feixingfu_jianyecheng = cv_imread("object\\symbol\\feix
 const cv::Mat img_symbol_feixingfu_changshoucun = cv_imread("object\\symbol\\feixingfu_changshoucun.png");
 const cv::Mat img_symbol_feixingfu_aolaiguo = cv_imread("object\\symbol\\feixingfu_aolaiguo.png");
 const cv::Mat img_symbol_feixingfu_zhuziguo = cv_imread("object\\symbol\\feixingfu_zhuziguo.png");
-const cv::Mat img_symbol_ciyushunxu_gray = cv_imread("object\\symbol\\ciyushunxu_gray.png", cv::IMREAD_GRAYSCALE);
+//const cv::Mat img_symbol_ciyushunxu_gray = cv_imread("object\\symbol\\ciyushunxu_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_symbol_yidongdezi_gray = cv_imread("object\\symbol\\yidongdezi_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_symbol_gaosunitadecangshenweizhi = cv_imread("object\\symbol\\gaosunitadecangshenweizhi.png");
+const cv::Mat img_symbol_wozhidaowomenlaodadexingzong = cv_imread("object\\symbol\\wozhidaowomenlaodadexingzong.png");
 const cv::Mat img_symbol_wabao_title_gray = cv_imread("object\\symbol\\wabao_title_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_symbol_task_track_gray = cv_imread("object\\symbol\\task_track_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_symbol_zeiwang = cv_imread("object\\symbol\\zeiwang.png");
+const cv::Mat img_symbol_paixu_verify_reset = cv_imread("object\\symbol\\paixu_verify_reset.png");
 
 const cv::Mat img_cursors_cursor = cv_imread("object\\cursors\\cursor.png");
 
@@ -140,7 +142,7 @@ WindowInfo::WindowInfo(HANDLE processID) {
 	dianxiaoer_pos_list.push_back(POINT{ 470, 650 }); // (23,17)
 	//接任务站位(18,11)
 	dianxiaoer_pos_list.push_back(POINT{ 410, 850 }); // (20,7)
-	//接任务站位(29,10)
+	//接任务站位(26,8)
 	dianxiaoer_pos_list.push_back(POINT{ 450, 850 }); // (22,7)
 	//接任务站位(26,9)
 	dianxiaoer_pos_list.push_back(POINT{ 650, 790 }); // (32,10)
@@ -169,6 +171,7 @@ void WindowInfo::init() {
 	changan_yizhanlaoban_pos_y = 0;
 	baotu_target_scene_id = 0;
 	baotu_target_pos = { 0, 0 };
+	zeiwang_pos_addr = 0;
 	zeiwang_scene_id = 0;
 	zeiwang_id = 0;
 	zeiwang_name.clear();
@@ -423,13 +426,17 @@ void WindowInfo::datu() {
 	else if (step.current == &attack_qiangdao) {
 		log_info("attack_qiangdao,%s", player_id);
 		//SetForegroundWindow(hwnd);
-		talk_to_npc_fight(baotu_target_pos, img_btn_woshilaishoushinide);
-		step.next();
+		if (is_near_loc(baotu_target_pos, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
+			talk_to_npc_fight(baotu_target_pos, img_btn_woshilaishoushinide);
+			step.next();
+		}
+		else { step.set_current(&goto_baotu_scene); };
 	}
 	else if (step.current == &scan_zeiwang_task) {
 		log_info("scan_zeiwang_task,%s", player_id);
 		//SetForegroundWindow(hwnd);
-		if (WaitMatchingRectExist(ROI_npc_talk(), img_symbol_gaosunitadecangshenweizhi, 500)) {
+		move_cursor_center_bottom();
+		if (WaitMatchingRectExist(ROI_npc_talk(), img_symbol_wozhidaowomenlaodadexingzong, 100)) {
 			//关闭贼王提示对话窗
 			close_npc_talk_fast();
 			tScan_npc = TASK_ZEIWANG;
@@ -517,7 +524,7 @@ void WindowInfo::datu() {
 			failure = true;
 			return;
 		}
-		log_info("贼王坐标:%f,%f", zeiwang_pos.x, zeiwang_pos.y);
+		log_info("贼王坐标:%d,%d", zeiwang_pos.x, zeiwang_pos.y);
 		if (talk_to_npc_fight(zeiwang_pos, img_btn_zeiwang_benshaoxiashilaititianxingdaode)) {
 			//step.set_current(&baotu_end);
 			init();
@@ -962,9 +969,15 @@ void WindowInfo::scan_npc_pos_in_thread() {
 		{
 			case 店小二:
 			case 长安驿站老板:
-			case 贼王:
 			{
 				scan_npc_pos_addr_by_id(tScan_npc);
+				tScan_npc = THREAD_IDLE;
+				break;
+			}
+			case 贼王:
+			{
+				scan_zeiwang_id();
+				if (zeiwang_id > 0) { scan_npc_pos_addr_by_id(贼王); }
 				tScan_npc = THREAD_IDLE;
 				break;
 			}
@@ -1194,12 +1207,14 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 		changan_yizhanlaoban_pos_addr = search_addr;
 	}
 	else if (npc == 贼王) {
-
+		zeiwang_pos_addr = search_addr;
+		update_npc_pos(贼王);
 	}
 	log_info("查找坐标结束:%s", player_id);
 }
 void WindowInfo::scan_zeiwang_id() {
 	if (!zeiwang_name.empty()) {
+		log_info("查找贼王id开始:%s", player_id);
 		auto ptr1 = reinterpret_cast<char*>(&npc_first_static_addr);
 		for (int i = 0; i < 8; i++) {
 			auto c = *reinterpret_cast<const unsigned char*>(ptr1 + i);
@@ -1209,7 +1224,7 @@ void WindowInfo::scan_zeiwang_id() {
 		auto npc_waixing_list = PerformAoBScanEx(
 			hProcess,
 			0,
-			"A0 52 7D 8F 18 4F 48 51 A7 7E 3D 00 38 00 20 00 16 59 62 5F 3D 00 32 00 30 00 34 00 34 00 20 00 F6 65 C5 88 35 00 3D 00 30 00 20 00"  //加载优先级=8 外形=2044 时装5=0 特效=0 
+			"A0 52 7D 8F 18 4F 48 51 A7 7E 3D 00 38 00 20 00 16 59 62 5F 3D 00 32 00 30 00 34 00 35 00 20 00 F6 65 C5 88 35 00 3D 00 30 00 20 00"  //加载优先级=8 外形=2045 时装5=0 特效=0 
 		);
 		int symbol_len = 44;
 		for (const auto& wai_xing : npc_waixing_list) {
@@ -1231,9 +1246,9 @@ void WindowInfo::scan_zeiwang_id() {
 						zeiwang_id = std::stoi(tags_wstr.at(0));
 					}
 				}
-
 			}
 		}
+		log_info("查找贼王id结束:%s", player_id);
 	}
 
 }
@@ -1362,6 +1377,11 @@ void WindowInfo::update_npc_pos(int npc) {
 		changan_yizhanlaoban_pos_x = 0;
 		changan_yizhanlaoban_pos_y = 0;
 	}
+	else if (npc == 贼王) {
+		pos_addr = zeiwang_pos_addr;
+		zeiwang_pos.x = 0;
+		zeiwang_pos.y = 0;
+	}
 	if (pos_addr != -1) {
 		SIZE_T regionSize = 0x54;
 		BYTE* buffer = new BYTE[regionSize];
@@ -1387,6 +1407,10 @@ void WindowInfo::update_npc_pos(int npc) {
 						changan_yizhanlaoban_pos_x = x;
 						changan_yizhanlaoban_pos_y = y;
 					}
+				}
+				else if (npc == 贼王) {
+					zeiwang_pos.x = convert_to_map_pos_x(x);
+					zeiwang_pos.y = convert_to_map_pos_y(y);
 				}
 			}
 			else {
@@ -1467,7 +1491,7 @@ POINT WindowInfo::compute_dianxiaoer_pos_lazy() {
 			case 3:
 				return { 18,11 };
 			case 4:
-				return { 29,10 };
+				return { 26,8 };
 			case 5:
 				return { 27,9 };
 			case 6:
@@ -1490,8 +1514,8 @@ POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id,bool fix) {
 	//int y_pixel = 0;
 	int center_x = wWidth / 2;  // 中点坐标 1024 / 2 + x_rim
 	int center_y = wHeight / 2;  // 中点坐标 768 / 2 + y_rim
-	int x_edge = 25;  // 超过这个坐标，人物会在窗口中间
-	int y_edge = 19;  // 超过这个坐标，人物会在窗口中间
+	int x_edge = 20;  // 超过这个坐标，人物会在窗口中间
+	int y_edge = 15;  // 超过这个坐标，人物会在窗口中间
 	int pixel = 25;	 // 25像素一个坐标点
 
 	auto max_loc = get_map_max_loc(scene_id);
@@ -2382,7 +2406,7 @@ bool WindowInfo::is_verifying() {
 		cv::Mat img_gray;
 		cv::cvtColor(image, img_gray, cv::COLOR_BGR2GRAY);
 		if (MatchingLoc(img_gray, ROI_four_man(), img_fight_fourman_title_gray, "", 0.81).x > -1)return true;
-		if (MatchingLoc(img_gray, ROI_ciyushunxu(), img_symbol_ciyushunxu_gray, "", 0.78).x > -1)return true;
+		if (MatchingLoc(image, ROI_paixu_verify(), img_symbol_paixu_verify_reset, "", 0.83).x > -1)return true;
 		if (MatchingLoc(img_gray, ROI_yidongdezi(), img_symbol_yidongdezi_gray, "", 0.74).x > -1)return true;
 	}
 	return false;
@@ -2489,14 +2513,13 @@ void WindowInfo::parse_baotu_task_info() {
 		"23 00 6E 00 2F 00 35 00 30 00 21 6B 09 FF"  // （今天已领取#R8#n/50次）
 	);
 	int temp_count = 0;
-	int index = 0;
 	SIZE_T regionSize = 0x300; // 宝图任务的内容长度，这个长度应该够用了
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
 	SIZE_T symbol_len = 14;
+	int pre_len = 22;
 	// 先根据和店小二的对话，找到今日领取次数
-	for (size_t i = 0; i < baotu_task_symbol_list.size(); ++i) {
-		int pre_len = 22;
+	for (size_t i = 0; i < baotu_task_symbol_list.size(); i++) {
 		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[i] - pre_len), buffer, symbol_len + pre_len, &bytesRead);
 		if (bytesRead > 0) {
 			auto today_num = bytes_to_wstring(buffer, bytesRead);
@@ -2517,14 +2540,12 @@ void WindowInfo::parse_baotu_task_info() {
 				if (num <= baotu_task_count) { continue; }  // 领取次数小于等于上一次的记录，说明是以前的内存没有被释放，忽略掉
 				else {
 					temp_count = num;
-					index = i;
 					break;
 				}
 			}
 			else {
 				if (num > temp_count) {
 					temp_count = num;
-					index = i;
 				}
 			}
 		}
@@ -2535,6 +2556,26 @@ void WindowInfo::parse_baotu_task_info() {
 		std::vector<uintptr_t>baotu_task_content_list;
 		//找到强盗名字
 		for (int m = 0;m < baotu_task_symbol_list.size();m++) {
+			memset(buffer, bytesRead, 0);
+			bytesRead = 0;
+			pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[m] - pre_len), buffer, symbol_len + pre_len, &bytesRead);
+			int num = 0;
+			if (bytesRead > 0) {
+				auto today_num = bytes_to_wstring(buffer, bytesRead);
+				auto tag_number = findContentBetweenTags(today_num, L"#R", L"#n");
+				try {
+					num = std::stoi(tag_number.at(0));
+				}
+				catch (std::invalid_argument& e) {
+					continue;
+				}
+				catch (std::out_of_range& e) {
+					continue;
+				}
+			}
+			if (num != baotu_task_count)continue;
+			memset(buffer, bytesRead, 0);
+			bytesRead = 0;
 			std::wstring content;
 			pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[m] - regionSize), buffer, regionSize, &bytesRead);
 			if (bytesRead > 0) {
@@ -2545,13 +2586,13 @@ void WindowInfo::parse_baotu_task_info() {
 					}
 				}
 			}
-			memset(buffer, bytesRead, 0);
-			bytesRead = 0;
 			if (!content.empty()) {
 				auto tags_wstr = findContentBetweenTags(content, L",\"estr\":\"", L"\",\"evalID\"");
 				if (!tags_wstr.empty()) {
 					std::string struct_AoB = "7B 00 22 00 73 00 74 00 72 00 22 00 3A 00 22 00 ";
 					std::wstring name = tags_wstr[0].c_str();
+					setlocale(LC_ALL, ""); // 设置本地化
+					log_info("%ls", name.c_str());
 					auto ptr1 = reinterpret_cast<char*>(&name);
 					for (int j = 0; j < name.size() * 2; j++) {
 						auto c = *reinterpret_cast<const unsigned char*>(ptr1 + j);
@@ -2602,15 +2643,15 @@ void WindowInfo::parse_baotu_task_info() {
 					}
 				}
 				if (baotu_target_scene_id > 0 && baotu_target_pos.x > 0) {
-					log_info("解析宝图任务成功");
+					log_info("解析宝图任务成功:%d,(%d,%d)", baotu_target_scene_id, baotu_target_pos.x, baotu_target_pos.y);
 					break;
 				}
 			}
 		}
 		if (baotu_target_scene_id <= 0) log_info("未支持的场景，等待添加");
-		delete[]buffer;
 	}
 	log_info("结束解析宝图任务内容:0x%p", hProcess);
+	delete[]buffer;
 }
 //void WindowInfo::parse_baotu_task_info() {
 //	log_info("开始解析宝图任务内容:0x%p", hProcess);
@@ -2712,12 +2753,12 @@ void WindowInfo::parse_zeiwang_info() {
 	);
 	int symbol_len = 24;
 	int tail_symbol_len = 0xC0;
+	SIZE_T regionSize = 0x300; // 宝图任务的内容长度，这个长度应该够用了
+	BYTE* buffer = new BYTE[regionSize];
+	SIZE_T bytesRead = 0;
 	for(int s=0;s < zeiwang_symbol_list.size();s++){
 		//log_info("找到贼王任务内容，开始解析");
 		std::wstring content;
-		SIZE_T regionSize = 0x300; // 宝图任务的内容长度，这个长度应该够用了
-		BYTE* buffer = new BYTE[regionSize];
-		SIZE_T bytesRead=0;
 		pNtReadVirtualMemory(hProcess, (PVOID)(zeiwang_symbol_list[s] - regionSize + symbol_len + tail_symbol_len), buffer, regionSize, &bytesRead);
 		if (bytesRead > 0) {
 			for (int i = 0; i < bytesRead - 1; i++) {
@@ -2753,12 +2794,15 @@ void WindowInfo::parse_zeiwang_info() {
 					auto tags_str = findContentBetweenTags(content, L"\"estr\":\"", L"\",\"");
 					if (!tags_str.empty()) zeiwang_name = tags_str[0];
 				}
-				log_info("%d %ls", zeiwang_scene_id, zeiwang_name.c_str());
+				setlocale(LC_ALL, ""); // 设置本地化
+				log_info("%d,%ls", zeiwang_scene_id, zeiwang_name.c_str());
 				break;
 			}
 		}
-		delete[]buffer;
+		bytesRead = 0;
+		memset(buffer, 0, regionSize);
 	}
+	delete[]buffer;
 	if (zeiwang_scene_id <= 0) log_info("未支持的场景，等待添加");
 	log_info("结束解析贼王内容:0x%p", hProcess);
 }
@@ -2879,9 +2923,14 @@ void WindowInfo::click_position_at_edge(POINT dst, int xs, int ys, int x_fix, in
 	}
 }
 bool WindowInfo::talk_to_npc_fight(POINT dst, const cv::Mat& templ) {
-	hide_player();
+	POINT temp_pos = {-1,-1};
 	for (int i = 0;i < 3;i++) {
 		update_player_float_pos();
+		if (temp_pos.x != player_pos.x && temp_pos.y != player_pos.y) {
+			//人物坐标发生改变，要重新隐藏一下玩家
+			hide_player_n_stalls();
+		}
+		temp_pos = player_pos;
 		log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
 		log_info("点击的坐标:%d,%d", dst.x, dst.y);
 		int ys = -5;
@@ -3202,10 +3251,10 @@ cv::Rect WindowInfo::ROI_mana_hero() {
 	return cv::Rect(955, 15, 65, 11);
 }
 cv::Rect WindowInfo::ROI_four_man() {
-	return cv::Rect(350, 200, 430, 250);
+	return cv::Rect(290, 170, 450, 215);
 }
-cv::Rect WindowInfo::ROI_ciyushunxu() {
-	return cv::Rect(300, 180, 280, 200);
+cv::Rect WindowInfo::ROI_paixu_verify() {
+	return cv::Rect(300, 180, 450, 320);
 }
 cv::Rect WindowInfo::ROI_yidongdezi() {
 	return cv::Rect(150, 90, 280, 170);
@@ -3233,8 +3282,8 @@ void WindowInfo::test() {
 	//hwnd2mat(hwnd);
 	while (1) {
 		//Sleep(2000);
-		update_npc_pos(店小二);
-		update_scene_id();
+		//update_npc_pos(店小二);
+		//update_scene_id();
 		update_player_float_pos();
 		//log_info("测试日志22222");
 	}
@@ -4541,7 +4590,7 @@ int main(int argc, const char** argv)
 	
 	gm.init();
 	gm.hook_data();
-	gm.test();
+	//gm.test();
 	gm.work();
 	return 0;
 }

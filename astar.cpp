@@ -84,7 +84,7 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		case 普陀山:
 			return { 95, 71 };
 		case 女儿村:
-			return { 126, 142 };
+			return { 127, 143 };
 		case 五庄观:
 			return { 98, 73 };
 		case 大唐境外:
