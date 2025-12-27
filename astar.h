@@ -29,6 +29,7 @@ typedef struct {
 #define 长安饰品店 1017
 #define 长安国子监 1026
 #define 长安酒店 1028
+#define 长安酒店二楼 1029
 #define	西梁女国 1040
 #define	长寿村 1070
 #define 长寿村当铺 1072

@@ -40,6 +40,7 @@ typedef unsigned long long QWORD;
 GoodMorning gm;
 auto current_path = fs::current_path();
 
+//畅玩服
 const cv::Mat img_btn_beibao = cv_imread("object\\btn\\beibao.png");
 const cv::Mat img_btn_package_prop = cv_imread("object\\btn\\package_prop.png");
 const cv::Mat img_btn_tingtingwufang = cv_imread("object\\btn\\tingtingwufang.png");
@@ -48,6 +49,7 @@ const cv::Mat img_btn_flag_loc = cv_imread("object\\btn\\flag_loc.png");
 const cv::Mat img_btn_shide_woyaoqu = cv_imread("object\\btn\\shide_woyaoqu.png");
 const cv::Mat img_btn_cancel_auto_round = cv_imread("object\\btn\\cancel_auto_round.png");
 const cv::Mat img_btn_cancel_zhanli = cv_imread("object\\btn\\cancel_zhanli.png");
+const cv::Mat img_btn_reset_auto_round = cv_imread("object\\btn\\reset_auto_round.png");
 const cv::Mat img_btn_woshilaishoushinide = cv_imread("object\\btn\\woshilaishoushinide.png");
 const cv::Mat img_btn_zeiwang_benshaoxiashilaititianxingdaode = cv_imread("object\\btn\\zeiwang_benshaoxiashilaititianxingdaode.png");
 
@@ -86,6 +88,7 @@ const cv::Mat img_fight_fourman_title_gray = cv_imread("object\\fight\\fourman_t
 const cv::Mat img_fight_do_hero_action = cv_imread("object\\fight\\do_hero_action.png");
 const cv::Mat img_fight_do_peg_action = cv_imread("object\\fight\\do_peg_action.png");
 const cv::Mat img_fight_auto = cv_imread("object\\fight\\auto.png");
+const cv::Mat img_fight_auto_round30 = cv_imread("object\\fight\\auto_round30.png");
 
 const cv::Mat img_symbol_map = cv_imread("object\\symbol\\map.png");
 const cv::Mat img_symbol_feixingfu_xiliangnvguo = cv_imread("object\\symbol\\feixingfu_xiliangnvguo.png");
@@ -96,41 +99,84 @@ const cv::Mat img_symbol_feixingfu_aolaiguo = cv_imread("object\\symbol\\feixing
 const cv::Mat img_symbol_feixingfu_zhuziguo = cv_imread("object\\symbol\\feixingfu_zhuziguo.png");
 //const cv::Mat img_symbol_ciyushunxu_gray = cv_imread("object\\symbol\\ciyushunxu_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_symbol_yidongdezi_gray = cv_imread("object\\symbol\\yidongdezi_gray.png", cv::IMREAD_GRAYSCALE);
-const cv::Mat img_symbol_gaosunitadecangshenweizhi = cv_imread("object\\symbol\\gaosunitadecangshenweizhi.png");
+//const cv::Mat img_symbol_gaosunitadecangshenweizhi = cv_imread("object\\symbol\\gaosunitadecangshenweizhi.png");
 const cv::Mat img_symbol_wozhidaowomenlaodadexingzong = cv_imread("object\\symbol\\wozhidaowomenlaodadexingzong.png");
 const cv::Mat img_symbol_wabao_title_gray = cv_imread("object\\symbol\\wabao_title_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_symbol_task_track_gray = cv_imread("object\\symbol\\task_track_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_symbol_zeiwang = cv_imread("object\\symbol\\zeiwang.png");
 const cv::Mat img_symbol_paixu_verify_reset = cv_imread("object\\symbol\\paixu_verify_reset.png");
+const cv::Mat img_symbol_jibaile50geqiangdao = cv_imread("object\\symbol\\jibaile50geqiangdao.png");
 
 const cv::Mat img_cursors_cursor = cv_imread("object\\cursors\\cursor.png");
 
-vector<cv::Mat> health_list = {
-	img_fight_health_100,
-	img_fight_health_95,
-	img_fight_health_90,
-	img_fight_health_85,
-	img_fight_health_80,
-	img_fight_health_75,
-	img_fight_health_70,
-	img_fight_health_65,
-	img_fight_health_60,
-	img_fight_health_55,
-	img_fight_health_50
-};
-vector<cv::Mat> mana_list = {
-	img_fight_mana_100,
-	img_fight_mana_95,
-	img_fight_mana_90,
-	img_fight_mana_85,
-	img_fight_mana_80,
-	img_fight_mana_75,
-	img_fight_mana_70,
-	img_fight_mana_65,
-	img_fight_mana_60,
-	img_fight_mana_55,
-	img_fight_mana_50
-};
+//时间服
+const cv::Mat img_btn_beibao_card = cv_imread("object_card\\btn\\beibao.png");
+const cv::Mat img_btn_package_prop_card = cv_imread("object_card\\btn\\package_prop.png");
+const cv::Mat img_btn_tingtingwufang_card = cv_imread("object_card\\btn\\tingtingwufang.png");
+const cv::Mat img_btn_npc_talk_close_card = cv_imread("object_card\\btn\\npc_talk_close.png");
+const cv::Mat img_btn_flag_loc_card = cv_imread("object_card\\btn\\flag_loc.png");
+const cv::Mat img_btn_shide_woyaoqu_card = cv_imread("object_card\\btn\\shide_woyaoqu.png");
+const cv::Mat img_btn_cancel_auto_round_card = cv_imread("object_card\\btn\\cancel_auto_round.png");
+const cv::Mat img_btn_cancel_zhanli_card = cv_imread("object_card\\btn\\cancel_zhanli.png");
+const cv::Mat img_btn_reset_auto_round_card = cv_imread("object_card\\btn\\reset_auto_round.png");
+const cv::Mat img_btn_woshilaishoushinide_card = cv_imread("object_card\\btn\\woshilaishoushinide.png");
+const cv::Mat img_btn_zeiwang_benshaoxiashilaititianxingdaode_card = cv_imread("object_card\\btn\\zeiwang_benshaoxiashilaititianxingdaode.png");
+
+
+const cv::Mat img_props_red_777_card = cv_imread("object_card\\props\\red_777.png");
+const cv::Mat img_props_white_777_card = cv_imread("object_card\\props\\white_777.png");
+const cv::Mat img_props_green_777_card = cv_imread("object_card\\props\\green_777.png");
+const cv::Mat img_props_yellow_777_card = cv_imread("object_card\\props\\yellow_777.png");
+const cv::Mat img_props_sheyaoxiang_card = cv_imread("object_card\\props\\sheyaoxiang.png");
+const cv::Mat img_npc_dianxiaoer_card = cv_imread("object_card\\npc\\dianxiaoer.png");
+
+
+const cv::Mat img_fight_health_100_card = cv_imread("object_card\\fight\\health_100.png");
+const cv::Mat img_fight_health_95_card = cv_imread("object_card\\fight\\health_95.png");
+const cv::Mat img_fight_health_90_card = cv_imread("object_card\\fight\\health_90.png");
+const cv::Mat img_fight_health_85_card = cv_imread("object_card\\fight\\health_85.png");
+const cv::Mat img_fight_health_80_card = cv_imread("object_card\\fight\\health_80.png");
+const cv::Mat img_fight_health_75_card = cv_imread("object_card\\fight\\health_75.png");
+const cv::Mat img_fight_health_70_card = cv_imread("object_card\\fight\\health_70.png");
+const cv::Mat img_fight_health_65_card = cv_imread("object_card\\fight\\health_65.png");
+const cv::Mat img_fight_health_60_card = cv_imread("object_card\\fight\\health_60.png");
+const cv::Mat img_fight_health_55_card = cv_imread("object_card\\fight\\health_55.png");
+const cv::Mat img_fight_health_50_card = cv_imread("object_card\\fight\\health_50.png");
+const cv::Mat img_fight_mana_100_card = cv_imread("object_card\\fight\\mana_100.png");
+const cv::Mat img_fight_mana_95_card = cv_imread("object_card\\fight\\mana_95.png");
+const cv::Mat img_fight_mana_90_card = cv_imread("object_card\\fight\\mana_90.png");
+const cv::Mat img_fight_mana_85_card = cv_imread("object_card\\fight\\mana_85.png");
+const cv::Mat img_fight_mana_80_card = cv_imread("object_card\\fight\\mana_80.png");
+const cv::Mat img_fight_mana_75_card = cv_imread("object_card\\fight\\mana_75.png");
+const cv::Mat img_fight_mana_70_card = cv_imread("object_card\\fight\\mana_70.png");
+const cv::Mat img_fight_mana_65_card = cv_imread("object_card\\fight\\mana_65.png");
+const cv::Mat img_fight_mana_60_card = cv_imread("object_card\\fight\\mana_60.png");
+const cv::Mat img_fight_mana_55_card = cv_imread("object_card\\fight\\mana_55.png");
+const cv::Mat img_fight_mana_50_card = cv_imread("object_card\\fight\\mana_50.png");
+const cv::Mat img_fight_fourman_title_gray_card = cv_imread("object_card\\fight\\fourman_title_gray.png", cv::IMREAD_GRAYSCALE);
+const cv::Mat img_fight_do_hero_action_card = cv_imread("object_card\\fight\\do_hero_action.png");
+const cv::Mat img_fight_do_peg_action_card = cv_imread("object_card\\fight\\do_peg_action.png");
+const cv::Mat img_fight_auto_card = cv_imread("object_card\\fight\\auto.png");
+const cv::Mat img_fight_auto_round30_card = cv_imread("object_card\\fight\\auto_round30.png");
+
+const cv::Mat img_symbol_map_card = cv_imread("object_card\\symbol\\map.png");
+const cv::Mat img_symbol_feixingfu_xiliangnvguo_card = cv_imread("object_card\\symbol\\feixingfu_xiliangnvguo.png");
+const cv::Mat img_symbol_feixingfu_baoxiangguo_card = cv_imread("object_card\\symbol\\feixingfu_baoxiangguo.png");
+const cv::Mat img_symbol_feixingfu_jianyecheng_card = cv_imread("object_card\\symbol\\feixingfu_jianyecheng.png");
+const cv::Mat img_symbol_feixingfu_changshoucun_card = cv_imread("object_card\\symbol\\feixingfu_changshoucun.png");
+const cv::Mat img_symbol_feixingfu_aolaiguo_card = cv_imread("object_card\\symbol\\feixingfu_aolaiguo.png");
+const cv::Mat img_symbol_feixingfu_zhuziguo_card = cv_imread("object_card\\symbol\\feixingfu_zhuziguo.png");
+//const cv::Mat img_symbol_ciyushunxu_gray = cv_imread("object_card\\symbol\\ciyushunxu_gray.png", cv::IMREAD_GRAYSCALE);
+const cv::Mat img_symbol_yidongdezi_gray_card = cv_imread("object_card\\symbol\\yidongdezi_gray.png", cv::IMREAD_GRAYSCALE);
+//const cv::Mat img_symbol_gaosunitadecangshenweizhi_card = cv_imread("object_card\\symbol\\gaosunitadecangshenweizhi.png");
+const cv::Mat img_symbol_wozhidaowomenlaodadexingzong_card = cv_imread("object_card\\symbol\\wozhidaowomenlaodadexingzong.png");
+const cv::Mat img_symbol_wabao_title_gray_card = cv_imread("object_card\\symbol\\wabao_title_gray.png", cv::IMREAD_GRAYSCALE);
+const cv::Mat img_symbol_task_track_gray_card = cv_imread("object_card\\symbol\\task_track_gray.png", cv::IMREAD_GRAYSCALE);
+const cv::Mat img_symbol_zeiwang_card = cv_imread("object_card\\symbol\\zeiwang.png");
+const cv::Mat img_symbol_paixu_verify_reset_card = cv_imread("object_card\\symbol\\paixu_verify_reset.png");
+const cv::Mat img_symbol_jibaile50geqiangdao_card = cv_imread("object_card\\symbol\\jibaile50geqiangdao.png");
+
+const cv::Mat img_cursors_cursor_card = cv_imread("object_card\\cursors\\cursor.png");
 
 
 WindowInfo::WindowInfo(HANDLE processID) {
@@ -161,8 +207,175 @@ WindowInfo::WindowInfo(HANDLE processID) {
 	changan_yizhanlaoban_pos_list.push_back(POINT{ 5650, 4750 });
 
 }
-
 void WindowInfo::init() {
+	if (RegionMonthly) {
+		m_img_btn_beibao= &img_btn_beibao;
+		m_img_btn_package_prop= &img_btn_package_prop;
+		m_img_btn_tingtingwufang= &img_btn_tingtingwufang;
+		m_img_btn_npc_talk_close= &img_btn_npc_talk_close;
+		m_img_btn_flag_loc= &img_btn_flag_loc;
+		m_img_btn_shide_woyaoqu= &img_btn_shide_woyaoqu;
+		m_img_btn_cancel_auto_round= &img_btn_cancel_auto_round;
+		m_img_btn_cancel_zhanli= &img_btn_cancel_zhanli;
+		m_img_btn_reset_auto_round = &img_btn_reset_auto_round;
+		m_img_btn_woshilaishoushinide= &img_btn_woshilaishoushinide;
+		m_img_btn_zeiwang_benshaoxiashilaititianxingdaode= &img_btn_zeiwang_benshaoxiashilaititianxingdaode;
+
+
+		m_img_props_red_777= &img_props_red_777;
+		m_img_props_white_777= &img_props_white_777;
+		m_img_props_green_777= &img_props_green_777;
+		m_img_props_yellow_777= &img_props_yellow_777;
+		m_img_props_sheyaoxiang= &img_props_sheyaoxiang;
+		m_img_npc_dianxiaoer= &img_npc_dianxiaoer;
+
+
+		m_img_fight_health_100= &img_fight_health_100;
+		m_img_fight_health_95= &img_fight_health_95;
+		m_img_fight_health_90= &img_fight_health_90;
+		m_img_fight_health_85= &img_fight_health_85;
+		m_img_fight_health_80= &img_fight_health_80;
+		m_img_fight_health_75= &img_fight_health_75;
+		m_img_fight_health_70= &img_fight_health_70;
+		m_img_fight_health_65= &img_fight_health_65;
+		m_img_fight_health_60= &img_fight_health_60;
+		m_img_fight_health_55= &img_fight_health_55;
+		m_img_fight_health_50= &img_fight_health_50;
+		m_img_fight_mana_100= &img_fight_mana_100;
+		m_img_fight_mana_95= &img_fight_mana_95;
+		m_img_fight_mana_90= &img_fight_mana_90;
+		m_img_fight_mana_85= &img_fight_mana_85;
+		m_img_fight_mana_80= &img_fight_mana_80;
+		m_img_fight_mana_75=&img_fight_mana_75;
+		m_img_fight_mana_70=&img_fight_mana_70;
+		m_img_fight_mana_65=&img_fight_mana_65;
+		m_img_fight_mana_60=&img_fight_mana_60;
+		m_img_fight_mana_55=&img_fight_mana_55;
+		m_img_fight_mana_50=&img_fight_mana_50;
+		m_img_fight_fourman_title_gray=&img_fight_fourman_title_gray;
+		m_img_fight_do_hero_action=&img_fight_do_hero_action;
+		m_img_fight_do_peg_action=&img_fight_do_peg_action;
+		m_img_fight_auto=&img_fight_auto;
+		m_img_fight_auto_round30 = &img_fight_auto_round30;
+
+		m_img_symbol_map=&img_symbol_map;
+		m_img_symbol_feixingfu_xiliangnvguo=&img_symbol_feixingfu_xiliangnvguo;
+		m_img_symbol_feixingfu_baoxiangguo=&img_symbol_feixingfu_baoxiangguo;
+		m_img_symbol_feixingfu_jianyecheng=&img_symbol_feixingfu_jianyecheng;
+		m_img_symbol_feixingfu_changshoucun=&img_symbol_feixingfu_changshoucun;
+		m_img_symbol_feixingfu_aolaiguo=&img_symbol_feixingfu_aolaiguo;
+		m_img_symbol_feixingfu_zhuziguo=&img_symbol_feixingfu_zhuziguo;
+		m_img_symbol_yidongdezi_gray=&img_symbol_yidongdezi_gray;
+		//m_img_symbol_gaosunitadecangshenweizhi=&img_symbol_gaosunitadecangshenweizhi;
+		m_img_symbol_wozhidaowomenlaodadexingzong=&img_symbol_wozhidaowomenlaodadexingzong;
+		m_img_symbol_wabao_title_gray=&img_symbol_wabao_title_gray;
+		m_img_symbol_task_track_gray=&img_symbol_task_track_gray;
+		m_img_symbol_zeiwang=&img_symbol_zeiwang;
+		m_img_symbol_paixu_verify_reset=&img_symbol_paixu_verify_reset;
+		m_img_symbol_jibaile50geqiangdao = &img_symbol_jibaile50geqiangdao;
+
+		m_img_cursors_cursor=&img_cursors_cursor;
+
+
+		mScreen_x = 16;  // wWidth / 2 / 25  屏幕可以范围坐标跨度
+		mScreen_y = 11;  // wHeight / 2 / 25 屏幕可以范围坐标跨度
+	}
+	else {
+		m_img_btn_beibao = &img_btn_beibao_card;
+		m_img_btn_package_prop = &img_btn_package_prop_card;
+		m_img_btn_tingtingwufang = &img_btn_tingtingwufang_card;
+		m_img_btn_npc_talk_close = &img_btn_npc_talk_close_card;
+		m_img_btn_flag_loc = &img_btn_flag_loc_card;
+		m_img_btn_shide_woyaoqu = &img_btn_shide_woyaoqu_card;
+		m_img_btn_cancel_auto_round = &img_btn_cancel_auto_round_card;
+		m_img_btn_cancel_zhanli = &img_btn_cancel_zhanli_card;
+		m_img_btn_reset_auto_round = &img_btn_reset_auto_round_card;
+		m_img_btn_woshilaishoushinide = &img_btn_woshilaishoushinide_card;
+		m_img_btn_zeiwang_benshaoxiashilaititianxingdaode = &img_btn_zeiwang_benshaoxiashilaititianxingdaode_card;
+
+
+		m_img_props_red_777 = &img_props_red_777_card;
+		m_img_props_white_777 = &img_props_white_777_card;
+		m_img_props_green_777 = &img_props_green_777_card;
+		m_img_props_yellow_777 = &img_props_yellow_777_card;
+		m_img_props_sheyaoxiang = &img_props_sheyaoxiang_card;
+		m_img_npc_dianxiaoer = &img_npc_dianxiaoer_card;
+
+
+		m_img_fight_health_100 = &img_fight_health_100_card;
+		m_img_fight_health_95 = &img_fight_health_95_card;
+		m_img_fight_health_90 = &img_fight_health_90_card;
+		m_img_fight_health_85 = &img_fight_health_85_card;
+		m_img_fight_health_80 = &img_fight_health_80_card;
+		m_img_fight_health_75 = &img_fight_health_75_card;
+		m_img_fight_health_70 = &img_fight_health_70_card;
+		m_img_fight_health_65 = &img_fight_health_65_card;
+		m_img_fight_health_60 = &img_fight_health_60_card;
+		m_img_fight_health_55 = &img_fight_health_55_card;
+		m_img_fight_health_50 = &img_fight_health_50_card;
+		m_img_fight_mana_100 = &img_fight_mana_100_card;
+		m_img_fight_mana_95 = &img_fight_mana_95_card;
+		m_img_fight_mana_90 = &img_fight_mana_90_card;
+		m_img_fight_mana_85 = &img_fight_mana_85_card;
+		m_img_fight_mana_80 = &img_fight_mana_80_card;
+		m_img_fight_mana_75 = &img_fight_mana_75_card;
+		m_img_fight_mana_70 = &img_fight_mana_70_card;
+		m_img_fight_mana_65 = &img_fight_mana_65_card;
+		m_img_fight_mana_60 = &img_fight_mana_60_card;
+		m_img_fight_mana_55 = &img_fight_mana_55_card;
+		m_img_fight_mana_50 = &img_fight_mana_50_card;
+		m_img_fight_fourman_title_gray = &img_fight_fourman_title_gray_card;
+		m_img_fight_do_hero_action = &img_fight_do_hero_action_card;
+		m_img_fight_do_peg_action = &img_fight_do_peg_action_card;
+		m_img_fight_auto = &img_fight_auto_card;
+		m_img_fight_auto_round30 = &img_fight_auto_round30_card;
+
+		m_img_symbol_map = &img_symbol_map_card;
+		m_img_symbol_feixingfu_xiliangnvguo = &img_symbol_feixingfu_xiliangnvguo_card;
+		m_img_symbol_feixingfu_baoxiangguo = &img_symbol_feixingfu_baoxiangguo_card;
+		m_img_symbol_feixingfu_jianyecheng = &img_symbol_feixingfu_jianyecheng_card;
+		m_img_symbol_feixingfu_changshoucun = &img_symbol_feixingfu_changshoucun_card;
+		m_img_symbol_feixingfu_aolaiguo = &img_symbol_feixingfu_aolaiguo_card;
+		m_img_symbol_feixingfu_zhuziguo = &img_symbol_feixingfu_zhuziguo_card;
+		m_img_symbol_yidongdezi_gray = &img_symbol_yidongdezi_gray_card;
+		//m_img_symbol_gaosunitadecangshenweizhi = &img_symbol_gaosunitadecangshenweizhi_card;
+		m_img_symbol_wozhidaowomenlaodadexingzong = &img_symbol_wozhidaowomenlaodadexingzong_card;
+		m_img_symbol_wabao_title_gray = &img_symbol_wabao_title_gray_card;
+		m_img_symbol_task_track_gray = &img_symbol_task_track_gray_card;
+		m_img_symbol_zeiwang = &img_symbol_zeiwang_card;
+		m_img_symbol_paixu_verify_reset = &img_symbol_paixu_verify_reset_card;
+		m_img_symbol_jibaile50geqiangdao = &img_symbol_jibaile50geqiangdao_card;
+
+		m_img_cursors_cursor = &img_cursors_cursor_card;
+	}
+	health_list = {
+		*m_img_fight_health_100,
+		*m_img_fight_health_95,
+		*m_img_fight_health_90,
+		*m_img_fight_health_85,
+		*m_img_fight_health_80,
+		*m_img_fight_health_75,
+		*m_img_fight_health_70,
+		*m_img_fight_health_65,
+		*m_img_fight_health_60,
+		*m_img_fight_health_55,
+		*m_img_fight_health_50
+	};
+	mana_list = {
+		*m_img_fight_mana_100,
+		*m_img_fight_mana_95,
+		*m_img_fight_mana_90,
+		*m_img_fight_mana_85,
+		*m_img_fight_mana_80,
+		*m_img_fight_mana_75,
+		*m_img_fight_mana_70,
+		*m_img_fight_mana_65,
+		*m_img_fight_mana_60,
+		*m_img_fight_mana_55,
+		*m_img_fight_mana_50
+	};
+}
+void WindowInfo::data_reset() {
 	dianxiaoer_pos_addr = 0;
 	dianxiaoer_pos_x = 0;
 	dianxiaoer_pos_y = 0;
@@ -264,7 +477,7 @@ void WindowInfo::datu() {
 		auto image = hwnd2mat(hwnd);
 		if (!is_hangup(image)) {
 			// 自动战斗按钮出现，点击一下
-			auto auto_btn_pos = MatchingLoc(image,ROI_fight_action(), img_fight_auto);
+			auto auto_btn_pos = MatchingLoc(image,ROI_fight_action(), *m_img_fight_auto);
 			if (auto_btn_pos.x > 0) {
 				click_position_at_edge({ rect.left + auto_btn_pos.x, rect.top + auto_btn_pos.y }, -30);
 			}
@@ -310,24 +523,25 @@ void WindowInfo::datu() {
 		cv::Mat image = hwnd2mat(hwnd);
 		cv::Mat image_gray;
 		cv::cvtColor(image, image_gray, cv::COLOR_BGR2GRAY);
-		if (MatchingLoc(image_gray,ROI_task(), img_symbol_task_track_gray).x>-1) {
-			if (MatchingLoc(image_gray,ROI_task(), img_symbol_wabao_title_gray, "", 0.94).x>-1) {
-				if (MatchingLoc(image,ROI_task(), img_symbol_zeiwang, "", 0.94).x>-1) {
+		if (MatchingLoc(image_gray,ROI_task(), *m_img_symbol_task_track_gray).x>-1) {
+			if (MatchingLoc(image_gray,ROI_task(), *m_img_symbol_wabao_title_gray, "", 0.94).x>-1) {
+				if (MatchingLoc(image,ROI_task(), *m_img_symbol_zeiwang, "", 0.94).x>-1) {
 					log_info("贼王没打，开始打贼王,%s", player_id);
 					log_info("已接打图任务，继续任务,%s", player_id);
 					tScan_npc = TASK_ZEIWANG;
 					step.set_current(&goto_zeiwang_scene);
+					auto pixel = MatchingLoc(image,ROI_npc_talk(), *m_img_btn_npc_talk_close);
+					if (pixel.x > -1) {
+						//SetForegroundWindow(hwnd);
+						close_npc_talk();
+					}
 				}
 				else {
 					log_info("已接打图任务，继续任务,%s", player_id);
 					tScan_npc = TASK_BAOTU;
 					step.set_current(&close_dianxiaoer);
 				}
-				auto pixel = MatchingLoc(image,ROI_npc_talk(), img_btn_npc_talk_close);
-				if (pixel.x > -1) {
-					//SetForegroundWindow(hwnd);
-					close_npc_talk();
-				}
+
 			}
 		}
 	}
@@ -355,13 +569,12 @@ void WindowInfo::datu() {
 	}
 	else if (step.current == &to_dianxiaoer_get_task) {
 		if (npc_found) {
-			log_info("to_dianxiaoer,%s", player_id);
 			//线程扫描结束，开始移动
 			move_to_dianxiaoer();
 			if (is_near_dianxiaoer()) {
 				log_info("talk_get_baoturenwu,%s", player_id);
 				if (talk_to_dianxiaoer()) {
-					if (!MatchingRectExist(ROI_npc_talk(), img_btn_tingtingwufang) && WaitMatchingRectExist(ROI_npc_talk(), img_npc_dianxiaoer, 1000)) {
+					if (!MatchingRectExist(ROI_npc_talk(), *m_img_btn_tingtingwufang) && WaitMatchingRectExist(ROI_npc_talk(), *m_img_npc_dianxiaoer, 1000)) {
 						// 接任务后关闭对话窗
 						//SetForegroundWindow(hwnd);
 						//if (close_npc_talk_fast()) {
@@ -372,6 +585,11 @@ void WindowInfo::datu() {
 						step.next();
 					}
 					else {
+						if (MatchingRectExist(ROI_npc_talk(), *m_img_symbol_jibaile50geqiangdao)) {
+							baotu_task_count = 50;
+							data_reset();
+							return;
+						}
 						if (is_verifying()) {
 							if (!mp3_playing) {
 								play_mp3();
@@ -427,7 +645,7 @@ void WindowInfo::datu() {
 		log_info("attack_qiangdao,%s", player_id);
 		//SetForegroundWindow(hwnd);
 		if (is_near_loc(baotu_target_pos, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
-			talk_to_npc_fight(baotu_target_pos, img_btn_woshilaishoushinide);
+			talk_to_npc_fight(baotu_target_pos, *m_img_btn_woshilaishoushinide);
 			step.next();
 		}
 		else { step.set_current(&goto_baotu_scene); };
@@ -436,14 +654,14 @@ void WindowInfo::datu() {
 		log_info("scan_zeiwang_task,%s", player_id);
 		//SetForegroundWindow(hwnd);
 		move_cursor_center_bottom();
-		if (WaitMatchingRectExist(ROI_npc_talk(), img_symbol_wozhidaowomenlaodadexingzong, 100)) {
+		if (WaitMatchingRectExist(ROI_npc_talk(), *m_img_symbol_wozhidaowomenlaodadexingzong, 100)) {
 			//关闭贼王提示对话窗
 			close_npc_talk_fast();
 			tScan_npc = TASK_ZEIWANG;
 			step.next();
 		}
 		else { 
-			init(); 	
+			data_reset(); 	
 		}
 	}
 	else if (step.current == &goto_zeiwang_scene) {
@@ -468,7 +686,7 @@ void WindowInfo::datu() {
 		}
 	}
 	else if (step.current == &fix_my_pos_zeiwang) {
-		// 对于打地图，要走到能看到全图的特定位置再开始扫描
+		// 对于大地图，要走到能看到全图的特定位置再开始扫描
 		switch (zeiwang_scene_id)//todo
 		{
 		case 长安杂货店:
@@ -516,8 +734,7 @@ void WindowInfo::datu() {
 		tScan_npc = 贼王;
 		step.next();
 	}
-	else if (step.current == &attack_zeiwang) {
-		//SetForegroundWindow(hwnd);
+	else if (step.current == &goto_zeiwang) {
 		if (zeiwang_pos.x <= 0) {
 			log_info("处理贼王坐标失败，需要手动处理");
 			play_mp3();
@@ -525,16 +742,21 @@ void WindowInfo::datu() {
 			return;
 		}
 		log_info("贼王坐标:%d,%d", zeiwang_pos.x, zeiwang_pos.y);
-		if (talk_to_npc_fight(zeiwang_pos, img_btn_zeiwang_benshaoxiashilaititianxingdaode)) {
+		move_to_position(zeiwang_pos, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
+		step.next();
+	}
+	else if (step.current == &attack_zeiwang) {
+		//SetForegroundWindow(hwnd);
+		if (talk_to_npc_fight(zeiwang_pos, *m_img_btn_zeiwang_benshaoxiashilaititianxingdaode)) {
 			//step.set_current(&baotu_end);
-			init();
+			data_reset();
 		}
 		else {
 			step.set_current(&fix_my_pos_zeiwang);
 		}
 	}
 	else if (step.current == &baotu_end) {
-		init();
+		data_reset();
 	}
 }
 std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, const BYTE* pattern, size_t pattern_size, const char* mask)
@@ -983,8 +1205,13 @@ void WindowInfo::scan_npc_pos_in_thread() {
 			}
 			case TASK_BAOTU:
 			{
-				Sleep(1500);// 刚接任务，内容没生成，等待一下再开始扫描
-				parse_baotu_task_info();
+				if (RegionMonthly) {
+					Sleep(1500);// 刚接任务，内容没生成，等待一下再开始扫描
+					parse_baotu_task_info();
+				}
+				else {
+					parse_baotu_task_info_card();
+				}
 				tScan_npc = THREAD_IDLE;
 				break;
 			}
@@ -1182,7 +1409,8 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 				memset(buffer, 0, regionSize);
 				pNtReadVirtualMemory(hProcess, (PVOID)heap_child1_addr, buffer, regionSize, &bytesRead);
 				if (bytesRead > 0) {
-					auto p_npc_loc_addr = *reinterpret_cast<QWORD*>(buffer + 0x20);
+					int offset = RegionMonthly ? 0x20 : 0x10;// 畅玩服和点卡服这个结构有点不一样
+					auto p_npc_loc_addr = *reinterpret_cast<QWORD*>(buffer + offset);
 					bytesRead = 0;
 					memset(buffer, 0, regionSize);
 					pNtReadVirtualMemory(hProcess, (PVOID)p_npc_loc_addr, buffer, regionSize, &bytesRead);
@@ -1283,7 +1511,8 @@ void WindowInfo::scan_current_scene_npc_id() {
 				memset(buffer, 0, regionSize);
 				pNtReadVirtualMemory(hProcess, (PVOID)heap_child1_addr, buffer, regionSize, &bytesRead);
 				if (bytesRead > 0) {
-					auto p_npc_loc_addr = *reinterpret_cast<QWORD*>(buffer + 0x20);
+					int offset = RegionMonthly?0x20:0x10;// 畅玩服和点卡服这个结构有点不一样
+					auto p_npc_loc_addr = *reinterpret_cast<QWORD*>(buffer + offset);
 					bytesRead = 0;
 					memset(buffer, 0, regionSize);
 					pNtReadVirtualMemory(hProcess, (PVOID)p_npc_loc_addr, buffer, regionSize, &bytesRead);
@@ -1445,9 +1674,9 @@ void WindowInfo::open_beibao() {
 	move_cursor_center_top();
 	for (int i = 0; i < 5; i++) {
 		input_alt_e();
-		if (WaitMatchingRectExist(ROI_beibao(), img_btn_beibao, 2000)) {
-			if (MatchingRectExist(ROI_beibao(), img_btn_package_prop,"",0.95)) {
-				ClickMatchImage(ROI_beibao(), img_btn_package_prop);
+		if (WaitMatchingRectExist(ROI_beibao(), *m_img_btn_beibao, 2000)) {
+			if (MatchingRectExist(ROI_beibao(), *m_img_btn_package_prop,"",0.95)) {
+				ClickMatchImage(ROI_beibao(), *m_img_btn_package_prop);
 			}
 			break;
 		}
@@ -1458,7 +1687,7 @@ POINT WindowInfo::open_map() {
 	POINT pos = { -1, -1 };
 	for (int i = 0; i < 5; i++) {
 		input_tab();
-		pos = WaitMatchingRectLoc(ROI_map(), img_symbol_map, 2500);
+		pos = WaitMatchingRectLoc(ROI_map(), *m_img_symbol_map, 2500);
 		if (pos.x > 0) {
 			break;
 		}
@@ -1469,11 +1698,11 @@ POINT WindowInfo::open_map() {
 void WindowInfo::close_map() {
 	for (int i = 0; i < 5; i++) {
 		input_tab();
-		if (WaitMatchingRectDisapper(ROI_map(), img_symbol_map, 2500)) break;
+		if (WaitMatchingRectDisapper(ROI_map(), *m_img_symbol_map, 2500)) break;
 	}
 }
 void WindowInfo::close_beibao_smart(bool keep) {
-	if (!keep && MatchingRectExist(ROI_beibao(), img_btn_beibao)) input_alt_e();
+	if (!keep && MatchingRectExist(ROI_beibao(), *m_img_btn_beibao)) input_alt_e();
 }
 POINT WindowInfo::compute_dianxiaoer_pos_lazy() {
 	const POINT* vector_arrary = &dianxiaoer_pos_list[0];
@@ -1517,7 +1746,11 @@ POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id,bool fix) {
 	int x_edge = 20;  // 超过这个坐标，人物会在窗口中间
 	int y_edge = 15;  // 超过这个坐标，人物会在窗口中间
 	int pixel = 25;	 // 25像素一个坐标点
-
+	if (!RegionMonthly) {
+		x_edge = 25;  // 超过这个坐标，人物会在窗口中间
+		y_edge = 19;  // 超过这个坐标，人物会在窗口中间
+		pixel = 20;	 // 20像素一个坐标点
+	}
 	auto max_loc = get_map_max_loc(scene_id);
 
 	if (player_pos.x <= x_edge) px.x = dst.x * pixel;
@@ -1551,7 +1784,12 @@ void WindowInfo::move_to_dianxiaoer() {
 		//log_info("店小二坐标:%d, %d", dst.x, dst.y);
 		//log_info("A星寻路结果:%d, %d", astar_pos.x, astar_pos.y);
 		//SetForegroundWindow(hwnd);
-		move_to_position_flat(dst);
+		if (RegionMonthly) {
+			move_to_position_flat(dst);
+		}
+		else {
+			click_position(dst);
+		}
 		wait_moving_stop(5000);
 	}
 }
@@ -1559,12 +1797,13 @@ void WindowInfo::goto_changanjiudian() {
 	update_player_float_pos();
 	//SetForegroundWindow(hwnd);
 	POINT jiudian = { 470, 170 };	// 长安酒店入口(464,168)
-	if (m_scene_id != 长安城 || !(abs(player_pos.x - jiudian.x) <= 22 && abs(player_pos.y - jiudian.y) <= 18)) {
+	if (m_scene_id != 长安城) {
 		// 不在酒店门口，
 		log_info("不在酒店门口，使用飞行棋");
 		fly_to_changanjiudian();
 	}
-	click_position(jiudian);
+	//if(!(abs(player_pos.x - jiudian.x) <= mScreen_x && abs(player_pos.y - jiudian.y) <= mScreen_y))
+	move_to_other_scene(jiudian, 长安城);
 	wait_moving_stop(3000);
 	moving = true;
 }
@@ -1841,6 +2080,21 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			}
 			break;
 		}
+		case 长安酒店二楼:
+		{
+			if (m_scene_id == 长安城) {
+				move_to_other_scene({ 470, 170 }, 长安城);
+			}
+			else if (m_scene_id == 长安酒店) {
+				move_to_other_scene({ 36,34 }, 长安酒店二楼);
+			}
+			else {
+				POINT jiudian = { 470, 170 };	// 长安酒店入口(464,168)
+				fly_to_changanjiudian();
+				move_to_other_scene(jiudian, 长安城);
+			}
+			break;
+		}
 		case 长寿村当铺:
 		{
 			if (m_scene_id == 长寿村) {
@@ -2017,9 +2271,9 @@ void WindowInfo::use_beibao_prop(const cv::Mat& image, bool turn, bool keep) {
 
 void WindowInfo::use_changan777(cv::Rect roi, bool move, bool turn, bool keep, bool wait_scene) {
 	log_info("使用长安合成旗");
-	use_beibao_prop(img_props_red_777, turn, keep);
+	use_beibao_prop(*m_img_props_red_777, turn, keep);
 	if (move) move_cursor_center_bottom();
-	auto flag_loc = WaitMatchingRectLoc(roi, img_btn_flag_loc, 3000, "", 0.85);
+	auto flag_loc = WaitMatchingRectLoc(roi, *m_img_btn_flag_loc, 3000, "", 0.85);
 	mouse_click_human(flag_loc);
 	if (wait_scene)wait_scene_change(长安城);
 }
@@ -2028,7 +2282,7 @@ void WindowInfo::use_zhuziguo777(cv::Rect roi, bool move, bool turn, bool keep, 
 	log_info("使用朱紫国合成旗");
 	use_beibao_prop(img_props_white_777, turn, keep);
 	if (move) move_cursor_center_bottom();
-	auto flag_loc = WaitMatchingRectLoc(roi, img_btn_flag_loc, 3000, "", 0.85);
+	auto flag_loc = WaitMatchingRectLoc(roi, *m_img_btn_flag_loc, 3000, "", 0.85);
 	mouse_click_human(flag_loc);
 	if (wait_scene)wait_scene_change(朱紫国);
 }
@@ -2037,7 +2291,7 @@ void WindowInfo::use_changshoucun777(cv::Rect roi, bool move, bool turn, bool ke
 	log_info("使用长寿村合成旗");
 	use_beibao_prop(img_props_green_777, turn, keep);
 	if (move) move_cursor_center_bottom();
-	auto flag_loc = WaitMatchingRectLoc(roi, img_btn_flag_loc, 3000, "", 0.85);
+	auto flag_loc = WaitMatchingRectLoc(roi, *m_img_btn_flag_loc, 3000, "", 0.85);
 	mouse_click_human(flag_loc);
 	if (wait_scene)wait_scene_change(长寿村);
 }
@@ -2046,9 +2300,9 @@ void WindowInfo::use_aolaiguo777(cv::Rect roi, bool move, bool turn, bool keep, 
 	log_info("使用傲来国合成旗");
 	use_beibao_prop(img_props_yellow_777, turn, keep);
 	if (move) move_cursor_center_bottom();
-	auto flag_loc = WaitMatchingRectLoc(roi, img_btn_flag_loc, 3000, "", 0.85);
+	auto flag_loc = WaitMatchingRectLoc(roi, *m_img_btn_flag_loc, 3000, "", 0.85);
 	if (flag_loc.x < 0) {
-		if (roi == ROI_aolaiguo777_qianzhuang()) flag_loc = WaitMatchingRectLoc(ROI_aolaiguo777_yaodian(), img_btn_flag_loc, 0, "", 0.85);
+		if (roi == ROI_aolaiguo777_qianzhuang()) flag_loc = WaitMatchingRectLoc(ROI_aolaiguo777_yaodian(), *m_img_btn_flag_loc, 0, "", 0.85);
 	}
 	mouse_click_human(flag_loc);
 	if(wait_scene) wait_scene_change(傲来国);
@@ -2064,37 +2318,37 @@ void WindowInfo::use_feixingfu(unsigned int scene_id, bool wait_scene) {
 	{
 	case 建邺城:
 	{
-		flag_image = img_symbol_feixingfu_jianyecheng;
+		flag_image = *m_img_symbol_feixingfu_jianyecheng;
 		roi = ROI_feixingfu_jianyecheng();
 		break;
 	}
 	case 西梁女国:
 	{
-		flag_image = img_symbol_feixingfu_xiliangnvguo;
+		flag_image = *m_img_symbol_feixingfu_xiliangnvguo;
 		roi = ROI_feixingfu_xiliangnvguo();
 		break;
 	}
 	case 宝象国:
 	{
-		flag_image = img_symbol_feixingfu_baoxiangguo;
+		flag_image = *m_img_symbol_feixingfu_baoxiangguo;
 		roi = ROI_feixingfu_baoxiangguo();
 		break;
 	}
 	case 长寿村:
 	{
-		flag_image = img_symbol_feixingfu_changshoucun;
+		flag_image = *m_img_symbol_feixingfu_changshoucun;
 		roi = ROI_feixingfu_changshoucun();
 		break;
 	}
 	case 傲来国:
 	{
-		flag_image = img_symbol_feixingfu_aolaiguo;
+		flag_image = *m_img_symbol_feixingfu_aolaiguo;
 		roi = ROI_feixingfu_aolaiguo();
 		break;
 	}
 	case 朱紫国:
 	{
-		flag_image = img_symbol_feixingfu_zhuziguo;
+		flag_image = *m_img_symbol_feixingfu_zhuziguo;
 		roi = ROI_feixingfu_zhuziguo();
 		break;
 	}
@@ -2130,7 +2384,7 @@ void WindowInfo::handle_sheyaoxiang_time() {
 	time_t now_time = time(NULL);
 	if (now_time - old_time >= 1770) {
 		log_info("摄妖香已过时，使用摄妖香");
-		use_beibao_prop(img_props_sheyaoxiang);
+		use_beibao_prop(*m_img_props_sheyaoxiang);
 		gm.db[player_id][utf_8_sheyaoxiang] = now_time;
 		gm.update_db();
 	}
@@ -2159,7 +2413,7 @@ void WindowInfo::close_npc_talk() {
 	serial_move({ rect.left + 670, rect.top + 475 });  // npc对话框很大，不用怕鼠标漂移点不准
 }
 bool WindowInfo::close_npc_talk_fast() {
-	auto pixel = MatchingRectLoc(ROI_npc_talk(), img_btn_npc_talk_close);
+	auto pixel = MatchingRectLoc(ROI_npc_talk(), *m_img_btn_npc_talk_close);
 	if (pixel.x < 0) return false;
 	close_npc_talk();
 	return true;
@@ -2215,6 +2469,7 @@ POINT WindowInfo::get_cursor_pos(POINT pos) {
 	// 获取鼠标漂移量
 	POINT tmp_pos = { -1, -1 };
 	auto t_ms = getCurrentTimeMilliseconds();
+	auto rc = ROI_NULL();
 	while (true) {
 		// 循环等待鼠标移动停止
 		if (getCurrentTimeMilliseconds() - t_ms > 1000) return tmp_pos;
@@ -2224,7 +2479,7 @@ POINT WindowInfo::get_cursor_pos(POINT pos) {
 		auto image_roi = image(roi_rect);
 		if (image_roi.empty()) continue;
 		cv::Mat image_inRange = ThresholdinginRange(image_roi);
-		auto cursor_pos = MatchingLoc(image_inRange, ROI_NULL(), img_cursors_cursor, "", 0.74, cv::TM_CCORR_NORMED, MATCHLEFTTOP);  // 游戏自身的鼠标，鼠标用cv::TM_CCORR_NORMED方法匹配准确率最高
+		auto cursor_pos = MatchingLoc(image_inRange, rc, *m_img_cursors_cursor, "", 0.74, cv::TM_CCORR_NORMED, MATCHLEFTTOP);  // 游戏自身的鼠标，鼠标用cv::TM_CCORR_NORMED方法匹配准确率最高
 		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
 		{
@@ -2252,7 +2507,7 @@ bool WindowInfo::talk_to_dianxiaoer() {
 	log_info("店小二坐标:%d,%d", dxe_x, dxe_y);
 	hide_player();
 	click_position({ dxe_x, dxe_y });  // 点击与店小二对话
-	auto pos = WaitMatchingRectLoc(ROI_npc_talk(), img_btn_tingtingwufang);
+	auto pos = WaitMatchingRectLoc(ROI_npc_talk(), *m_img_btn_tingtingwufang);
 	if (pos.x > 0) {
 		mouse_click_human(pos, 0, 0, 1);			// 弹出对话框，接任务
 		return true;
@@ -2405,17 +2660,17 @@ bool WindowInfo::is_verifying() {
 		auto image = hwnd2mat(hwnd);
 		cv::Mat img_gray;
 		cv::cvtColor(image, img_gray, cv::COLOR_BGR2GRAY);
-		if (MatchingLoc(img_gray, ROI_four_man(), img_fight_fourman_title_gray, "", 0.81).x > -1)return true;
-		if (MatchingLoc(image, ROI_paixu_verify(), img_symbol_paixu_verify_reset, "", 0.83).x > -1)return true;
-		if (MatchingLoc(img_gray, ROI_yidongdezi(), img_symbol_yidongdezi_gray, "", 0.74).x > -1)return true;
+		if (MatchingLoc(img_gray, ROI_four_man(), *m_img_fight_fourman_title_gray, "", 0.81).x > -1)return true;
+		if (MatchingLoc(image, ROI_paixu_verify(), *m_img_symbol_paixu_verify_reset, "", 0.83).x > -1)return true;
+		if (MatchingLoc(img_gray, ROI_yidongdezi(), *m_img_symbol_yidongdezi_gray, "", 0.74).x > -1)return true;
 	}
 	return false;
 }
 bool WindowInfo::is_hangup(cv::Mat& image) {
 	// 是否已挂自动战斗
 	bool hangup = false;
-	if (MatchingExist(image, ROI_NULL(), img_btn_cancel_auto_round))hangup = true;
-	else if (MatchingExist(image, ROI_NULL(), img_btn_cancel_zhanli))hangup = true;
+	if (MatchingExist(image, ROI_NULL(), *m_img_btn_cancel_auto_round))hangup = true;
+	else if (MatchingExist(image, ROI_NULL(), *m_img_btn_cancel_zhanli))hangup = true;
 	return hangup;
 }
 bool WindowInfo::is_in_mini_scene() {
@@ -2432,26 +2687,28 @@ void WindowInfo::handle_datu_fight() {
 	auto hangup = is_hangup(image);
 	if (hangup) {
 		//检查重置自动战斗挂机剩余回合
-		//if (gm.db[player_id]["round"] >= randint(19, 24) && f_round == 0) {
-		//	log_info("重置自动战斗挂机剩余回合");
-		//	//SetForegroundWindow(hwnd);
-		//	move_cursor_center_top();
-		//	auto btn_pos = WaitMatchingRectLoc(ROI_NULL(), img_btn_reset_auto_round, 500, "", 0.95);
-		//	if (btn_pos.x > 0) {
-		//		for (int i = 0; i < 3; i++) {
-		//			if (mouse_click_human(btn_pos, 0, 30))break;
-		//		}
-		//		if (WaitMatchingRectExist(ROI_NULL(), img_fight_auto_round30, 300, "", 0.95)) {
-		//			gm.db[player_id]["round"] = 0;
-		//			gm.update_db();
-		//			log_info("重置完毕.");
-		//		}
-		//	}
-		//}
+		if (!RegionMonthly) {
+			if (gm.db[player_id]["round"] >= randint(19, 24) && f_round == 0) {
+				log_info("重置自动战斗挂机剩余回合");
+				//SetForegroundWindow(hwnd);
+				move_cursor_center_top();
+				auto btn_pos = WaitMatchingRectLoc(ROI_NULL(), *m_img_btn_reset_auto_round, 500, "", 0.95);
+				if (btn_pos.x > 0) {
+					for (int i = 0; i < 3; i++) {
+						if (mouse_click_human(btn_pos, 0, 30))break;
+					}
+					if (WaitMatchingRectExist(ROI_NULL(), *m_img_fight_auto_round30, 300, "", 0.95)) {
+						gm.db[player_id]["round"] = 0;
+						gm.update_db();
+						log_info("重置完毕.");
+					}
+				}
+			}
+		}
 	}
 	else {
 		// 四小人验证处理
-		if (MatchingGrayRectExist(ROI_four_man(), img_fight_fourman_title_gray, "", 0.81)) {
+		if (MatchingGrayRectExist(ROI_four_man(), *m_img_fight_fourman_title_gray, "", 0.81)) {
 			if (!mp3_playing) {
 				play_mp3();
 				mp3_playing = true;
@@ -2467,7 +2724,7 @@ void WindowInfo::handle_datu_fight() {
 		//}
 		//}
 
-		if (MatchingExist(image, ROI_fight_action(), img_fight_do_hero_action)) {
+		if (MatchingExist(image, ROI_fight_action(), *m_img_fight_do_hero_action)) {
 			if (getCurrentTimeMilliseconds() - wait_hero_action_time > 2.0) {
 				wait_hero_action_time = getCurrentTimeMilliseconds();
 				f_round += 1;
@@ -2477,10 +2734,10 @@ void WindowInfo::handle_datu_fight() {
 			}
 			if (!hangup) {
 				SetForegroundWindow(hwnd);
-				ClickMatchImage(ROI_fight_action(), img_fight_auto);
+				ClickMatchImage(ROI_fight_action(), *m_img_fight_auto);
 			}
 		}
-		else if (MatchingExist(image, ROI_fight_action(), img_fight_do_peg_action)) {
+		else if (MatchingExist(image, ROI_fight_action(), *m_img_fight_do_peg_action)) {
 			log_info("宠物平A");
 			SetForegroundWindow(hwnd);
 			input_alt_a();
@@ -2513,7 +2770,7 @@ void WindowInfo::parse_baotu_task_info() {
 		"23 00 6E 00 2F 00 35 00 30 00 21 6B 09 FF"  // （今天已领取#R8#n/50次）
 	);
 	int temp_count = 0;
-	SIZE_T regionSize = 0x300; // 宝图任务的内容长度，这个长度应该够用了
+	SIZE_T regionSize = 0x260; // 宝图任务的内容长度，这个长度应该够用了
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
 	SIZE_T symbol_len = 14;
@@ -2558,13 +2815,16 @@ void WindowInfo::parse_baotu_task_info() {
 		for (int m = 0;m < baotu_task_symbol_list.size();m++) {
 			memset(buffer, bytesRead, 0);
 			bytesRead = 0;
-			pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[m] - pre_len), buffer, symbol_len + pre_len, &bytesRead);
-			int num = 0;
+			pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[m] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
+			//pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[m] - pre_len), buffer, symbol_len + pre_len, &bytesRead);
+			std::wstring content;
 			if (bytesRead > 0) {
-				auto today_num = bytes_to_wstring(buffer, bytesRead);
+				//auto sss22 = bytes_to_wstring(buffer, bytesRead);
+				auto today_num = bytes_to_wstring(&buffer[regionSize - symbol_len - pre_len], symbol_len + pre_len);
 				auto tag_number = findContentBetweenTags(today_num, L"#R", L"#n");
 				try {
-					num = std::stoi(tag_number.at(0));
+					auto num = std::stoi(tag_number.at(0));
+					if (num != baotu_task_count)continue;
 				}
 				catch (std::invalid_argument& e) {
 					continue;
@@ -2572,16 +2832,10 @@ void WindowInfo::parse_baotu_task_info() {
 				catch (std::out_of_range& e) {
 					continue;
 				}
-			}
-			if (num != baotu_task_count)continue;
-			memset(buffer, bytesRead, 0);
-			bytesRead = 0;
-			std::wstring content;
-			pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[m] - regionSize), buffer, regionSize, &bytesRead);
-			if (bytesRead > 0) {
-				for (int i = 0; i < bytesRead - 4; i++) {
-					if (buffer[i] == 0x23 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0x57 && buffer[i + 3] == 0x00) {	// #W:23 00 57 00
-						content = bytes_to_wstring(&buffer[i], bytesRead - i);
+				//auto sss = bytes_to_wstring(buffer, bytesRead);
+				for (int i = 0; i < bytesRead - 6; i++) {
+					if (buffer[i] == 0x00 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0x23 && buffer[i + 3] == 0x00 && buffer[i + 4] == 0x57 && buffer[i + 5] == 0x00) {	// #W:23 00 57 00
+						content = bytes_to_wstring(&buffer[i+2], bytesRead - i+2);
 						break;
 					}
 				}
@@ -2618,9 +2872,9 @@ void WindowInfo::parse_baotu_task_info() {
 			bytesRead = 0;
 			pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_content_list[j] - regionSize + end_len * 2), buffer, regionSize, &bytesRead);
 			if (bytesRead > 0) {
-				for (int k = 0; k < bytesRead - 2; k++) {
-					if (buffer[k] == 0xC6 && buffer[k + 1] == 0x25) {	// ◆:C6 25
-						qiangdao_content = bytes_to_wstring(&buffer[k], bytesRead - k + end_len * 2);
+				for (int k = 0; k < bytesRead - 4; k++) {
+					if (buffer[k] == 0x00 && buffer[k + 1] == 0x00 && buffer[k+2] == 0xC6 && buffer[k + 3] == 0x25) {	// ◆:C6 25
+						qiangdao_content = bytes_to_wstring(&buffer[k+2], bytesRead - k+2 + end_len * 2);
 						break;
 					}
 				}
@@ -2653,94 +2907,94 @@ void WindowInfo::parse_baotu_task_info() {
 	log_info("结束解析宝图任务内容:0x%p", hProcess);
 	delete[]buffer;
 }
-//void WindowInfo::parse_baotu_task_info() {
-//	log_info("开始解析宝图任务内容:0x%p", hProcess);
-//	//◆正在#K狮驼岭#B拦路抢劫的#K<EvalFunc>{"str":"强盗凌豹羽","evalID":2755,}</EvalFunc>#B喜欢把他的宝贝藏在#R56，76#B附近，先到先得啊。(今天已领取#R1#B次)#r
-//	// 宝图内容格式：◆xxxx(今天已领取xxx次)#r
-//	// ◆:C6 25
-//	// "28 00 CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00 ? ? 23 00 42 00 21 6B 29 00 23 00 72 00 00 00",  // (今天已领取#R1#B次)#r
-//	auto baotu_task_symbol_list = PerformAoBScanEx(
-//		hProcess,
-//		0,
-//		"? ? 23 00 42 00 21 6B 29 00 23 00 72 00 00 00"  // (今天已领取#R1#B次)#r
-//	);
-//	int symbol_len = 16;
-//	int pre_symbol_len = 20;
-//	int temp_count = 0;
-//	int index = 0;
-//	SIZE_T regionSize = 0x200; // 宝图任务的内容长度，这个长度应该够用了
-//	for (size_t i = 0; i < baotu_task_symbol_list.size(); ++i) {
-//		BYTE* buffer = new BYTE[regionSize];
-//		SIZE_T bytesRead;
-//		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[i] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
-//		if (bytesRead > 0) {
-//			auto today_num = bytes_to_wstring(&buffer[regionSize - symbol_len - pre_symbol_len], symbol_len + pre_symbol_len);
-//			auto tag_number = findContentBetweenTags(today_num, L"(今天已领取#R", L"#B次)");
-//			int num = 0;
-//			try {
-//				num = std::stoi(tag_number.at(0));
-//			}
-//			catch (std::invalid_argument& e) {
-//				continue;
-//			}
-//			catch (std::out_of_range& e) {
-//				continue;
-//			}
-//			if (baotu_task_count > 0) {
-//				if (num <= baotu_task_count) { continue; }  // 领取次数小于等于上一次的记录，说明是以前的内存没有被释放，忽略掉
-//				else {
-//					temp_count = num;
-//					index = i;
-//					break;
-//				}
-//			}
-//			else {
-//				if (num > temp_count) {
-//					temp_count = num;
-//					index = i;
-//				}
-//			}
-//		}
-//		delete[]buffer;
-//	}
-//	if (temp_count > 0) {
-//		std::wstring content;
-//		BYTE* buffer = new BYTE[regionSize];
-//		SIZE_T bytesRead;
-//		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[index] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
-//		if (bytesRead > 0) {
-//			for (int i = 0; i < bytesRead - 1; i++) {
-//				if (buffer[i] == 0xC6 && buffer[i + 1] == 0x25) {
-//					content = bytes_to_wstring(&buffer[i], bytesRead - i - symbol_len - pre_symbol_len + 4);
-//					break;
-//				}
-//			}
-//		}
-//		if (!content.empty()) {
-//			baotu_task_count = temp_count;
-//			log_info("今天已领取:%d次", baotu_task_count);
-//			std::vector<std::wstring> all_tags_wstr;
-//			auto tag_wstr1 = findContentBetweenTags(content, L"#K", L"#B");
-//			auto tag_wstr2 = findContentBetweenTags(content, L"#R", L"#B");
-//			all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr1.begin(), tag_wstr1.end());
-//			all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr2.begin(), tag_wstr2.end());
-//			for (auto& wstr : all_tags_wstr)
-//			{
-//				if (baotu_target_scene_id <= 0) baotu_target_scene_id = get_scene_id_by_name(wstr);
-//				if (baotu_target_pos.x <= 0) {
-//					size_t pos = wstr.find(L"，", 0);
-//					if (pos != std::wstring::npos) {
-//						baotu_target_pos.x = std::stoi(wstr.substr(0, pos));
-//						baotu_target_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
-//					}
-//				}
-//			}
-//			if (baotu_target_scene_id <= 0) log_info("未支持的场景，等待添加");
-//		}
-//		delete[]buffer;
-//	}
-//	log_info("结束解析宝图任务内容:0x%p", hProcess);
-//}
+void WindowInfo::parse_baotu_task_info_card() {
+	log_info("开始解析宝图任务内容:0x%p", hProcess);
+	//◆正在#K狮驼岭#B拦路抢劫的#K<EvalFunc>{"str":"强盗凌豹羽","evalID":2755,}</EvalFunc>#B喜欢把他的宝贝藏在#R56，76#B附近，先到先得啊。(今天已领取#R1#B次)#r
+	// 宝图内容格式：◆xxxx(今天已领取xxx次)#r
+	// ◆:C6 25
+	// "28 00 CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00 ? ? 23 00 42 00 21 6B 29 00 23 00 72 00 00 00",  // (今天已领取#R1#B次)#r
+	auto baotu_task_symbol_list = PerformAoBScanEx(
+		hProcess,
+		0,
+		"? ? 23 00 42 00 21 6B 29 00 23 00 72 00 00 00"  // (今天已领取#R1#B次)#r
+	);
+	int symbol_len = 16;
+	int pre_symbol_len = 20;
+	int temp_count = 0;
+	int index = 0;
+	SIZE_T regionSize = 0x260; // 宝图任务的内容长度，这个长度应该够用了
+	for (size_t i = 0; i < baotu_task_symbol_list.size(); ++i) {
+		BYTE* buffer = new BYTE[regionSize];
+		SIZE_T bytesRead;
+		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[i] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
+		if (bytesRead > 0) {
+			auto today_num = bytes_to_wstring(&buffer[regionSize - symbol_len - pre_symbol_len], symbol_len + pre_symbol_len);
+			auto tag_number = findContentBetweenTags(today_num, L"(今天已领取#R", L"#B次)");
+			int num = 0;
+			try {
+				num = std::stoi(tag_number.at(0));
+			}
+			catch (std::invalid_argument& e) {
+				continue;
+			}
+			catch (std::out_of_range& e) {
+				continue;
+			}
+			if (baotu_task_count > 0) {
+				if (num <= baotu_task_count) { continue; }  // 领取次数小于等于上一次的记录，说明是以前的内存没有被释放，忽略掉
+				else {
+					temp_count = num;
+					index = i;
+					break;
+				}
+			}
+			else {
+				if (num > temp_count) {
+					temp_count = num;
+					index = i;
+				}
+			}
+		}
+		delete[]buffer;
+	}
+	if (temp_count > 0) {
+		std::wstring content;
+		BYTE* buffer = new BYTE[regionSize];
+		SIZE_T bytesRead;
+		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[index] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
+		if (bytesRead > 0) {
+			for (int i = 0; i < bytesRead - 4; i++) {
+				if (buffer[i] == 0x00 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0xC6 && buffer[i + 3] == 0x25) {	// ◆:C6 25
+					content = bytes_to_wstring(&buffer[i], bytesRead - i - symbol_len - pre_symbol_len + 4);
+					break;
+				}
+			}
+		}
+		if (!content.empty()) {
+			baotu_task_count = temp_count;
+			log_info("今天已领取:%d次", baotu_task_count);
+			std::vector<std::wstring> all_tags_wstr;
+			auto tag_wstr1 = findContentBetweenTags(content, L"#K", L"#B");
+			auto tag_wstr2 = findContentBetweenTags(content, L"#R", L"#B");
+			all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr1.begin(), tag_wstr1.end());
+			all_tags_wstr.insert(all_tags_wstr.end(), tag_wstr2.begin(), tag_wstr2.end());
+			for (auto& wstr : all_tags_wstr)
+			{
+				if (baotu_target_scene_id <= 0) baotu_target_scene_id = get_scene_id_by_name(wstr);
+				if (baotu_target_pos.x <= 0) {
+					size_t pos = wstr.find(L"，", 0);
+					if (pos != std::wstring::npos) {
+						baotu_target_pos.x = std::stoi(wstr.substr(0, pos));
+						baotu_target_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
+					}
+				}
+			}
+			if (baotu_target_scene_id <= 0) log_info("未支持的场景，等待添加");
+		}
+		delete[]buffer;
+	}
+	log_info("结束解析宝图任务内容:0x%p", hProcess);
+}
 void WindowInfo::parse_zeiwang_info() {
 	log_info("开始解析贼王内容:0x%p", hProcess);
 	// ◆缉拿潜伏在#R傲来客栈二楼#B内待机作案的#R<EvalFunc>{"str":"贼王司马龚","estr":"贼王司马龚","evalID":2755,}</EvalFunc>。当前剩余时间30分钟。#r
@@ -2761,9 +3015,9 @@ void WindowInfo::parse_zeiwang_info() {
 		std::wstring content;
 		pNtReadVirtualMemory(hProcess, (PVOID)(zeiwang_symbol_list[s] - regionSize + symbol_len + tail_symbol_len), buffer, regionSize, &bytesRead);
 		if (bytesRead > 0) {
-			for (int i = 0; i < bytesRead - 1; i++) {
-				if (buffer[i] == 0xC6 && buffer[i + 1] == 0x25) {
-					content = bytes_to_wstring(&buffer[i], bytesRead - i);
+			for (int i = 0; i < bytesRead - 4; i++) {
+				if (buffer[i] == 0x00 && buffer[i + 1] == 0x00 && buffer[i+2] == 0xC6 && buffer[i + 3] == 0x25) {	// ◆:C6 25
+					content = bytes_to_wstring(&buffer[i+2], bytesRead - i+2);
 					break;
 				}
 			}
@@ -2903,7 +3157,7 @@ void WindowInfo::ship_to_other_scene(POINT door, unsigned int scene_id, int xs, 
 	//door：另一个场景入口
 	//scene_id:另一个场景id
 	click_position(door,0,-5);
-	auto pos = WaitMatchingRectLoc(ROI_npc_talk(), img_btn_shide_woyaoqu);
+	auto pos = WaitMatchingRectLoc(ROI_npc_talk(), *m_img_btn_shide_woyaoqu);
 	if (pos.x > 0) {
 		mouse_click_human(pos, 0, 0, 1);
 		wait_scene_change(scene_id);
@@ -3083,7 +3337,7 @@ cv::Rect WindowInfo::ROI_beibao_props() {
 	return cv::Rect(100, 100, 850, 650);
 }
 cv::Rect WindowInfo::ROI_task() {
-	return cv::Rect(820, 110, 204, 300);
+	return cv::Rect(820, 100, 204, 310);
 }
 cv::Rect WindowInfo::ROI_changan777_changanjiudian() {
 	log_info("长安合成旗-长安酒店");
@@ -3251,7 +3505,7 @@ cv::Rect WindowInfo::ROI_mana_hero() {
 	return cv::Rect(955, 15, 65, 11);
 }
 cv::Rect WindowInfo::ROI_four_man() {
-	return cv::Rect(290, 170, 450, 215);
+	return cv::Rect(290, 170, 490, 280);
 }
 cv::Rect WindowInfo::ROI_paixu_verify() {
 	return cv::Rect(300, 180, 450, 320);
@@ -3266,7 +3520,7 @@ void WindowInfo::test() {
 	// 玩家坐标地址
 	//is_verifying();
 	//scan_npc_pos_addr(NPC_ZEIWANG);
-	parse_baotu_task_info();
+	//parse_baotu_task_info();
 	//parse_zeiwang_info();
 	//SetForegroundWindow(hwnd);
 	//update_scene_id();
@@ -3283,7 +3537,7 @@ void WindowInfo::test() {
 	while (1) {
 		//Sleep(2000);
 		//update_npc_pos(店小二);
-		//update_scene_id();
+		update_scene_id();
 		update_player_float_pos();
 		//log_info("测试日志22222");
 	}
@@ -3363,7 +3617,9 @@ void GoodMorning::init() {
 
 void GoodMorning::hook_data() {
 	for (auto& winfo : this->winsInfo) {
+		winfo->init();
 		winfo->hook_init();
+		winfo->update_player_float_pos();
 	}
 }
 
@@ -3374,8 +3630,6 @@ void GoodMorning::work() {
 		auto t1= std::thread(&WindowInfo::scan_npc_pos_in_thread, this->winsInfo[i].get());
 		t1.detach();
 		threads.emplace_back(std::move(t1));
-
-		winsInfo[i]->update_player_float_pos();
 	}
 
 	while (true) {
@@ -3671,7 +3925,7 @@ cv::Mat hwnd2mat(HWND hwnd) {
 	// 2. Use cvtColor with the COLOR_BGRA2BGR conversion code
 	cv::cvtColor(src, image_bgr, cv::COLOR_BGRA2BGR);
 
-	save_screenshot(image_bgr);
+	//save_screenshot(image_bgr);
 
 	return image_bgr;
 }
@@ -3721,6 +3975,10 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 			//WindowInfo winfo((HANDLE)targetProcessId);
 			winfo->hwnd = hwnd;
 			winfo->player_name = pszMem;
+			auto parent_region=findContentBetweenTags(pszMem,"ONLINE - (", "[");
+			if (!parent_region.empty()) {
+				winfo->RegionMonthly=parent_region[0] == "畅玩服";//畅玩服与时间服区分
+			}
 			gm.winsInfo.push_back(std::move(winfo));
 			printf("窗口句柄回调成功：%s\n", pszMem);
 			VirtualFree(
@@ -4446,6 +4704,31 @@ std::vector<std::wstring> findContentBetweenTags(
 	}
 	return res;
 }
+std::vector<std::string> findContentBetweenTags(
+	const std::string& source,
+	const std::string& startTag,
+	const std::string& endTag) {
+	std::vector<std::string> res;
+	size_t pos = 0; // Start search from the beginning
+
+	// Loop until find() returns std::wstring::npos (not found)
+	while ((pos = source.find(startTag, pos)) != std::string::npos) {
+		// 计算实际内容的起始索引：起始标记的位置 + 起始标记的长度
+		size_t contentStartIdx = pos + startTag.length();
+		size_t endPos = source.find(endTag, contentStartIdx);
+		// 检查是否找到了结束标记
+		if (endPos != std::string::npos) {
+			// substr() 的第二个参数是需要提取的长度，而不是结束索引。
+			size_t length = endPos - contentStartIdx;
+			res.push_back(source.substr(contentStartIdx, length));
+			pos = endPos + endTag.length();
+		}
+		else {
+			break;
+		}
+	}
+	return res;
+}
 // Function to convert a Windows-1252/ANSI string to UTF-8
 std::string AnsiToUtf8(const std::string& ansiStr) {
 	int requiredSize = MultiByteToWideChar(CP_ACP, 0, ansiStr.c_str(), -1, nullptr, 0);
@@ -4491,6 +4774,8 @@ POINT get_map_max_pixel(unsigned int scene_id) {
 			return { 371, 281 };
 		case 长安酒店:
 			return { 384, 285 };
+		case 长安酒店二楼:
+			return { 384, 285 };
 		case 长安城:
 			return { 545, 276 };
 		case 东海湾:
@@ -4520,32 +4805,32 @@ POINT get_map_max_pixel(unsigned int scene_id) {
 	}
 	return { -1, -1 };
 }
-std::vector<POINT> get_scene_npc_list(unsigned int scene_id) {
-	switch (scene_id)
-	{
-		case 长安杂货店:
-			return changan_zahuodian_npc_list;
-		case 长安饰品店:
-			return changan_shipindian_npc_list;
-		case 长安国子监:
-			return changan_guozijian_npc_list;
-		case 建邺城:
-			return jianyecheng_npc_list;
-		//case 建邺衙门:
-		//	return jianyeyamen_npc_list;
-		case 建邺杂货店:
-			return jianyezahuodian_npc_list;
-		case 傲来客栈二楼:
-			return aolaikezhanerlou_npc_list;
-		case 傲来国药店:
-			return aolaiguo_yaodian_npc_list;
-		case 长寿村当铺:
-			return changshoucun_dangpu_npc_list;
-		//case 长寿郊外:
-		//	return changshoujiaowai_npc_list;
-	}
-	return std::vector<POINT>{};
-}
+//std::vector<POINT> get_scene_npc_list(unsigned int scene_id) {
+//	switch (scene_id)
+//	{
+//		case 长安杂货店:
+//			return changan_zahuodian_npc_list;
+//		case 长安饰品店:
+//			return changan_shipindian_npc_list;
+//		case 长安国子监:
+//			return changan_guozijian_npc_list;
+//		case 建邺城:
+//			return jianyecheng_npc_list;
+//		//case 建邺衙门:
+//		//	return jianyeyamen_npc_list;
+//		case 建邺杂货店:
+//			return jianyezahuodian_npc_list;
+//		case 傲来客栈二楼:
+//			return aolaikezhanerlou_npc_list;
+//		case 傲来国药店:
+//			return aolaiguo_yaodian_npc_list;
+//		case 长寿村当铺:
+//			return changshoucun_dangpu_npc_list;
+//		//case 长寿郊外:
+//		//	return changshoujiaowai_npc_list;
+//	}
+//	return std::vector<POINT>{};
+//}
 int main(int argc, const char** argv)
 {
 	//log_info("日志输出测试");

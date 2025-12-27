@@ -57,6 +57,8 @@ POINT get_map_max_loc(unsigned int scene_id) {
 			return { 79, 59 };
 		case 长安酒店:
 			return { 66, 49 };
+		case 长安酒店二楼:
+			return { 63, 47 };
 		case 西梁女国:
 			return { 163, 123 };
 		case 长寿村:
@@ -116,6 +118,7 @@ unsigned int get_scene_id_by_name(std::wstring name) {
 	else if (name == L"长安饰品店") { scene_id = 长安饰品店; }
 	else if (name == L"长安国子监") { scene_id = 长安国子监; }
 	else if (name == L"长安酒店") { scene_id = 长安酒店; }
+	else if (name == L"长安酒店二楼") { scene_id = 长安酒店二楼; }
 	else if (name == L"西梁女国") { scene_id = 西梁女国; }
 	else if (name == L"长寿村") { scene_id = 长寿村; }
 	else if (name == L"长寿村当铺") { scene_id = 长寿村当铺; }

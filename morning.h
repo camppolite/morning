@@ -95,6 +95,7 @@ std::string goto_zeiwang_scene("goto_zeiwang_scene");
 std::string fix_my_pos_zeiwang("fix_my_pos_zeiwang");
 std::string scan_zeiwang_pos("scan_zeiwang_pos");
 //std::string try_zeiwang_pos("try_zeiwang_pos");
+std::string goto_zeiwang("goto_zeiwang");
 std::string attack_zeiwang("attack_zeiwang");
 std::string baotu_end("baotu_end");
 std::vector<std::string*> datu_step = {
@@ -112,6 +113,7 @@ std::vector<std::string*> datu_step = {
 	& fix_my_pos_zeiwang,
 	& scan_zeiwang_pos,
 	//& try_zeiwang_pos,
+	& goto_zeiwang,
 	& attack_zeiwang,
 	&baotu_end
 };
@@ -120,16 +122,16 @@ double gThreshold = 0.81;  // 默认值
 int gMatchMethod = cv::TM_CCOEFF_NORMED;  // 默认值
 
 // 场景NPC固定坐标
-std::vector<POINT> changan_zahuodian_npc_list = { {370,250} };  //长安杂货店
-std::vector<POINT> changan_shipindian_npc_list = { {530,350} };   //长安饰品店
-std::vector<POINT> changan_guozijian_npc_list = {  };// 长安国子监 todo
-std::vector<POINT> jianyecheng_npc_list = {  };//建邺城 todo
-//std::vector<POINT> jianyeyamen_npc_list = {  };//建邺衙门 todo
-std::vector<POINT> jianyezahuodian_npc_list = { {690,510} };//建邺杂货店 todo
-std::vector<POINT> aolaikezhanerlou_npc_list = {  };//傲来客栈二楼 todo
-std::vector<POINT> aolaiguo_yaodian_npc_list = {  };//傲来药店 todo
-std::vector<POINT> changshoucun_dangpu_npc_list = { {410,250} };//长寿村当铺 todo
-//std::vector<POINT> changshoujiaowai_npc_list = {  };//长寿郊外 todo
+//std::vector<POINT> changan_zahuodian_npc_list = { {370,250} };  //长安杂货店
+//std::vector<POINT> changan_shipindian_npc_list = { {530,350} };   //长安饰品店
+//std::vector<POINT> changan_guozijian_npc_list = {  };// 长安国子监 
+//std::vector<POINT> jianyecheng_npc_list = {  };//建邺城 
+////std::vector<POINT> jianyeyamen_npc_list = {  };//建邺衙门 
+//std::vector<POINT> jianyezahuodian_npc_list = { {690,510} };//建邺杂货店 
+//std::vector<POINT> aolaikezhanerlou_npc_list = {  };//傲来客栈二楼 
+//std::vector<POINT> aolaiguo_yaodian_npc_list = {  };//傲来药店 
+//std::vector<POINT> changshoucun_dangpu_npc_list = { {410,250} };//长寿村当铺 
+////std::vector<POINT> changshoujiaowai_npc_list = {  };//长寿郊外 
 
 vector<unsigned int>monster_scene_list = { 大唐国境,狮驼岭,普陀山,大唐境外,江南野外,东海湾,花果山,长寿郊外 };//野外遇怪场景
 
@@ -163,6 +165,7 @@ class WindowInfo {
 public:
 	WindowInfo(HANDLE processID);
 	void init();
+	void data_reset();
 	void hook_init();
 	void datu();
 	void test();
@@ -223,6 +226,7 @@ public:
 	int convert_to_map_pos_y(float y);
 	bool talk_to_dianxiaoer();
 	void parse_baotu_task_info();
+	void parse_baotu_task_info_card();
 	void parse_zeiwang_info();
 	bool goto_scene(POINT dst, unsigned int scene_id);
 	void move_to_position(POINT dst, long active_x = 0, long active_y = 0);
@@ -310,6 +314,7 @@ public:
 	cv::Rect ROI_yidongdezi();
 	cv::Rect ROI_fight_action();
 
+	bool RegionMonthly = false;//是否畅玩服
 	float player_x = 0;  // 这里的玩家坐标是float值，是内部地图坐标
 	float player_y = 0;  // 这里的玩家坐标是float值，是内部地图坐标
 	POINT player_pos = { 0, 0 };
@@ -363,8 +368,8 @@ public:
 	RECT rect;
 	long wWidth = 1024;  // 游戏窗口大小
 	long wHeight = 768;  // 游戏窗口大小
-	int mScreen_x = 17;  // wWidth / 2 / 25  屏幕可以范围坐标跨度
-	int mScreen_y = 12;  // wHeight / 2 / 25 屏幕可以范围坐标跨度
+	int mScreen_x = 21;  // wWidth / 2 / 20  屏幕可以范围坐标跨度
+	int mScreen_y = 15;  // wHeight / 2 / 20 屏幕可以范围坐标跨度
 	HANDLE hProcess = 0;
 	HMODULE hNtdll = 0;
 	HMODULE mhmainDllBase = 0;
@@ -372,7 +377,77 @@ public:
 
 	Step step = Step(datu_step);
 	TimeProcessor time_pawn = TimeProcessor();
-	//std::thread thread1 = std::thread(&WindowInfo::test, this);;
+	//std::thread thread1 = std::thread(&WindowInfo::test, this);
+
+	vector<cv::Mat> health_list;
+	vector<cv::Mat> mana_list;
+private:
+	const cv::Mat* m_img_btn_beibao;
+	const cv::Mat* m_img_btn_package_prop;
+	const cv::Mat* m_img_btn_tingtingwufang;
+	const cv::Mat* m_img_btn_npc_talk_close;
+	const cv::Mat* m_img_btn_flag_loc;
+	const cv::Mat* m_img_btn_shide_woyaoqu;
+	const cv::Mat* m_img_btn_cancel_auto_round;
+	const cv::Mat* m_img_btn_cancel_zhanli;
+	const cv::Mat* m_img_btn_reset_auto_round;
+	const cv::Mat* m_img_btn_woshilaishoushinide;
+	const cv::Mat* m_img_btn_zeiwang_benshaoxiashilaititianxingdaode;
+
+
+	const cv::Mat* m_img_props_red_777;
+	const cv::Mat* m_img_props_white_777;
+	const cv::Mat* m_img_props_green_777;
+	const cv::Mat* m_img_props_yellow_777;
+	const cv::Mat* m_img_props_sheyaoxiang;
+	const cv::Mat* m_img_npc_dianxiaoer;
+
+
+	const cv::Mat* m_img_fight_health_100;
+	const cv::Mat* m_img_fight_health_95;
+	const cv::Mat* m_img_fight_health_90;
+	const cv::Mat* m_img_fight_health_85;
+	const cv::Mat* m_img_fight_health_80;
+	const cv::Mat* m_img_fight_health_75;
+	const cv::Mat* m_img_fight_health_70;
+	const cv::Mat* m_img_fight_health_65;
+	const cv::Mat* m_img_fight_health_60;
+	const cv::Mat* m_img_fight_health_55;
+	const cv::Mat* m_img_fight_health_50;
+	const cv::Mat* m_img_fight_mana_100;
+	const cv::Mat* m_img_fight_mana_95;
+	const cv::Mat* m_img_fight_mana_90;
+	const cv::Mat* m_img_fight_mana_85;
+	const cv::Mat* m_img_fight_mana_80;
+	const cv::Mat* m_img_fight_mana_75;
+	const cv::Mat* m_img_fight_mana_70;
+	const cv::Mat* m_img_fight_mana_65;
+	const cv::Mat* m_img_fight_mana_60;
+	const cv::Mat* m_img_fight_mana_55;
+	const cv::Mat* m_img_fight_mana_50;
+	const cv::Mat* m_img_fight_fourman_title_gray;
+	const cv::Mat* m_img_fight_do_hero_action;
+	const cv::Mat* m_img_fight_do_peg_action;
+	const cv::Mat* m_img_fight_auto;
+	const cv::Mat* m_img_fight_auto_round30;
+
+	const cv::Mat* m_img_symbol_map;
+	const cv::Mat* m_img_symbol_feixingfu_xiliangnvguo;
+	const cv::Mat* m_img_symbol_feixingfu_baoxiangguo;
+	const cv::Mat* m_img_symbol_feixingfu_jianyecheng;
+	const cv::Mat* m_img_symbol_feixingfu_changshoucun;
+	const cv::Mat* m_img_symbol_feixingfu_aolaiguo;
+	const cv::Mat* m_img_symbol_feixingfu_zhuziguo;
+	const cv::Mat* m_img_symbol_yidongdezi_gray;
+	//const cv::Mat* m_img_symbol_gaosunitadecangshenweizhi;
+	const cv::Mat* m_img_symbol_wozhidaowomenlaodadexingzong;
+	const cv::Mat* m_img_symbol_wabao_title_gray;
+	const cv::Mat* m_img_symbol_task_track_gray;
+	const cv::Mat* m_img_symbol_zeiwang;
+	const cv::Mat* m_img_symbol_paixu_verify_reset;
+	const cv::Mat* m_img_symbol_jibaile50geqiangdao;
+
+	const cv::Mat* m_img_cursors_cursor;
 };
 class GoodMorning {
 public:
@@ -394,7 +469,7 @@ public:
 	//TimeProcessor time_pawn = TimeProcessor();
 	//TimeProcessor task_pawn = TimeProcessor();
 private:
-
+	
 };
 
 cv::Mat cv_imread(const char* filename, int flags = cv::IMREAD_COLOR);
@@ -411,9 +486,10 @@ POINT MatchingRectLoc(cv::Rect roi_rect, std::string image_path, std::string tem
 uint64_t getCurrentTimeMilliseconds();
 std::wstring bytes_to_wstring(const unsigned char* buffer, size_t size);
 std::vector<std::wstring> findContentBetweenTags(const std::wstring& source, const std::wstring& startTag, const std::wstring& endTag);
+std::vector<std::string> findContentBetweenTags(const std::string& source, const std::string& startTag, const std::string& endTag);
 std::string AnsiToUtf8(const std::string& ansiStr);
 POINT get_map_max_pixel(unsigned int scene_id);
-std::vector<POINT> get_scene_npc_list(unsigned int scene_id);
+//std::vector<POINT> get_scene_npc_list(unsigned int scene_id);
 cv::Mat CannyThreshold(cv::Mat src);
 cv::Mat ThresholdinginRange(cv::Mat frame);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
