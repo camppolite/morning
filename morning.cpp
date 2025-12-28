@@ -389,6 +389,7 @@ void WindowInfo::data_reset() {
 	zeiwang_id = 0;
 	zeiwang_name.clear();
 	zeiwang_pos = { 0,0 };
+	zeiwang_fake_pos = { 0,0 };
 	f_round = 0;
 	npc_found = false;
 	step.reset();
@@ -468,17 +469,19 @@ void WindowInfo::datu() {
 		while (is_verifying()) {
 			Sleep(100);
 		}
-		if (mp3_playing) { 
-			std::thread(stop_laba).detach();
+		if (mp3_playing) {
+			stop_laba();
+			//std::thread(stop_laba).detach();
+			Sleep(800);
 		}
 		mp3_playing = false;
 		popup_verify = false;
-
 		auto image = hwnd2mat(hwnd);
 		if (!is_hangup(image)) {
 			// 自动战斗按钮出现，点击一下
-			auto auto_btn_pos = MatchingLoc(image,ROI_fight_action(), *m_img_fight_auto);
+			auto auto_btn_pos = MatchingLoc(image, ROI_fight_action(), *m_img_fight_auto);
 			if (auto_btn_pos.x > 0) {
+				log_info("点击自动战斗:%d,%d", auto_btn_pos.x, auto_btn_pos.y);
 				click_position_at_edge({ rect.left + auto_btn_pos.x, rect.top + auto_btn_pos.y }, -30);
 			}
 		}
@@ -486,26 +489,6 @@ void WindowInfo::datu() {
 	}
 	if (tScan_npc != THREAD_IDLE) return;
 	if (baotu_task_count >= 50)return;//一天只能打50次
-	if (is_fighting()) {
-		//if (time_pawn.timeout(5000)) {
-		//	SetForegroundWindow(hwnd);
-		//	time_pawn_update();
-		//}
-		if (f_round < 1) {
-			//只处理第一回合的战斗，其他回合挂机
-			handle_datu_fight();
-		}
-		return;
-	}
-	if (moving) {
-		if (is_moving()) {
-			if (time_pawn.timeout(35000)) {
-				handle_sheyaoxiang_time();
-				time_pawn_update();
-			}
-			return;
-		}
-	}
 	//必须要经常置顶窗口，否则梦幻后台不更新界面，截图是固定画面
 	if (IsIconic(hwnd)) {
 		// Window is minimized
@@ -514,7 +497,29 @@ void WindowInfo::datu() {
 		failure = true;
 		return;
 	}
-	SetForegroundWindow(hwnd);
+	if (is_fighting()) {
+		//if (time_pawn.timeout(5000)) {
+		//	SetForegroundWindow(hwnd);
+		//	time_pawn_update();
+		//}
+		if (f_round < 1) {
+			SetForegroundWindow(hwnd);
+			//只处理第一回合的战斗，其他回合挂机
+			handle_datu_fight();
+		}
+		return;
+	}
+	if (moving) {
+		if (is_moving()) {
+			if (time_pawn.timeout(35000)) {
+				SetForegroundWindow(hwnd);
+				handle_sheyaoxiang_time();
+				time_pawn_update();
+			}
+			return;
+		}
+	}
+	//SetForegroundWindow(hwnd);
 	time_pawn_update();
 	if (step.current == &work_start) {
 		// 重新运行程序，任务步骤预检查
@@ -524,15 +529,14 @@ void WindowInfo::datu() {
 		cv::Mat image_gray;
 		cv::cvtColor(image, image_gray, cv::COLOR_BGR2GRAY);
 		if (MatchingLoc(image_gray,ROI_task(), *m_img_symbol_task_track_gray).x>-1) {
-			if (MatchingLoc(image_gray,ROI_task(), *m_img_symbol_wabao_title_gray, "", 0.94).x>-1) {
-				if (MatchingLoc(image,ROI_task(), *m_img_symbol_zeiwang, "", 0.94).x>-1) {
+			if (MatchingLoc(image_gray,ROI_task(), *m_img_symbol_wabao_title_gray, "", 0.91).x>-1) {
+				if (MatchingLoc(image,ROI_task(), *m_img_symbol_zeiwang, "", 0.91).x>-1) {
 					log_info("贼王没打，开始打贼王,%s", player_id);
-					log_info("已接打图任务，继续任务,%s", player_id);
 					tScan_npc = TASK_ZEIWANG;
 					step.set_current(&goto_zeiwang_scene);
 					auto pixel = MatchingLoc(image,ROI_npc_talk(), *m_img_btn_npc_talk_close);
 					if (pixel.x > -1) {
-						//SetForegroundWindow(hwnd);
+						SetForegroundWindow(hwnd);
 						close_npc_talk();
 					}
 				}
@@ -541,7 +545,6 @@ void WindowInfo::datu() {
 					tScan_npc = TASK_BAOTU;
 					step.set_current(&close_dianxiaoer);
 				}
-
 			}
 		}
 	}
@@ -549,6 +552,7 @@ void WindowInfo::datu() {
 		log_info("to_changan_jiudian,%s", player_id);
 		update_scene_id();
 		if (m_scene_id != 长安酒店) {
+			SetForegroundWindow(hwnd);
 			goto_changanjiudian();
 		}
 		if (m_scene_id == 长安酒店) {
@@ -572,11 +576,11 @@ void WindowInfo::datu() {
 			//线程扫描结束，开始移动
 			move_to_dianxiaoer();
 			if (is_near_dianxiaoer()) {
+				SetForegroundWindow(hwnd);
 				log_info("talk_get_baoturenwu,%s", player_id);
 				if (talk_to_dianxiaoer()) {
-					if (!MatchingRectExist(ROI_npc_talk(), *m_img_btn_tingtingwufang) && WaitMatchingRectExist(ROI_npc_talk(), *m_img_npc_dianxiaoer, 1000)) {
+					if (WaitMatchingGrayRectExist(ROI_task(), *m_img_symbol_task_track_gray, 1000)) {
 						// 接任务后关闭对话窗
-						//SetForegroundWindow(hwnd);
 						//if (close_npc_talk_fast()) {
 						//	tScan_npc = TASK_BAOTU;
 						//	step.next();
@@ -597,6 +601,7 @@ void WindowInfo::datu() {
 							}
 							popup_verify = true;
 							for (int i = 0; i < 5; i++) { log_info("***宝图任务弹窗验证,请手动点击***"); }
+							return;
 						}
 						step.set_current(&scan_dianxiaoer_pos);
 					}
@@ -621,21 +626,20 @@ void WindowInfo::datu() {
 			failure = true;
 		}
 		else {
-			//SetForegroundWindow(hwnd);
+			SetForegroundWindow(hwnd);
 			close_npc_talk_fast();
 			goto_scene(baotu_target_pos, baotu_target_scene_id);
 			step.next();
 		}
 	}
 	else if (step.current == &goto_baotu_scene) {
-		//if (tScan_npc != THREAD_IDLE) return;
 		if (baotu_target_scene_id <= 0 || baotu_target_pos.x <= 0) {
 			log_info("解析宝图任务失败，需要手动处理");
 			play_mp3();
 			failure = true;
 		}
 		else {
-			//SetForegroundWindow(hwnd);
+			SetForegroundWindow(hwnd);
 			if (goto_scene(baotu_target_pos, baotu_target_scene_id)) {
 				step.next();
 			}
@@ -643,8 +647,8 @@ void WindowInfo::datu() {
 	}
 	else if (step.current == &attack_qiangdao) {
 		log_info("attack_qiangdao,%s", player_id);
-		//SetForegroundWindow(hwnd);
 		if (is_near_loc(baotu_target_pos, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
+			SetForegroundWindow(hwnd);
 			talk_to_npc_fight(baotu_target_pos, *m_img_btn_woshilaishoushinide);
 			step.next();
 		}
@@ -652,7 +656,7 @@ void WindowInfo::datu() {
 	}
 	else if (step.current == &scan_zeiwang_task) {
 		log_info("scan_zeiwang_task,%s", player_id);
-		//SetForegroundWindow(hwnd);
+		SetForegroundWindow(hwnd);
 		move_cursor_center_bottom();
 		if (WaitMatchingRectExist(ROI_npc_talk(), *m_img_symbol_wozhidaowomenlaodadexingzong, 100)) {
 			//关闭贼王提示对话窗
@@ -665,16 +669,15 @@ void WindowInfo::datu() {
 		}
 	}
 	else if (step.current == &goto_zeiwang_scene) {
-		//if (tScan_npc != THREAD_IDLE) return;
 		if (zeiwang_scene_id <= 0) {
 			log_info("解析贼王失败，需要手动处理");
 			play_mp3();
 			failure = true;
 		}
 		else {
-			//SetForegroundWindow(hwnd);
-			if (goto_scene(zeiwang_pos, zeiwang_scene_id)) {
-				if (zeiwang_pos.x > 0) {
+			SetForegroundWindow(hwnd);
+			if (goto_scene(zeiwang_fake_pos, zeiwang_scene_id)) {
+				if (zeiwang_fake_pos.x > 0) {
 					//对于有坐标的贼王，直接寻路到坐标点就行
 					tScan_npc = 贼王;
 					step.set_current(&attack_zeiwang);
@@ -731,22 +734,30 @@ void WindowInfo::datu() {
 		step.next();
 	}
 	else if (step.current == &scan_zeiwang_pos) {
+		log_info("scan_zeiwang_pos");
+		if (zeiwang_fake_pos.x > 0) {
+			SetForegroundWindow(hwnd);
+			move_to_position(zeiwang_fake_pos, MAP_MOVE_DISTENCE, MAP_MOVE_DISTENCE);
+		}
 		tScan_npc = 贼王;
 		step.next();
 	}
 	else if (step.current == &goto_zeiwang) {
+		log_info("goto_zeiwang");
 		if (zeiwang_pos.x <= 0) {
 			log_info("处理贼王坐标失败，需要手动处理");
 			play_mp3();
 			failure = true;
 			return;
 		}
+		SetForegroundWindow(hwnd);
 		log_info("贼王坐标:%d,%d", zeiwang_pos.x, zeiwang_pos.y);
-		move_to_position(zeiwang_pos, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
+		move_to_position(zeiwang_pos, MAP_MOVE_DISTENCE, MAP_MOVE_DISTENCE);
 		step.next();
 	}
 	else if (step.current == &attack_zeiwang) {
-		//SetForegroundWindow(hwnd);
+		SetForegroundWindow(hwnd);
+		log_info("attack_zeiwang");
 		if (talk_to_npc_fight(zeiwang_pos, *m_img_btn_zeiwang_benshaoxiashilaititianxingdaode)) {
 			//step.set_current(&baotu_end);
 			data_reset();
@@ -1101,7 +1112,19 @@ POINT WindowInfo::WaitMatchingRectLoc(cv::Rect roi_rect, const cv::Mat& templ, i
 		//Sleep(5);
 	}
 }
-
+bool WindowInfo::WaitMatchingGrayRectExist(cv::Rect roi_rect, const cv::Mat& templ, int timeout, std::string mask_path, double threshold, int match_method) {
+	auto t_ms = getCurrentTimeMilliseconds();
+	while (true) {
+		auto match = MatchingGrayRectExist(roi_rect, templ, mask_path, threshold, match_method);
+		if (match) return true;
+		if (timeout == 0) break;
+		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
+			log_info("超时");
+			return false;
+		}
+		//Sleep(5);
+	}
+}
 bool WindowInfo::WaitMatchingRectExist(cv::Rect roi_rect, const cv::Mat& templ, int timeout, std::string mask_path, double threshold, int match_method) {
 	auto t_ms = getCurrentTimeMilliseconds();
 	while (true) {
@@ -1198,6 +1221,7 @@ void WindowInfo::scan_npc_pos_in_thread() {
 			}
 			case 贼王:
 			{
+				Sleep(1500);// 等待内存刷新，再开始扫描
 				scan_zeiwang_id();
 				if (zeiwang_id > 0) { scan_npc_pos_addr_by_id(贼王); }
 				tScan_npc = THREAD_IDLE;
@@ -1206,7 +1230,7 @@ void WindowInfo::scan_npc_pos_in_thread() {
 			case TASK_BAOTU:
 			{
 				if (RegionMonthly) {
-					Sleep(1500);// 刚接任务，内容没生成，等待一下再开始扫描
+					//Sleep(1500);// 刚接任务，内容没生成，等待一下再开始扫描
 					parse_baotu_task_info();
 				}
 				else {
@@ -1367,7 +1391,13 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 	// 扫描包含NPC id的结构体，具体为：开头静态地址+一个动态地址+NPC_ID(4byte)
 	//坐标地址: [[[[addr + 0x28]+ 0xA0] + 0x10] ] + 0x4C
 	uintptr_t search_addr = 0;
-	log_info("查找%d坐标开始:%s", npc, player_id);
+	unsigned int npc_id = npc;
+	if (!RegionMonthly) {
+		if (npc == 店小二)npc_id = 店小二_card;
+		else if (npc == 长安驿站老板)npc_id = 长安驿站老板_card;
+	}
+	if (npc == 贼王)npc_id = zeiwang_id;
+	log_info("查找%d坐标开始:%s", npc_id, player_id);
 
 	// 结构特点：2个静态地址+一个动态地址，动态地址开头包含6个指针，第1个指针为静态地址，第5和6的指针为空
 	std::string struct_AoB;
@@ -1381,7 +1411,7 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 	struct_AoB += "? ? ? ? ? ? ? ?";
 	//unsigned int var = 店小二;
 	//unsigned int var = 16710472;
-	auto ptr2 = reinterpret_cast<unsigned char*>(&npc);
+	auto ptr2 = reinterpret_cast<unsigned char*>(&npc_id);
 	for (int i = 0; i < 4; i++) {
 		auto c = *reinterpret_cast<const unsigned char*>(ptr2 + i);
 		char hexStr[3];
@@ -1462,9 +1492,9 @@ void WindowInfo::scan_zeiwang_id() {
 			pNtReadVirtualMemory(hProcess, (PVOID)(wai_xing - regionSize + symbol_len), buffer, regionSize, &bytesRead);  // 静态地址
 			if (bytesRead > 0) {
 				std::wstring content;
-				for (int i = 0; i < bytesRead - 6; i++) {
-					if (buffer[i] == 0xB9 && buffer[i + 1] == 0x65 && buffer[i + 2] == 0x11 && buffer[i + 3] == 0x54 && buffer[i + 4] == 0x3D && buffer[i + 5] == 0x00) {	// 方向=:B9 65 11 54 3D 00
-						content = bytes_to_wstring(&buffer[i], bytesRead - i - symbol_len);
+				for (int i = 0; i < bytesRead - 8; i++) {
+					if (buffer[i] == 0x00 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0xB9 && buffer[i + 3] == 0x65 && buffer[i + 4] == 0x11 && buffer[i + 5] == 0x54 && buffer[i + 6] == 0x3D && buffer[i + 7] == 0x00) {	// 方向=:B9 65 11 54 3D 00
+						content = bytes_to_wstring(&buffer[i+2], bytesRead - i+2 - symbol_len);
 						break;
 					}
 				}
@@ -1472,13 +1502,13 @@ void WindowInfo::scan_zeiwang_id() {
 					auto tags_wstr = findContentBetweenTags(content, L"id=", L" X=");
 					if (!tags_wstr.empty()) {
 						zeiwang_id = std::stoi(tags_wstr.at(0));
+						log_info("找到贼王id:%d", zeiwang_id);
 					}
 				}
 			}
 		}
 		log_info("查找贼王id结束:%s", player_id);
 	}
-
 }
 void WindowInfo::scan_current_scene_npc_id() {
 	std::string struct_AoB;
@@ -1527,7 +1557,6 @@ void WindowInfo::scan_current_scene_npc_id() {
 								auto float_y = *reinterpret_cast<float*>(buffer + 0x50);
 								auto x = convert_to_map_pos_x(float_x);
 								auto y = convert_to_map_pos_y(float_y);
-
 								log_info("找到id:%d, (%d,%d)", npc_id, x, y);
 							}
 						}
@@ -1650,6 +1679,9 @@ void WindowInfo::update_npc_pos(int npc) {
 				}
 				else if (npc == 长安驿站老板) {
 					changan_yizhanlaoban_pos_addr = 0;
+				}
+				else if (npc == 贼王) {
+					zeiwang_pos_addr = 0;
 				}
 			}
 		}
@@ -1783,7 +1815,7 @@ void WindowInfo::move_to_dianxiaoer() {
 		//auto astar_pos = astar(player_pos.x, player_pos.y, dst.x, dst.y, m_scene_id, dianxiaoer_valid_distence - 1, dianxiaoer_valid_distence - 1);
 		//log_info("店小二坐标:%d, %d", dst.x, dst.y);
 		//log_info("A星寻路结果:%d, %d", astar_pos.x, astar_pos.y);
-		//SetForegroundWindow(hwnd);
+		SetForegroundWindow(hwnd);
 		if (RegionMonthly) {
 			move_to_position_flat(dst);
 		}
@@ -1795,14 +1827,15 @@ void WindowInfo::move_to_dianxiaoer() {
 }
 void WindowInfo::goto_changanjiudian() {
 	update_player_float_pos();
-	//SetForegroundWindow(hwnd);
 	POINT jiudian = { 470, 170 };	// 长安酒店入口(464,168)
 	if (m_scene_id != 长安城) {
 		// 不在酒店门口，
 		log_info("不在酒店门口，使用飞行棋");
 		fly_to_changanjiudian();
 	}
-	//if(!(abs(player_pos.x - jiudian.x) <= mScreen_x && abs(player_pos.y - jiudian.y) <= mScreen_y))
+	if (!(abs(player_pos.x - jiudian.x) <= NPC_TALK_VALID_DISTENCE && abs(player_pos.y - jiudian.y) <= NPC_TALK_VALID_DISTENCE)) {
+		fly_to_changanjiudian();
+	}
 	move_to_other_scene(jiudian, 长安城);
 	wait_moving_stop(3000);
 	moving = true;
@@ -1810,7 +1843,7 @@ void WindowInfo::goto_changanjiudian() {
 void WindowInfo::move_to_changanjidian_center() {
 	// 有时候离店小二太远，店小二会消失看不见，移动到酒店中间，就不存在这个问题
 	if (dianxiaoer_pos_addr == 0) {
-		//SetForegroundWindow(hwnd);
+		SetForegroundWindow(hwnd);
 		click_position({ 23,13 });
 		moving = true;
 	}
@@ -1997,7 +2030,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 				POINT dst = { 221,60 };
 				if (!is_near_loc(dst, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
 					log_info("从大唐国境到普陀接引仙女");
-					move_to_position(dst, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
+					move_to_position(dst, MAP_MOVE_DISTENCE, MAP_MOVE_DISTENCE);
 					close_beibao_smart();
 					moving = true;
 				}
@@ -2252,7 +2285,7 @@ bool WindowInfo::goto_scene(POINT dst, unsigned int scene_id) {
 	if (m_scene_id == scene_id) {
 		if (dst.x == 0 && dst.y == 0)return true;  // 坐标为0，代表进入场景就可以了。
 		// 已处在目的场景，走路过去
-		move_to_position(dst,NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
+		move_to_position(dst, MAP_MOVE_DISTENCE, MAP_MOVE_DISTENCE);
 		close_beibao_smart();
 		return true;
 	}
@@ -2435,7 +2468,7 @@ bool WindowInfo::mouse_click_human(POINT pixel, int xs, int ys, int mode) {
 	auto t_ms = getCurrentTimeMilliseconds();
 	do {
 		// 因为有鼠标漂移，所以需要多次移动
-		if (getCurrentTimeMilliseconds() - t_ms > 1500) {
+		if (getCurrentTimeMilliseconds() - t_ms > 1300) {
 			log_warn("鼠标点击超时");
 			return false;
 		}
@@ -2467,7 +2500,7 @@ bool WindowInfo::mouse_click_human(POINT pixel, int xs, int ys, int mode) {
 
 POINT WindowInfo::get_cursor_pos(POINT pos) {
 	// 获取鼠标漂移量
-	POINT tmp_pos = { -1, -1 };
+	POINT tmp_pos = { -99, -99 };
 	auto t_ms = getCurrentTimeMilliseconds();
 	auto rc = ROI_NULL();
 	while (true) {
@@ -2479,7 +2512,7 @@ POINT WindowInfo::get_cursor_pos(POINT pos) {
 		auto image_roi = image(roi_rect);
 		if (image_roi.empty()) continue;
 		cv::Mat image_inRange = ThresholdinginRange(image_roi);
-		auto cursor_pos = MatchingLoc(image_inRange, rc, *m_img_cursors_cursor, "", 0.74, cv::TM_CCORR_NORMED, MATCHLEFTTOP);  // 游戏自身的鼠标，鼠标用cv::TM_CCORR_NORMED方法匹配准确率最高
+		auto cursor_pos = MatchingLoc(image_inRange, rc, *m_img_cursors_cursor, "", 0.87, cv::TM_CCORR_NORMED, MATCHLEFTTOP);  // 游戏自身的鼠标，鼠标用cv::TM_CCORR_NORMED方法匹配准确率最高
 		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
 		{
@@ -2511,19 +2544,6 @@ bool WindowInfo::talk_to_dianxiaoer() {
 	if (pos.x > 0) {
 		mouse_click_human(pos, 0, 0, 1);			// 弹出对话框，接任务
 		return true;
-	}
-	else {
-		// 没有对话框，检查是否有验证窗口
-		log_info("没有对话框，检查是否有验证窗口");
-		if (is_verifying()) {
-			if (!mp3_playing) {
-				play_mp3();
-				mp3_playing = true;
-			}
-			popup_verify = true;
-			for (int i = 0;i < 5;i++) { log_info("***宝图任务弹窗验证,请手动点击***"); }
-			step.set_current(&scan_dianxiaoer_pos);
-		}
 	}
 	return false;
 }
@@ -2607,7 +2627,7 @@ bool WindowInfo::is_near_changan_yizhanlaoban() {
 	if (changan_yizhanlaoban_pos_addr > 0) {
 		auto dxe_x = convert_to_map_pos_x(changan_yizhanlaoban_pos_x);
 		auto dxe_y = convert_to_map_pos_y(changan_yizhanlaoban_pos_y);
-		if (abs(dxe_x - player_pos.x) <= changan_yizhan_laoban_valid_distence && abs(dxe_y - player_pos.y) <= changan_yizhan_laoban_valid_distence) {
+		if (abs(dxe_x - player_pos.x) <= NPC_TALK_VALID_DISTENCE && abs(dxe_y - player_pos.y) <= NPC_TALK_VALID_DISTENCE) {
 			//  +1是防止鼠标漂移误差
 			return true;
 		}
@@ -2656,13 +2676,23 @@ bool WindowInfo::is_fighting() {
 	//return MatchingRectExist(ROI_fighting(), img_fight_fighting, "", 0.85);
 }
 bool WindowInfo::is_verifying() {
-	for (int i = 0; i < 1; i++) {
-		auto image = hwnd2mat(hwnd);
-		cv::Mat img_gray;
-		cv::cvtColor(image, img_gray, cv::COLOR_BGR2GRAY);
-		if (MatchingLoc(img_gray, ROI_four_man(), *m_img_fight_fourman_title_gray, "", 0.81).x > -1)return true;
-		if (MatchingLoc(image, ROI_paixu_verify(), *m_img_symbol_paixu_verify_reset, "", 0.83).x > -1)return true;
-		if (MatchingLoc(img_gray, ROI_yidongdezi(), *m_img_symbol_yidongdezi_gray, "", 0.74).x > -1)return true;
+	auto image = hwnd2mat(hwnd);
+	cv::Mat img_gray;
+	cv::cvtColor(image, img_gray, cv::COLOR_BGR2GRAY);
+	if (MatchingLoc(img_gray, ROI_four_man(), *m_img_fight_fourman_title_gray, "", 0.89).x > -1)return true;
+	if (MatchingLoc(image, ROI_paixu_verify(), *m_img_symbol_paixu_verify_reset, "", 0.83).x > -1)return true;
+	if (MatchingLoc(img_gray, ROI_yidongdezi(), *m_img_symbol_yidongdezi_gray, "", 0.87).x > -1)return true;
+	return false;
+}
+bool WindowInfo::is_four_man() {
+	if (MatchingGrayRectExist(ROI_four_man(), *m_img_fight_fourman_title_gray, "", 0.89)) {
+		if (!mp3_playing) {
+			play_mp3();
+			mp3_playing = true;
+		}
+		popup_verify = true;
+		for (int i = 0; i < 5; i++) { log_info("***四小人弹窗验证,请手动点击***"); }
+		return true;
 	}
 	return false;
 }
@@ -2688,6 +2718,16 @@ void WindowInfo::handle_datu_fight() {
 	if (hangup) {
 		//检查重置自动战斗挂机剩余回合
 		if (!RegionMonthly) {
+			if (MatchingExist(image, ROI_fight_action(), *m_img_fight_do_hero_action)) {
+				if (getCurrentTimeMilliseconds() - wait_hero_action_time > 2.0) {
+					log_info("战斗回合+1");
+					wait_hero_action_time = getCurrentTimeMilliseconds();
+					f_round += 1;
+					auto round = gm.db[player_id]["round"];
+					gm.db[player_id]["round"] = round + 1;
+					gm.update_db();
+				}
+			}
 			if (gm.db[player_id]["round"] >= randint(19, 24) && f_round == 0) {
 				log_info("重置自动战斗挂机剩余回合");
 				//SetForegroundWindow(hwnd);
@@ -2708,38 +2748,19 @@ void WindowInfo::handle_datu_fight() {
 	}
 	else {
 		// 四小人验证处理
-		if (MatchingGrayRectExist(ROI_four_man(), *m_img_fight_fourman_title_gray, "", 0.81)) {
-			if (!mp3_playing) {
-				play_mp3();
-				mp3_playing = true;
-			}
-			popup_verify = true;
-			for (int i = 0;i < 5;i++) { log_info("***四小人弹窗验证,请手动点击***"); }
+		if (is_four_man()) {
+			return;
 		}
-		//else { 
-		//auto auto_btn_pos = MatchingRectLoc(ROI_fight_action(), img_fight_auto);
-		//if (auto_btn_pos.x > 0) { 
-		//	SetForegroundWindow(hwnd);
-		//	click_position_at_edge({ rect.left + auto_btn_pos.x, rect.top + auto_btn_pos.y }, -10);
-		//}
-		//}
-
 		if (MatchingExist(image, ROI_fight_action(), *m_img_fight_do_hero_action)) {
-			if (getCurrentTimeMilliseconds() - wait_hero_action_time > 2.0) {
-				wait_hero_action_time = getCurrentTimeMilliseconds();
-				f_round += 1;
-				auto round = gm.db[player_id]["round"];
-				gm.db[player_id]["round"] = round+1;
-				gm.update_db();
-			}
-			if (!hangup) {
-				SetForegroundWindow(hwnd);
-				ClickMatchImage(ROI_fight_action(), *m_img_fight_auto);
-			}
+			wait_hero_action_time = getCurrentTimeMilliseconds();
+			f_round += 1;
+			auto round = gm.db[player_id]["round"];
+			gm.db[player_id]["round"] = round+1;
+			gm.update_db();
+			ClickMatchImage(ROI_fight_action(), *m_img_fight_auto);
 		}
 		else if (MatchingExist(image, ROI_fight_action(), *m_img_fight_do_peg_action)) {
 			log_info("宠物平A");
-			SetForegroundWindow(hwnd);
 			input_alt_a();
 		}
 	}
@@ -2965,7 +2986,7 @@ void WindowInfo::parse_baotu_task_info_card() {
 		if (bytesRead > 0) {
 			for (int i = 0; i < bytesRead - 4; i++) {
 				if (buffer[i] == 0x00 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0xC6 && buffer[i + 3] == 0x25) {	// ◆:C6 25
-					content = bytes_to_wstring(&buffer[i], bytesRead - i - symbol_len - pre_symbol_len + 4);
+					content = bytes_to_wstring(&buffer[i + 2], bytesRead - i + 2 - symbol_len - pre_symbol_len + 4);
 					break;
 				}
 			}
@@ -2989,7 +3010,8 @@ void WindowInfo::parse_baotu_task_info_card() {
 					}
 				}
 			}
-			if (baotu_target_scene_id <= 0) log_info("未支持的场景，等待添加");
+			if (baotu_target_scene_id <= 0) { log_info("未支持的场景，等待添加"); }
+			else{ log_info("解析宝图任务成功:%d,(%d,%d)", baotu_target_scene_id, baotu_target_pos.x, baotu_target_pos.y); }
 		}
 		delete[]buffer;
 	}
@@ -3031,11 +3053,11 @@ void WindowInfo::parse_zeiwang_info() {
 			for (auto& wstr : all_tags_wstr)
 			{
 				if (zeiwang_scene_id <= 0) zeiwang_scene_id = get_scene_id_by_name(wstr);
-				if (zeiwang_pos.x <= 0) {
+				if (zeiwang_fake_pos.x <= 0) {
 					size_t pos = wstr.find(L"，", 0);
 					if (pos != std::wstring::npos) {
-						zeiwang_pos.x = std::stoi(wstr.substr(0, pos));
-						zeiwang_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
+						zeiwang_fake_pos.x = std::stoi(wstr.substr(0, pos));
+						zeiwang_fake_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
 					}
 				}
 			}
@@ -3192,6 +3214,7 @@ bool WindowInfo::talk_to_npc_fight(POINT dst, const cv::Mat& templ) {
 		click_position_at_edge(dst,0,0,0,ys);
 		if (ClickMatchImage(ROI_npc_talk(), templ, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 1, 2000) && wait_fighting()) {
 			log_info("发起战斗成功");
+			is_four_man();
 			return true;
 		}
 		close_npc_talk_fast();
@@ -3293,31 +3316,8 @@ void WindowInfo::SplitTitleAsPlayerId() {
 	}
 }
 cv::Rect WindowInfo::ROI_cursor(POINT pos) {
-	int len = 160;
-	int left = std::max(0,(int)(pos.x - rect.left - len));
-	int top = std::max(0,(int)(pos.y - rect.top - len));
-	int width = len * 2;
-	int height = len * 2;
-
-	//if (pos.x - rect.left < len)
-	//{
-	//	left = 0;
-	//	//width = len + pos.x - rect.left;
-	//}
-	//else if (rect.right - pos.x < len) {
-	//	left = pos.x - len;
-	//	//width = rect.right - left;
-	//}
-	//if (pos.y - rect.top < len) {
-	//	top = 0;
-	//	//height = len + pos.y - rect.top;
-	//}
-	//else if (rect.bottom - pos.y < len) {
-	//	top = pos.y - len;
-	//	//height = rect.bottom - top;
-	//}
-
-	cv::Rect roi(left, top, width, height);
+	int len = 150;
+	cv::Rect roi(pos.x - rect.left - len, pos.y - rect.top - len, len*2, len*2);
 	return roi;
 }
 
@@ -3522,7 +3522,9 @@ void WindowInfo::test() {
 	//scan_npc_pos_addr(NPC_ZEIWANG);
 	//parse_baotu_task_info();
 	//parse_zeiwang_info();
-	//SetForegroundWindow(hwnd);
+	SetForegroundWindow(hwnd);
+	//mouse_click_human({ rect.left + 996, rect.top + 8 },0,0,0);
+	//mouse_click_human({ rect.left + 130, rect.top + 645 }, 30, -30, 0);
 	//update_scene_id();
 	//scan_npc_pos_addr_by_id(店小二);
 	//scan_npc_pos_addr(店小二);
@@ -3537,6 +3539,7 @@ void WindowInfo::test() {
 	while (1) {
 		//Sleep(2000);
 		//update_npc_pos(店小二);
+		is_four_man();
 		update_scene_id();
 		update_player_float_pos();
 		//log_info("测试日志22222");
@@ -4339,9 +4342,11 @@ POINT MatchingLoc(cv::Mat& image, cv::Rect roi_rect, const cv::Mat& templ, std::
 		//if (match_method == cv::TM_CCOEFF_NORMED) log_info("TM_CCOEFF_NORMED:%f matchLoc:%d,%d", maxVal, matchLoc.x, matchLoc.y);
 		// --- 6. Draw a rectangle around the best match area ---
 		// The top-left corner is matchLoc. The bottom-right is calculated by adding the template dimensions.
-		//if (match_method == cv::TM_CCORR_NORMED) log_info("TM_CCORR_NORMED:%f matchLoc:%d,%d", maxVal, matchLoc.x, matchLoc.y);
-		//if (maxVal >= threshold) rectangle(image, matchLoc, cv::Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), cv::Scalar(0, 255, 0), 2, 8, 0);
-		//save_screenshot(image);
+		//if (match_method == cv::TM_CCORR_NORMED) {
+		//	log_info("TM_CCORR_NORMED:%f matchLoc:%d,%d", maxVal, matchLoc.x, matchLoc.y);
+		//	rectangle(image_roi, matchLoc, cv::Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), cv::Scalar(0, 255, 0), 2, 8, 0);
+		//	save_screenshot(image_roi);
+		//}
 	}
 	return { matchLoc.x, matchLoc.y };
 }
@@ -4647,7 +4652,7 @@ void hide_player_n_stalls() {
 }
 void stop_laba() {
 	log_info("停止喇叭");
-	for (int i = 0;i < 2;i++) { 
+	for (int i = 0;i < 1;i++) { 
 		SerialWrite(STOP_MP3); 
 		SerialRead();
 	}
@@ -4872,7 +4877,8 @@ int main(int argc, const char** argv)
 	// SEED the generator ONCE at the start of the program
 	std::srand(static_cast<unsigned int>(time(nullptr)));
 	Serial();
-	
+	//stop_laba();
+
 	gm.init();
 	gm.hook_data();
 	//gm.test();

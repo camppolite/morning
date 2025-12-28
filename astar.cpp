@@ -138,7 +138,7 @@ unsigned int get_scene_id_by_name(std::wstring name) {
 	else if (name == L"江南野外") { scene_id = 江南野外; }
 	else if (name == L"朱紫国") { scene_id = 朱紫国; }
 	else if (name == L"宝象国") { scene_id = 宝象国; }
-	else if (name == L"建邺城") { scene_id = 建邺城; }
+	else if (name == L"建邺城" || name == L"建邺") { scene_id = 建邺城; }
 	else if (name == L"建邺衙门") { scene_id = 建邺衙门; }
 	else if (name == L"建邺杂货店") { scene_id = 建邺杂货店; }
 	else if (name == L"东海湾") { scene_id = 东海湾; }

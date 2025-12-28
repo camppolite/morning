@@ -56,15 +56,17 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define LEN_OF_INT64 22  // 21 + 1
 
 #define dianxiaoer_valid_distence 4  // 与店小二对话时的最大有效距离
-#define changan_yizhan_laoban_valid_distence 10  // 与长安驿站老板对话时的最大有效距离
-#define NPC_TALK_VALID_DISTENCE 6  // 与NPC对话时的最大有效距离
+#define MAP_MOVE_DISTENCE 5  // 地图移动保持距离
+#define NPC_TALK_VALID_DISTENCE 9  // 与NPC对话时的最大有效距离
 #define MATCHCENTER 1
 #define MATCHLEFTTOP 2
 #define MATCHEXIST 3
 
 #define THREAD_IDLE 0  // 线程空闲
 #define 店小二 1073742231 // 店小二
+#define 店小二_card 536871319 // 店小二
 #define 长安驿站老板 1073741826  // 长安驿站老板
+#define 长安驿站老板_card 536870914  // 长安驿站老板
 #define 贼王 2  // 贼王
 #define TASK_BAOTU 4  // 宝图任务
 #define TASK_ZEIWANG 5  // 贼王任务
@@ -181,6 +183,7 @@ public:
 	bool MatchingGrayRectExist(cv::Rect roi_rect, const cv::Mat& templ, std::string mask_path = "", double threshold = gThreshold, int match_method = cv::TM_CCORR_NORMED);
 	POINT MatchingRectLoc(cv::Rect roi_rect, const cv::Mat& templ, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
 	POINT WaitMatchingRectLoc(cv::Rect roi_rect, const cv::Mat& templ, int timeout = 2000, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int loc = MATCHCENTER);
+	bool WaitMatchingGrayRectExist(cv::Rect roi_rect, const cv::Mat& templ, int timeout = 2000, std::string mask_path = "", double threshold = gThreshold, int match_method = cv::TM_CCORR_NORMED);
 	bool WaitMatchingRectExist(cv::Rect roi_rect, const cv::Mat& templ, int timeout = 2000, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
 	bool WaitMatchingRectDisapper(cv::Rect roi_rect, const cv::Mat& templ, int timeout = 1000, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
 	bool mouse_click_human(POINT pos, int xs = 0, int ys = 0, int mode = 1);
@@ -217,6 +220,7 @@ public:
 	bool wait_fighting();
 	bool is_fighting();
 	bool is_verifying();
+	bool is_four_man();
 	bool is_hangup(cv::Mat& image);
 	bool is_in_mini_scene();
 	void handle_datu_fight();
@@ -347,6 +351,7 @@ public:
 	unsigned int zeiwang_id = 0;
 	std::wstring zeiwang_name;
 	POINT zeiwang_pos = {0,0};
+	POINT zeiwang_fake_pos = { 0,0 };
 
 	uintptr_t scene_id_addr = 0;
 	std::string scene;

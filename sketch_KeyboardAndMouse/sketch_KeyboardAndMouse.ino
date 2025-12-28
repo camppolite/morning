@@ -1284,30 +1284,31 @@ void loop() {
         Serial.println("ok");
       }
       else if (prefix("mmp3:PLAY_", inData)) {
-        myMP3.volume(25);
+        myMP3.volume(5);
         char* d = strtok(inData, "_");
         d = strtok(NULL, "");
         const int n = atoi(d);
         delay(50);  // 经过多次测试，50是最低值，少了会出问题
-        for (int i = 0; i < 5; i++) {
-          if (myMP3.isPlaying()) break;
-          myMP3.playFromMP3Folder(n);
-          delay(100);
-        }
-        // myMP3.playFromMP3Folder(n);
+        // for (int i = 0; i < 5; i++) {
+        //   if (myMP3.isPlaying()) break;
+        //   myMP3.playFromMP3Folder(n);
+        //   delay(100);
+        // }
+        myMP3.playFromMP3Folder(n);
         delay(100);
         myMP3.startRepeat();
         Serial.println("ok");
       }
       else if (strcmp("mmp3:STOP", inData) == 0) {
-        for (int i = 0; i < 5; i++) {
-          // Serial.println(myMP3.isPlaying());
-          // if (!myMP3.isPlaying()) break;
-          delay(100);
-          myMP3.stop();
-        }
-        delay(150);
-        myMP3.stopRepeatPlay();
+        // for (int i = 0; i < 5; i++) {
+        //   // Serial.println(myMP3.isPlaying());
+        //   if (!myMP3.isPlaying()) break;
+        //   delay(100);
+        //   myMP3.stop();
+        // }
+        myMP3.stop();
+        // delay(100);
+        // myMP3.stopRepeatPlay();
         Serial.println("ok");
       }
       else if (strcmp("test", inData) == 0) {
