@@ -293,6 +293,7 @@ void abs_mouse_move(char *str) {
   d = strtok(NULL, "");
   AbsMouse.move(x, y);
   const uint8_t mode = (uint8_t)atoi(d);
+
   if (mode == MOUSE_LEFT || mode == MOUSE_RIGHT) {
       AbsMouse.press(mode);
       delay(50);
@@ -1266,6 +1267,19 @@ void loop() {
         AbsMouse.release(MOUSE_RIGHT);
         Serial.println("ok");
       }
+      else if (strcmp("hkeyCCC", inData) == 0) {
+        delay(GetRand(5,15));
+        Keyboard.press(KEY_LEFT_CTRL);
+        delay(GetRand(15,30));
+        AbsMouse.press(MOUSE_LEFT);
+        delay(50);
+        AbsMouse.release(MOUSE_LEFT);
+        delay((unsigned long)(100 + my_random(100)));  // 经过多次测试，这个间隔不能太短，否则点击不生效
+        // delay((unsigned long)(3 + my_random(100)));  // 通过窗口传输需要时间，这里就不做太长的延时了
+
+        Keyboard.release(KEY_LEFT_CTRL);
+        Serial.println("ok");
+      }
       else if (prefix("scrollhm:", inData)) {
         char* d = strtok(inData, ":");
         d = strtok(NULL, ",");
@@ -1307,7 +1321,7 @@ void loop() {
         //   myMP3.stop();
         // }
         myMP3.stop();
-        // delay(100);
+        // delay(200);
         // myMP3.stopRepeatPlay();
         Serial.println("ok");
       }

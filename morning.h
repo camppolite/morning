@@ -79,6 +79,7 @@ const char* MS_MOVE_SYMBOL = "movedf:%d,%d,%d\n";  // x,y,mode
 //const char* MS_MOVE_HUMAN_SYMBOL = "movehm:%d,%d,%d,%d,%d\n";  // cx, cy, x, y, mode
 const char* CLICK_CURRENT_SYMBOL = "hkeyCC\n";
 const char* RIGHT_CLICK_CURRENT_SYMBOL = "hkeyRCC\n";
+const char* CTRL_CLICK_CURRENT_SYMBOL = "hkeyCCC\n";
 const char* KEY_ALT_xxx = "hkey:ALT_%s\n";
 const char* KEY_PRESS = "hkey:%s\n";
 const char* KEY_HIDE = "hide\n";
@@ -259,6 +260,7 @@ public:
 	void use_feixingfu(unsigned int scene_id, bool wait_scene = true);
 	void handle_sheyaoxiang_time();
 	void handle_wrong_attack();
+	void play_mp3_once();
 
 	bool wait_scene_change(unsigned int scene_id, int timeout = 1700);
 	void close_npc_talk();
@@ -519,6 +521,7 @@ void SerialWrite(const char* data);
 void SerialRead();
 void serial_click_cur();
 void serial_right_click_cur();
+void serial_ctrl_click_cur();
 void serial_move(POINT pos, int mode=1);
 //void serial_move_human(POINT pos, int mode = 1);
 
