@@ -45,6 +45,7 @@ const cv::Mat img_btn_beibao = cv_imread("object\\btn\\beibao.png");
 const cv::Mat img_btn_package_prop = cv_imread("object\\btn\\package_prop.png");
 const cv::Mat img_btn_tingtingwufang = cv_imread("object\\btn\\tingtingwufang.png");
 const cv::Mat img_btn_npc_talk_close = cv_imread("object\\btn\\npc_talk_close.png");
+const cv::Mat img_btn_npc_talk_close2 = cv_imread("object\\btn\\npc_talk_close2.png");
 const cv::Mat img_btn_flag_loc = cv_imread("object\\btn\\flag_loc.png");
 const cv::Mat img_btn_shide_woyaoqu = cv_imread("object\\btn\\shide_woyaoqu.png");
 const cv::Mat img_btn_cancel_auto_round = cv_imread("object\\btn\\cancel_auto_round.png");
@@ -52,6 +53,16 @@ const cv::Mat img_btn_cancel_zhanli = cv_imread("object\\btn\\cancel_zhanli.png"
 const cv::Mat img_btn_reset_auto_round = cv_imread("object\\btn\\reset_auto_round.png");
 const cv::Mat img_btn_woshilaishoushinide = cv_imread("object\\btn\\woshilaishoushinide.png");
 const cv::Mat img_btn_zeiwang_benshaoxiashilaititianxingdaode = cv_imread("object\\btn\\zeiwang_benshaoxiashilaititianxingdaode.png");
+//const cv::Mat img_btn_laozimeishijianwan = cv_imread("object\\btn\\laozimeishijianwan.png");
+//const cv::Mat img_btn_wozhengzaizhandouzhong = cv_imread("object\\btn\\wozhengzaizhandouzhong.png");
+//const cv::Mat img_btn_menpaichuanggaunhudong = cv_imread("object\\btn\\menpaichuanggaunhudong.png");
+//const cv::Mat img_btn_luguohenishuogehua = cv_imread("object\\btn\\luguohenishuogehua.png");
+//const cv::Mat img_btn_wohaixiangzaizhezhuanzhuan = cv_imread("object\\btn\\wohaixiangzaizhezhuanzhuan.png");
+//const cv::Mat img_btn_wojintianmeidaiqian_gaitianlaizhaoni = cv_imread("object\\btn\\wojintianmeidaiqian_gaitianlaizhaoni.png");
+//const cv::Mat img_btn_wosuibiankankan = cv_imread("object\\btn\\wosuibiankankan.png");
+//const cv::Mat img_btn_womenhouhuiyouqi = cv_imread("object\\btn\\womenhouhuiyouqi.png");
+//const cv::Mat img_btn_luanchiyao_hairenming = cv_imread("object\\btn\\luanchiyao_hairenming.png");
+//const cv::Mat img_btn_woshenmedoubuzuo = cv_imread("object\\btn\\woshenmedoubuzuo.png");
 
 
 const cv::Mat img_props_red_777 = cv_imread("object\\props\\red_777.png");
@@ -114,6 +125,7 @@ const cv::Mat img_btn_beibao_card = cv_imread("object_card\\btn\\beibao.png");
 const cv::Mat img_btn_package_prop_card = cv_imread("object_card\\btn\\package_prop.png");
 const cv::Mat img_btn_tingtingwufang_card = cv_imread("object_card\\btn\\tingtingwufang.png");
 const cv::Mat img_btn_npc_talk_close_card = cv_imread("object_card\\btn\\npc_talk_close.png");
+const cv::Mat img_btn_npc_talk_close2_card = cv_imread("object_card\\btn\\npc_talk_close2.png"); //todo
 const cv::Mat img_btn_flag_loc_card = cv_imread("object_card\\btn\\flag_loc.png");
 const cv::Mat img_btn_shide_woyaoqu_card = cv_imread("object_card\\btn\\shide_woyaoqu.png");
 const cv::Mat img_btn_cancel_auto_round_card = cv_imread("object_card\\btn\\cancel_auto_round.png");
@@ -121,6 +133,16 @@ const cv::Mat img_btn_cancel_zhanli_card = cv_imread("object_card\\btn\\cancel_z
 const cv::Mat img_btn_reset_auto_round_card = cv_imread("object_card\\btn\\reset_auto_round.png");
 const cv::Mat img_btn_woshilaishoushinide_card = cv_imread("object_card\\btn\\woshilaishoushinide.png");
 const cv::Mat img_btn_zeiwang_benshaoxiashilaititianxingdaode_card = cv_imread("object_card\\btn\\zeiwang_benshaoxiashilaititianxingdaode.png");
+//const cv::Mat img_btn_laozimeishijianwan_card = cv_imread("object_card\\btn\\laozimeishijianwan.png");
+//const cv::Mat img_btn_wozhengzaizhandouzhong_card = cv_imread("object_card\\btn\\wozhengzaizhandouzhong.png");
+//const cv::Mat img_btn_menpaichuanggaunhudong_card = cv_imread("object_card\\btn\\menpaichuanggaunhudong.png");
+//const cv::Mat img_btn_luguohenishuogehua_card = cv_imread("object_card\\btn\\luguohenishuogehua.png");
+//const cv::Mat img_btn_wohaixiangzaizhezhuanzhuan_card = cv_imread("object_card\\btn\\wohaixiangzaizhezhuanzhuan.png");
+//const cv::Mat img_btn_wojintianmeidaiqian_gaitianlaizhaoni_card = cv_imread("object_card\\btn\\wojintianmeidaiqian_gaitianlaizhaoni.png");
+//const cv::Mat img_btn_wosuibiankankan_card = cv_imread("object_card\\btn\\wosuibiankankan.png");
+//const cv::Mat img_btn_womenhouhuiyouqi_card = cv_imread("object_card\\btn\\womenhouhuiyouqi.png");
+//const cv::Mat img_btn_luanchiyao_hairenming_card = cv_imread("object_card\\btn\\luanchiyao_hairenming.png");
+//const cv::Mat img_btn_woshenmedoubuzuo_card = cv_imread("object_card\\btn\\woshenmedoubuzuo.png");
 
 
 const cv::Mat img_props_red_777_card = cv_imread("object_card\\props\\red_777.png");
@@ -213,6 +235,7 @@ void WindowInfo::init() {
 		m_img_btn_package_prop= &img_btn_package_prop;
 		m_img_btn_tingtingwufang= &img_btn_tingtingwufang;
 		m_img_btn_npc_talk_close= &img_btn_npc_talk_close;
+		m_img_btn_npc_talk_close2 = &img_btn_npc_talk_close2;
 		m_img_btn_flag_loc= &img_btn_flag_loc;
 		m_img_btn_shide_woyaoqu= &img_btn_shide_woyaoqu;
 		m_img_btn_cancel_auto_round= &img_btn_cancel_auto_round;
@@ -220,7 +243,16 @@ void WindowInfo::init() {
 		m_img_btn_reset_auto_round = &img_btn_reset_auto_round;
 		m_img_btn_woshilaishoushinide= &img_btn_woshilaishoushinide;
 		m_img_btn_zeiwang_benshaoxiashilaititianxingdaode= &img_btn_zeiwang_benshaoxiashilaititianxingdaode;
-
+		//m_img_btn_laozimeishijianwan = &img_btn_laozimeishijianwan;
+		//m_img_btn_wozhengzaizhandouzhong = &img_btn_wozhengzaizhandouzhong;
+		//m_img_btn_menpaichuanggaunhudong = &img_btn_menpaichuanggaunhudong;
+		//m_img_btn_luguohenishuogehua = &img_btn_luguohenishuogehua;
+		//m_img_btn_wohaixiangzaizhezhuanzhuan = &img_btn_wohaixiangzaizhezhuanzhuan;
+		//m_img_btn_wojintianmeidaiqian_gaitianlaizhaoni = &img_btn_wojintianmeidaiqian_gaitianlaizhaoni;
+		//m_img_btn_wosuibiankankan = &img_btn_wosuibiankankan;
+		//m_img_btn_womenhouhuiyouqi = &img_btn_womenhouhuiyouqi;
+		//m_img_btn_luanchiyao_hairenming = &img_btn_luanchiyao_hairenming;
+		//m_img_btn_woshenmedoubuzuo = &img_btn_woshenmedoubuzuo;
 
 		m_img_props_red_777= &img_props_red_777;
 		m_img_props_white_777= &img_props_white_777;
@@ -285,6 +317,7 @@ void WindowInfo::init() {
 		m_img_btn_package_prop = &img_btn_package_prop_card;
 		m_img_btn_tingtingwufang = &img_btn_tingtingwufang_card;
 		m_img_btn_npc_talk_close = &img_btn_npc_talk_close_card;
+		m_img_btn_npc_talk_close2 = &img_btn_npc_talk_close2_card;
 		m_img_btn_flag_loc = &img_btn_flag_loc_card;
 		m_img_btn_shide_woyaoqu = &img_btn_shide_woyaoqu_card;
 		m_img_btn_cancel_auto_round = &img_btn_cancel_auto_round_card;
@@ -292,7 +325,16 @@ void WindowInfo::init() {
 		m_img_btn_reset_auto_round = &img_btn_reset_auto_round_card;
 		m_img_btn_woshilaishoushinide = &img_btn_woshilaishoushinide_card;
 		m_img_btn_zeiwang_benshaoxiashilaititianxingdaode = &img_btn_zeiwang_benshaoxiashilaititianxingdaode_card;
-
+		//m_img_btn_laozimeishijianwan = &img_btn_laozimeishijianwan_card;
+		//m_img_btn_wozhengzaizhandouzhong = &img_btn_wozhengzaizhandouzhong_card;
+		//m_img_btn_menpaichuanggaunhudong = &img_btn_menpaichuanggaunhudong_card;
+		//m_img_btn_luguohenishuogehua = &img_btn_luguohenishuogehua_card;
+		//m_img_btn_wohaixiangzaizhezhuanzhuan = &img_btn_wohaixiangzaizhezhuanzhuan_card;
+		//m_img_btn_wojintianmeidaiqian_gaitianlaizhaoni = &img_btn_wojintianmeidaiqian_gaitianlaizhaoni_card;
+		//m_img_btn_wosuibiankankan = &img_btn_wosuibiankankan_card;
+		//m_img_btn_womenhouhuiyouqi = &img_btn_womenhouhuiyouqi_card;
+		//m_img_btn_luanchiyao_hairenming = &img_btn_luanchiyao_hairenming_card;
+		//m_img_btn_woshenmedoubuzuo = &img_btn_woshenmedoubuzuo_card;
 
 		m_img_props_red_777 = &img_props_red_777_card;
 		m_img_props_white_777 = &img_props_white_777_card;
@@ -472,7 +514,7 @@ void WindowInfo::datu() {
 		if (mp3_playing) {
 			stop_laba();
 			//std::thread(stop_laba).detach();
-			Sleep(800);
+			//Sleep(800);
 		}
 		mp3_playing = false;
 		popup_verify = false;
@@ -2422,6 +2464,10 @@ void WindowInfo::handle_sheyaoxiang_time() {
 		gm.update_db();
 	}
 }
+void WindowInfo::handle_wrong_attack() {
+	move_cursor_center_bottom();
+	ClickMatchImage(ROI_npc_talk(), *m_img_btn_npc_talk_close2);
+}
 bool WindowInfo::wait_scene_change(unsigned int scene_id, int timeout) {
 	auto t_ms = getCurrentTimeMilliseconds();
 	bool ret = false;
@@ -2679,8 +2725,8 @@ bool WindowInfo::is_verifying() {
 	auto image = hwnd2mat(hwnd);
 	cv::Mat img_gray;
 	cv::cvtColor(image, img_gray, cv::COLOR_BGR2GRAY);
-	if (MatchingLoc(img_gray, ROI_four_man(), *m_img_fight_fourman_title_gray, "", 0.89).x > -1)return true;
-	if (MatchingLoc(image, ROI_paixu_verify(), *m_img_symbol_paixu_verify_reset, "", 0.83).x > -1)return true;
+	if (MatchingExist(img_gray, ROI_four_man(), *m_img_fight_fourman_title_gray, "", 0.89))return true;
+	if (MatchingExist(image, ROI_paixu_verify(), *m_img_symbol_paixu_verify_reset, "", 0.83))return true;
 	if (MatchingLoc(img_gray, ROI_yidongdezi(), *m_img_symbol_yidongdezi_gray, "", 0.87).x > -1)return true;
 	return false;
 }
@@ -3200,7 +3246,7 @@ void WindowInfo::click_position_at_edge(POINT dst, int xs, int ys, int x_fix, in
 }
 bool WindowInfo::talk_to_npc_fight(POINT dst, const cv::Mat& templ) {
 	POINT temp_pos = {-1,-1};
-	for (int i = 0;i < 3;i++) {
+	for (int i = 0;i < 2;i++) {
 		update_player_float_pos();
 		if (temp_pos.x != player_pos.x && temp_pos.y != player_pos.y) {
 			//人物坐标发生改变，要重新隐藏一下玩家
@@ -3217,20 +3263,29 @@ bool WindowInfo::talk_to_npc_fight(POINT dst, const cv::Mat& templ) {
 			is_four_man();
 			return true;
 		}
-		close_npc_talk_fast();
+		handle_wrong_attack();
 	}
-	//检查是否重叠NPC
-	//for (int i = 0;i < 2;i++) {
-	//	int ys = -5;
-	//	if (i == 1)ys = -40;
-	//	click_position_at_edge({ dst.x,dst.y + ys },1,1,5);
-	//	move_cursor_center_bottom
-	//	ClickMatchImage(ROI_npc_talk(), templ, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 1, 2000);
-	//	if (wait_fighting()) {
-	//		log_info("发起战斗成功");
-	//		return true;
-	//	}
-	//}
+	log_info("检查是否重叠");
+	for (int j = 20;j <= 60;j+=20) {
+		update_player_float_pos();
+		if (temp_pos.x != player_pos.x && temp_pos.y != player_pos.y) {
+			//人物坐标发生改变，要重新隐藏一下玩家
+			hide_player_n_stalls();
+		}
+		temp_pos = player_pos;
+		log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
+		log_info("点击的坐标:%d,%d", dst.x, dst.y);
+		click_position_at_edge({ dst.x,dst.y - 3 }, 0, 0, 0, 0,5);
+		move_cursor_center_bottom();
+		// 一页显示5个NPC，只尝试前3个
+		click_position_at_edge({ dst.x,dst.y - 3 }, 0, 0, 30, j);
+		if (wait_fighting()) {
+			log_info("发起战斗成功");
+			is_four_man();
+			return true;
+		}
+		handle_wrong_attack();
+	}
 
 	play_mp3();
 	failure = true;
@@ -3315,9 +3370,8 @@ void WindowInfo::SplitTitleAsPlayerId() {
 		player_id = player_name.substr(start + 1, end - start - 1);
 	}
 }
-cv::Rect WindowInfo::ROI_cursor(POINT pos) {
-	int len = 150;
-	cv::Rect roi(pos.x - rect.left - len, pos.y - rect.top - len, len*2, len*2);
+cv::Rect WindowInfo::ROI_cursor(POINT pos, int width) {
+	cv::Rect roi(pos.x - rect.left - width, pos.y - rect.top - width, width *2, width *2);
 	return roi;
 }
 
@@ -4651,11 +4705,12 @@ void hide_player_n_stalls() {
 	SerialRead();
 }
 void stop_laba() {
-	log_info("停止喇叭");
+	log_info("开始停止喇叭");
 	for (int i = 0;i < 1;i++) { 
 		SerialWrite(STOP_MP3); 
 		SerialRead();
 	}
+	log_info("结束停止喇叭");
 }
 void play_mp3() {
 	log_info("播放喇叭");

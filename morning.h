@@ -120,7 +120,7 @@ std::vector<std::string*> datu_step = {
 	&baotu_end
 };
 //std::vector<std::thread>
-double gThreshold = 0.81;  // 默认值
+double gThreshold = 0.89;  // 默认值
 int gMatchMethod = cv::TM_CCOEFF_NORMED;  // 默认值
 
 // 场景NPC固定坐标
@@ -258,6 +258,7 @@ public:
 	void use_aolaiguo777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false, bool wait_scene = true);
 	void use_feixingfu(unsigned int scene_id, bool wait_scene = true);
 	void handle_sheyaoxiang_time();
+	void handle_wrong_attack();
 
 	bool wait_scene_change(unsigned int scene_id, int timeout = 1700);
 	void close_npc_talk();
@@ -271,7 +272,7 @@ public:
 	void time_pawn_update();
 	bool out_of_rect(POINT pixel);
 
-	cv::Rect ROI_cursor(POINT pos);
+	cv::Rect ROI_cursor(POINT pos, int width =140);
 	cv::Rect ROI_beibao();
 	cv::Rect ROI_map();
 	cv::Rect ROI_npc_talk();
@@ -391,6 +392,7 @@ private:
 	const cv::Mat* m_img_btn_package_prop;
 	const cv::Mat* m_img_btn_tingtingwufang;
 	const cv::Mat* m_img_btn_npc_talk_close;
+	const cv::Mat* m_img_btn_npc_talk_close2;
 	const cv::Mat* m_img_btn_flag_loc;
 	const cv::Mat* m_img_btn_shide_woyaoqu;
 	const cv::Mat* m_img_btn_cancel_auto_round;
@@ -398,7 +400,16 @@ private:
 	const cv::Mat* m_img_btn_reset_auto_round;
 	const cv::Mat* m_img_btn_woshilaishoushinide;
 	const cv::Mat* m_img_btn_zeiwang_benshaoxiashilaititianxingdaode;
-
+	const cv::Mat* m_img_btn_laozimeishijianwan;
+	const cv::Mat* m_img_btn_wozhengzaizhandouzhong;
+	const cv::Mat* m_img_btn_menpaichuanggaunhudong;
+	const cv::Mat* m_img_btn_luguohenishuogehua;
+	const cv::Mat* m_img_btn_wohaixiangzaizhezhuanzhuan;
+	const cv::Mat* m_img_btn_wojintianmeidaiqian_gaitianlaizhaoni;
+	const cv::Mat* m_img_btn_wosuibiankankan;
+	const cv::Mat* m_img_btn_womenhouhuiyouqi;
+	const cv::Mat* m_img_btn_luanchiyao_hairenming;
+	const cv::Mat* m_img_btn_woshenmedoubuzuo;
 
 	const cv::Mat* m_img_props_red_777;
 	const cv::Mat* m_img_props_white_777;
