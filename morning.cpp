@@ -96,6 +96,7 @@ const cv::Mat img_fight_mana_60 = cv_imread("object\\fight\\mana_60.png");
 const cv::Mat img_fight_mana_55 = cv_imread("object\\fight\\mana_55.png");
 const cv::Mat img_fight_mana_50 = cv_imread("object\\fight\\mana_50.png");
 const cv::Mat img_fight_fourman_title_gray = cv_imread("object\\fight\\fourman_title_gray.png", cv::IMREAD_GRAYSCALE);
+const cv::Mat img_fight_fourman_title2_gray = cv_imread("object\\fight\\fourman_title2_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_fight_do_hero_action = cv_imread("object\\fight\\do_hero_action.png");
 const cv::Mat img_fight_do_peg_action = cv_imread("object\\fight\\do_peg_action.png");
 const cv::Mat img_fight_auto = cv_imread("object\\fight\\auto.png");
@@ -176,6 +177,7 @@ const cv::Mat img_fight_mana_60_card = cv_imread("object_card\\fight\\mana_60.pn
 const cv::Mat img_fight_mana_55_card = cv_imread("object_card\\fight\\mana_55.png");
 const cv::Mat img_fight_mana_50_card = cv_imread("object_card\\fight\\mana_50.png");
 const cv::Mat img_fight_fourman_title_gray_card = cv_imread("object_card\\fight\\fourman_title_gray.png", cv::IMREAD_GRAYSCALE);
+const cv::Mat img_fight_fourman_title2_gray_card = cv_imread("object_card\\fight\\fourman_title2_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_fight_do_hero_action_card = cv_imread("object_card\\fight\\do_hero_action.png");
 const cv::Mat img_fight_do_peg_action_card = cv_imread("object_card\\fight\\do_peg_action.png");
 const cv::Mat img_fight_auto_card = cv_imread("object_card\\fight\\auto.png");
@@ -285,6 +287,7 @@ void WindowInfo::init() {
 		m_img_fight_mana_55=&img_fight_mana_55;
 		m_img_fight_mana_50=&img_fight_mana_50;
 		m_img_fight_fourman_title_gray=&img_fight_fourman_title_gray;
+		m_img_fight_fourman_title2_gray = &img_fight_fourman_title2_gray;
 		m_img_fight_do_hero_action=&img_fight_do_hero_action;
 		m_img_fight_do_peg_action=&img_fight_do_peg_action;
 		m_img_fight_auto=&img_fight_auto;
@@ -368,6 +371,7 @@ void WindowInfo::init() {
 		m_img_fight_mana_55 = &img_fight_mana_55_card;
 		m_img_fight_mana_50 = &img_fight_mana_50_card;
 		m_img_fight_fourman_title_gray = &img_fight_fourman_title_gray_card;
+		m_img_fight_fourman_title2_gray = &img_fight_fourman_title2_gray_card;
 		m_img_fight_do_hero_action = &img_fight_do_hero_action_card;
 		m_img_fight_do_peg_action = &img_fight_do_peg_action_card;
 		m_img_fight_auto = &img_fight_auto_card;
@@ -551,6 +555,7 @@ void WindowInfo::datu() {
 			//只处理第一回合的战斗，其他回合挂机
 			handle_datu_fight();
 		}
+		if (step.current == &work_start) { step.set_current(&to_changan_jiudian); }//战斗中，打完直接去接任务
 		return;
 	}
 	if (moving) {
@@ -568,6 +573,7 @@ void WindowInfo::datu() {
 	if (step.current == &work_start) {
 		// 重新运行程序，任务步骤预检查
 		log_info("work_start,%s",player_id);
+		//Sleep(150); // 有时候战斗退出后会显示任务界面，这里等待一会再检查
 		step.next();
 		cv::Mat image = hwnd2mat(hwnd);
 		cv::Mat image_gray;
@@ -781,8 +787,7 @@ void WindowInfo::datu() {
 		tScan_npc = 贼王;
 		step.next();
 	}
-	else if (step.current == &goto_zeiwang) {
-		log_info("goto_zeiwang");
+	else if (step.current == &attack_zeiwang) {
 		if (zeiwang_pos.x <= 0) {
 			log_info("处理贼王坐标失败，需要手动处理");
 			failure = true;
@@ -790,18 +795,19 @@ void WindowInfo::datu() {
 		}
 		SetForegroundWindow(hwnd);
 		log_info("贼王坐标:%d,%d", zeiwang_pos.x, zeiwang_pos.y);
-		move_to_position(zeiwang_pos, MAP_MOVE_DISTENCE, MAP_MOVE_DISTENCE);
-		step.next();
-	}
-	else if (step.current == &attack_zeiwang) {
-		SetForegroundWindow(hwnd);
-		log_info("attack_zeiwang");
-		if (talk_to_npc_fight(zeiwang_pos, *m_img_btn_zeiwang_benshaoxiashilaititianxingdaode)) {
-			//step.set_current(&baotu_end);
-			data_reset();
+		if (!is_near_loc(zeiwang_pos, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
+			log_info("goto_zeiwang");
+			move_to_position(zeiwang_pos, MAP_MOVE_DISTENCE, MAP_MOVE_DISTENCE);
 		}
 		else {
-			step.set_current(&fix_my_pos_zeiwang);
+			log_info("attack_zeiwang");
+			if (talk_to_npc_fight(zeiwang_pos, *m_img_btn_zeiwang_benshaoxiashilaititianxingdaode)) {
+				//step.set_current(&baotu_end);
+				data_reset();
+			}
+			else {
+				step.set_current(&fix_my_pos_zeiwang);
+			}
 		}
 	}
 	else if (step.current == &baotu_end) {
@@ -1145,10 +1151,10 @@ POINT WindowInfo::WaitMatchingRectLoc(cv::Rect roi_rect, const cv::Mat& templ, i
 		if (timeout == 0) break;
 		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
 			log_info("超时");
-			return {-1,-1};
+			break;
 		}
-		//Sleep(5);
 	}
+	return { -1,-1 };
 }
 bool WindowInfo::WaitMatchingGrayRectExist(cv::Rect roi_rect, const cv::Mat& templ, int timeout, std::string mask_path, double threshold, int match_method) {
 	auto t_ms = getCurrentTimeMilliseconds();
@@ -1158,10 +1164,10 @@ bool WindowInfo::WaitMatchingGrayRectExist(cv::Rect roi_rect, const cv::Mat& tem
 		if (timeout == 0) break;
 		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
 			log_info("超时");
-			return false;
+			break;
 		}
-		//Sleep(5);
 	}
+	return false;
 }
 bool WindowInfo::WaitMatchingRectExist(cv::Rect roi_rect, const cv::Mat& templ, int timeout, std::string mask_path, double threshold, int match_method) {
 	auto t_ms = getCurrentTimeMilliseconds();
@@ -1171,10 +1177,10 @@ bool WindowInfo::WaitMatchingRectExist(cv::Rect roi_rect, const cv::Mat& templ, 
 		if (timeout == 0) break;
 		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
 			log_info("超时");
-			return false;
+			break;
 		}
-		//Sleep(5);
 	}
+	return false;
 }
 
 bool WindowInfo::WaitMatchingRectDisapper(cv::Rect roi_rect, const cv::Mat& templ, int timeout, std::string mask_path, double threshold, int match_method) {
@@ -1742,12 +1748,11 @@ void WindowInfo::move_cursor_left_bottom() {
 }
 void WindowInfo::open_beibao() {
 	move_cursor_center_top();
+	double threshold = RegionMonthly ? 0.83 : 0.95;
 	for (int i = 0; i < 5; i++) {
 		input_alt_e();
-		if (WaitMatchingRectExist(ROI_beibao(), *m_img_btn_beibao, 2000)) {
-			if (MatchingRectExist(ROI_beibao(), *m_img_btn_package_prop,"",0.95)) {
-				ClickMatchImage(ROI_beibao(), *m_img_btn_package_prop);
-			}
+		if (WaitMatchingRectExist(ROI_beibao(), *m_img_btn_beibao, 1500)) {
+			ClickMatchImage(ROI_beibao(), *m_img_btn_package_prop, "", threshold, gMatchMethod, 0, 0, 0, 0, 1, 0);
 			break;
 		}
 	}
@@ -1786,7 +1791,7 @@ POINT WindowInfo::compute_dianxiaoer_pos_lazy() {
 			case 1:
 				return {14,14};
 			case 2:
-				return { 21,14 };
+				return { 22,14 };
 			case 3:
 				return { 18,11 };
 			case 4:
@@ -1795,7 +1800,7 @@ POINT WindowInfo::compute_dianxiaoer_pos_lazy() {
 				return { 27,9 };
 			case 6:
 			case 7:
-				return { 41,15 };
+				return { 40,15 };
 			case 8:
 				return { 34,16 };
 			case 9:
@@ -2571,7 +2576,7 @@ POINT WindowInfo::get_cursor_pos(POINT pos) {
 		auto image_roi = image(roi_rect);
 		if (image_roi.empty()) continue;
 		cv::Mat image_inRange = ThresholdinginRange(image_roi);
-		auto cursor_pos = MatchingLoc(image_inRange, rc, *m_img_cursors_cursor, "", 0.867, cv::TM_CCORR_NORMED, MATCHLEFTTOP);  // 游戏自身的鼠标，鼠标用cv::TM_CCORR_NORMED方法匹配准确率最高
+		auto cursor_pos = MatchingLoc(image_inRange, rc, *m_img_cursors_cursor, "", 0.854, cv::TM_CCORR_NORMED, MATCHLEFTTOP);  // 游戏自身的鼠标，鼠标用cv::TM_CCORR_NORMED方法匹配准确率最高
 		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
 		{
@@ -2737,13 +2742,18 @@ bool WindowInfo::is_verifying() {
 	auto image = hwnd2mat(hwnd);
 	cv::Mat img_gray;
 	cv::cvtColor(image, img_gray, cv::COLOR_BGR2GRAY);
+	if (MatchingExist(image, ROI_paixu_verify(), *m_img_symbol_paixu_verify_reset, "", 0.81))return true;
+	if (MatchingLoc(img_gray, ROI_yidongdezi(), *m_img_symbol_yidongdezi_gray, "", 0.81).x > -1)return true;
 	if (MatchingExist(img_gray, ROI_four_man(), *m_img_fight_fourman_title_gray, "", 0.83))return true;
-	if (MatchingExist(image, ROI_paixu_verify(), *m_img_symbol_paixu_verify_reset, "", 0.83))return true;
-	if (MatchingLoc(img_gray, ROI_yidongdezi(), *m_img_symbol_yidongdezi_gray, "", 0.83).x > -1)return true;
+	if (MatchingExist(img_gray, ROI_four_man(), *m_img_fight_fourman_title2_gray, "", 0.83))return true;
 	return false;
 }
 bool WindowInfo::is_four_man() {
-	if (MatchingGrayRectExist(ROI_four_man(), *m_img_fight_fourman_title_gray, "", 0.83)) {
+	auto image = hwnd2mat(hwnd);
+	cv::Mat img_gray;
+	cv::cvtColor(image, img_gray, cv::COLOR_BGR2GRAY);
+	if (MatchingExist(img_gray, ROI_four_man(), *m_img_fight_fourman_title_gray, "", 0.83) ||
+		MatchingExist(img_gray, ROI_four_man(), *m_img_fight_fourman_title2_gray, "", 0.83)) {
 		play_mp3_once();
 		popup_verify = true;
 		for (int i = 0; i < 5; i++) { log_info("***四小人弹窗验证,请手动点击***"); }
@@ -3256,25 +3266,25 @@ void WindowInfo::click_position_at_edge(POINT dst, int xs, int ys, int x_fix, in
 }
 bool WindowInfo::talk_to_npc_fight(POINT dst, const cv::Mat& templ) {
 	POINT temp_pos = {-1,-1};
-	//for (int i = 0;i < 2;i++) {
-	//	update_player_float_pos();
-	//	if (temp_pos.x != player_pos.x && temp_pos.y != player_pos.y) {
-	//		//人物坐标发生改变，要重新隐藏一下玩家
-	//		hide_player_n_stalls();
-	//	}
-	//	temp_pos = player_pos;
-	//	log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
-	//	log_info("点击的坐标:%d,%d", dst.x, dst.y);
-	//	int ys = -5;
-	//	if (i > 0)ys = -40;
-	//	click_position_at_edge(dst,0,0,0,ys);
-	//	if (ClickMatchImage(ROI_npc_talk(), templ, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 1, 2000) && wait_fighting()) {
-	//		log_info("发起战斗成功");
-	//		is_four_man();
-	//		return true;
-	//	}
-	//	handle_wrong_attack();
-	//}
+	for (int i = 0;i < 2;i++) {
+		update_player_float_pos();
+		if (temp_pos.x != player_pos.x && temp_pos.y != player_pos.y) {
+			//人物坐标发生改变，要重新隐藏一下玩家
+			hide_player_n_stalls();
+		}
+		temp_pos = player_pos;
+		log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
+		log_info("点击的坐标:%d,%d", dst.x, dst.y);
+		int ys = -5;
+		if (i > 0)ys = -40;
+		click_position_at_edge(dst,0,0,0,ys);
+		if (ClickMatchImage(ROI_npc_talk(), templ, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 1, 1200) && wait_fighting()) {
+			log_info("发起战斗成功");
+			is_four_man();
+			return true;
+		}
+		handle_wrong_attack();
+	}
 	log_info("检查是否重叠");
 	for (int j = 0;j <= 3;j++) {
 		update_player_float_pos();
@@ -3286,10 +3296,9 @@ bool WindowInfo::talk_to_npc_fight(POINT dst, const cv::Mat& templ) {
 		log_info("玩家坐标:%d,%d", player_pos.x, player_pos.y);
 		log_info("点击的坐标:%d,%d", dst.x, dst.y);
 		click_position_at_edge({ dst.x,dst.y}, 0, 0, 0, -3,5);
-		move_cursor_center_bottom();
 		// 一页显示5个NPC，只尝试前3个
 		click_position_at_edge({ dst.x,dst.y}, 0, 0, 15, 30+j*20);
-		if (wait_fighting()) {
+		if (ClickMatchImage(ROI_npc_talk(), templ, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 1, 1200) && wait_fighting()) {
 			log_info("发起战斗成功");
 			is_four_man();
 			return true;
@@ -4955,7 +4964,7 @@ int main(int argc, const char** argv)
 
 	gm.init();
 	gm.hook_data();
-	gm.test();
+	//gm.test();
 	gm.work();
 	return 0;
 }

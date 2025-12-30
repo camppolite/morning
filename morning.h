@@ -88,8 +88,6 @@ std::string work_start("work_start");
 std::string to_changan_jiudian("to_changan_jiudian");
 std::string scan_dianxiaoer_pos("scan_dianxiaoer");
 std::string to_dianxiaoer_get_task("to_dianxiaoer_get_task");
-//std::string talk_get_baoturenwu("talk_get_baoturenwu");
-//std::string scan_baotu_task("scan_baotu_task");
 std::string close_dianxiaoer("close_dianxiaoer");
 std::string goto_baotu_scene("goto_baotu_scene");
 std::string attack_qiangdao("attack_qiangdao");
@@ -97,8 +95,6 @@ std::string scan_zeiwang_task("scan_zeiwang_task");
 std::string goto_zeiwang_scene("goto_zeiwang_scene");
 std::string fix_my_pos_zeiwang("fix_my_pos_zeiwang");
 std::string scan_zeiwang_pos("scan_zeiwang_pos");
-//std::string try_zeiwang_pos("try_zeiwang_pos");
-std::string goto_zeiwang("goto_zeiwang");
 std::string attack_zeiwang("attack_zeiwang");
 std::string baotu_end("baotu_end");
 std::vector<std::string*> datu_step = {
@@ -106,8 +102,6 @@ std::vector<std::string*> datu_step = {
 	&to_changan_jiudian,
 	& scan_dianxiaoer_pos,
 	&to_dianxiaoer_get_task, 
-	//&talk_get_baoturenwu,
-	//&scan_baotu_task,
 	& close_dianxiaoer,
 	&goto_baotu_scene,
 	&attack_qiangdao,
@@ -115,8 +109,6 @@ std::vector<std::string*> datu_step = {
 	& goto_zeiwang_scene,
 	& fix_my_pos_zeiwang,
 	& scan_zeiwang_pos,
-	//& try_zeiwang_pos,
-	& goto_zeiwang,
 	& attack_zeiwang,
 	&baotu_end
 };
@@ -444,6 +436,7 @@ private:
 	const cv::Mat* m_img_fight_mana_55;
 	const cv::Mat* m_img_fight_mana_50;
 	const cv::Mat* m_img_fight_fourman_title_gray;
+	const cv::Mat* m_img_fight_fourman_title2_gray;
 	const cv::Mat* m_img_fight_do_hero_action;
 	const cv::Mat* m_img_fight_do_peg_action;
 	const cv::Mat* m_img_fight_auto;

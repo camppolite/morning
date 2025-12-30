@@ -1302,12 +1302,12 @@ void loop() {
         d = strtok(NULL, "");
         const int n = atoi(d);
         delay(50);  // 经过多次测试，50是最低值，少了会出问题
-        // for (int i = 0; i < 5; i++) {
-        //   if (myMP3.isPlaying()) break;
-        //   myMP3.playFromMP3Folder(n);
-        //   delay(100);
-        // }
-        myMP3.playFromMP3Folder(n);
+        for (int i = 0; i < 3; i++) {
+          myMP3.playFromMP3Folder(n);
+          delay(100);
+          if (myMP3.isPlaying()) break;
+        }
+        // myMP3.playFromMP3Folder(n);
         delay(100);
         myMP3.startRepeat();
         Serial.println("ok");
