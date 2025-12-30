@@ -148,6 +148,7 @@ sourcePositionVariancex
 Adjust scrolling amount to make given position visible.
 Generally GetCursorStartPos() + offset to compute a valid position.
 ImVec2
+xywar
 
 mhmain.dll+2400CF8
 fmodex64.dll FMOD::Channel::getPosition(__int64, _DWORD *, unsigned int)
@@ -197,53 +198,20 @@ kernelbase.GetQueuedCompletionStatus
 #c6df33a  绿色
 #Effffff#c6df33a 开头就是任务追踪的任务名称
 
-任务追踪 0x013A
-师门任务id=314
-巡逻 0x4D
-送信 
-化生寺 0x3E
-慧明
-慧静
-
-长安城 0x3F
-程夫人
-殷丞相
-刘副将
-毒霸天
-张老财
+ 外形=
+强盗 2044
+山贼 2045
+马面 2053
+大海龟 2036
 
 
-买东西
-武器 0x4F
-细木棒 
-松木锤
-摄妖香
-青铜斧
-腰带
-
-杂货 0x4E
-桃花 
-
-
-送信完成 0x26
-
-在师门附近
-帮师父送信给
-任务完成，找
-买到xx送给
-
-强盗
-普陀山 0x62
-花果山 0x61
-地府 0x82
-化生寺 0x79
-长寿郊外 0x61 0x62
-长寿村
-东海湾 0x61
-狮驼岭 0x62
-西凉女国 0x61
-建邺城 0x6B
-
-贼王
-普陀山 0x7E 0x75
-长寿村 0x77
+外形=2053 时装5=0 特效=0 动作分类=0 渲染倍数=5  id=2 X=613 Y=452 allied=1 leader=0 type=1 place=5 owner=1 debut=0 block_id=0 优先级=300000 加载优先级=2
+ 
+allied=0  0是敌方成员，1是己方成员
+ 
+ 
+ 
+ 
+ 
+ 
+ 

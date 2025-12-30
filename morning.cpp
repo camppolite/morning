@@ -125,7 +125,7 @@ const cv::Mat img_btn_beibao_card = cv_imread("object_card\\btn\\beibao.png");
 const cv::Mat img_btn_package_prop_card = cv_imread("object_card\\btn\\package_prop.png");
 const cv::Mat img_btn_tingtingwufang_card = cv_imread("object_card\\btn\\tingtingwufang.png");
 const cv::Mat img_btn_npc_talk_close_card = cv_imread("object_card\\btn\\npc_talk_close.png");
-const cv::Mat img_btn_npc_talk_close2_card = cv_imread("object_card\\btn\\npc_talk_close2.png"); //todo
+const cv::Mat img_btn_npc_talk_close2_card = cv_imread("object_card\\btn\\npc_talk_close2.png");
 const cv::Mat img_btn_flag_loc_card = cv_imread("object_card\\btn\\flag_loc.png");
 const cv::Mat img_btn_shide_woyaoqu_card = cv_imread("object_card\\btn\\shide_woyaoqu.png");
 const cv::Mat img_btn_cancel_auto_round_card = cv_imread("object_card\\btn\\cancel_auto_round.png");
@@ -313,6 +313,7 @@ void WindowInfo::init() {
 		mScreen_y = 11;  // wHeight / 2 / 25 屏幕可以范围坐标跨度
 	}
 	else {
+		//_card for 点卡服
 		m_img_btn_beibao = &img_btn_beibao_card;
 		m_img_btn_package_prop = &img_btn_package_prop_card;
 		m_img_btn_tingtingwufang = &img_btn_tingtingwufang_card;
@@ -728,7 +729,7 @@ void WindowInfo::datu() {
 	else if (step.current == &fix_my_pos_zeiwang) {
 		// 对于大地图，要走到能看到全图的特定位置再开始扫描
 		log_info("fix_my_pos_zeiwang");
-		switch (zeiwang_scene_id)//todo
+		switch (zeiwang_scene_id)
 		{
 		case 长安杂货店:
 		{
@@ -1864,17 +1865,32 @@ void WindowInfo::move_to_dianxiaoer() {
 }
 void WindowInfo::goto_changanjiudian() {
 	update_player_float_pos();
-	POINT jiudian = { 468, 171 };	// 长安酒店入口(464,168)
-	if (m_scene_id != 长安城) {
+	if (m_scene_id == 长安城) {
+		POINT jiudian = { 468, 171 };	// 长安城到长安酒店入口(464,168)
+		if (!(abs(player_pos.x - jiudian.x) <= NPC_TALK_VALID_DISTENCE && abs(player_pos.y - jiudian.y) <= NPC_TALK_VALID_DISTENCE)) {
+			fly_to_changanjiudian();
+		}
+		move_to_other_scene(jiudian, 长安酒店);
+		wait_moving_stop(3000);
+	}
+	else if (m_scene_id == 长安酒店二楼) {
+		POINT jiudian = { 34, 31 };	// 长安酒店二楼到长安酒店入口
+		if (!(abs(player_pos.x - jiudian.x) <= mScreen_x && abs(player_pos.y - jiudian.y) <= mScreen_y)) {
+			fly_to_changanjiudian();
+		}
+		move_to_other_scene(jiudian, 长安酒店);
+		wait_moving_stop(3000);
+	}
+	else {
 		// 不在酒店门口，
 		log_info("不在酒店门口，使用飞行棋");
 		fly_to_changanjiudian();
 	}
-	if (!(abs(player_pos.x - jiudian.x) <= NPC_TALK_VALID_DISTENCE && abs(player_pos.y - jiudian.y) <= NPC_TALK_VALID_DISTENCE)) {
-		fly_to_changanjiudian();
-	}
-	move_to_other_scene(jiudian, 长安城);
-	wait_moving_stop(3000);
+	//if (!(abs(player_pos.x - jiudian.x) <= NPC_TALK_VALID_DISTENCE && abs(player_pos.y - jiudian.y) <= NPC_TALK_VALID_DISTENCE)) {
+	//	fly_to_changanjiudian();
+	//}
+	//move_to_other_scene(jiudian, 长安酒店);
+	//wait_moving_stop(3000);
 	moving = true;
 }
 void WindowInfo::move_to_changanjidian_center() {
@@ -2189,13 +2205,12 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 		}
 		case 长寿村酒店:
 		{
-			//todo
 			if (m_scene_id == 长寿村) {
-				move_to_other_scene({ 15,128 }, 长寿村酒店);
+				move_to_other_scene({ 109,148 }, 长寿村酒店);
 			}
 			else {
 				use_changshoucun777(ROI_changshoucun777_dangpu());
-				move_to_other_scene({ 15,128 }, 长寿村酒店);
+				move_to_other_scene({ 109,148 }, 长寿村酒店);
 			}
 			break;
 		}
@@ -2273,7 +2288,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 		case 建邺衙门:
 		{
 			if (m_scene_id == 建邺城) {
-				move_to_other_scene({ 225,65 }, 建邺衙门);//todo
+				move_to_other_scene({ 146,83 }, 建邺衙门);
 			}
 			else {
 				use_feixingfu(建邺城);
@@ -3593,8 +3608,8 @@ void WindowInfo::test() {
 	while (1) {
 		//Sleep(2000);
 		//update_npc_pos(店小二);
-		is_four_man();
 		update_scene_id();
+		update_player_float_pos();
 		update_player_float_pos();
 		//log_info("测试日志22222");
 	}
@@ -4940,7 +4955,7 @@ int main(int argc, const char** argv)
 
 	gm.init();
 	gm.hook_data();
-	//gm.test();
+	gm.test();
 	gm.work();
 	return 0;
 }

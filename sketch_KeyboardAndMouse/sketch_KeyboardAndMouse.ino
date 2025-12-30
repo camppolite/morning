@@ -1268,11 +1268,10 @@ void loop() {
         Serial.println("ok");
       }
       else if (strcmp("hkeyCCC", inData) == 0) {
-        delay(GetRand(5,15));
         Keyboard.press(KEY_LEFT_CTRL);
         delay(GetRand(15,30));
         AbsMouse.press(MOUSE_LEFT);
-        delay(50);
+        delay(30);
         AbsMouse.release(MOUSE_LEFT);
         delay((unsigned long)(100 + my_random(100)));  // 经过多次测试，这个间隔不能太短，否则点击不生效
         // delay((unsigned long)(3 + my_random(100)));  // 通过窗口传输需要时间，这里就不做太长的延时了
@@ -1335,8 +1334,6 @@ void loop() {
         Keyboard.release(KEY_RIGHT_ARROW);
         Serial.println("ok");
       }
-
-
       else if (prefix("movedf:", inData)) {
         abs_mouse_move(inData);
       } else if (prefix("scroll:", inData)) {

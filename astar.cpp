@@ -68,7 +68,7 @@ POINT get_map_max_loc(unsigned int scene_id) {
 		case 长寿郊外:
 			return { 190, 167 };
 		case 长寿村酒店:
-			return { 190, 167 };//todo
+			return { 33, 34 };
 		case 傲来国:
 			return { 223, 150 };
 		case 傲来客栈:
