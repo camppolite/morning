@@ -4006,7 +4006,7 @@ cv::Mat hwnd2mat(HWND hwnd) {
 	// 2. Use cvtColor with the COLOR_BGRA2BGR conversion code
 	cv::cvtColor(src, image_bgr, cv::COLOR_BGRA2BGR);
 
-	save_screenshot(image_bgr);
+	//save_screenshot(image_bgr);
 
 	return image_bgr;
 }
