@@ -854,7 +854,7 @@ std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID s
 }
 std::vector<uintptr_t> WindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern)
 {
-	// ModuleBase 为0则扫描PRV内存，
+	// ModuleBase 为NULL则扫描PRV内存，
 	// all 为true，则扫描全部匹配结果,为false扫描返回第一个
 	std::vector<unsigned char> pattern_bytes;
 	std::vector<char> pattern_mask;
@@ -872,7 +872,7 @@ std::vector<uintptr_t> WindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE Mod
 	GetSystemInfo(&systemInfo);
 	LPVOID minimumApplicationAddress = systemInfo.lpMinimumApplicationAddress;
 	LPVOID maximumApplicationAddress = systemInfo.lpMaximumApplicationAddress;
-	if (ModuleBase > 0) {
+	if (ModuleBase) {
 		// 全程序内存扫描
 		DWORD ModuleSize = GetModuleSize(hProcess, ModuleBase);
 		minimumApplicationAddress = ModuleBase;
@@ -887,7 +887,7 @@ std::vector<uintptr_t> WindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE Mod
 		if (VirtualQueryEx(hProcess, address, &memoryInfo, sizeof(memoryInfo)) == sizeof(memoryInfo))
 		{
 			bool scan_condition = false;
-			if (ModuleBase > 0) scan_condition = memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && !(memoryInfo.Type & MEM_PRIVATE);
+			if (ModuleBase) scan_condition = memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && !(memoryInfo.Type & MEM_PRIVATE);
 			else scan_condition = memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && memoryInfo.Type == MEM_PRIVATE && memoryInfo.Protect == PAGE_READWRITE;
 			// Check if the memory region is accessible and not reserved
 			if (scan_condition)
@@ -953,7 +953,7 @@ uintptr_t WindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SI
 
 uintptr_t WindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern)
 {
-	// ModuleBase 为0则扫描PRV内存，
+	// ModuleBase 为NULL则扫描PRV内存，
 	// all 为true，则扫描全部匹配结果,为false扫描返回第一个
 	std::vector<unsigned char> pattern_bytes;
 	std::vector<char> pattern_mask;
@@ -971,7 +971,7 @@ uintptr_t WindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const 
 	GetSystemInfo(&systemInfo);
 	LPVOID minimumApplicationAddress = systemInfo.lpMinimumApplicationAddress;
 	LPVOID maximumApplicationAddress = systemInfo.lpMaximumApplicationAddress;
-	if (ModuleBase > 0) {
+	if (ModuleBase) {
 		// 全程序内存扫描
 		DWORD ModuleSize = GetModuleSize(hProcess, ModuleBase);
 		minimumApplicationAddress = ModuleBase;
@@ -986,7 +986,7 @@ uintptr_t WindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const 
 		if (VirtualQueryEx(hProcess, address, &memoryInfo, sizeof(memoryInfo)) == sizeof(memoryInfo))
 		{
 			bool scan_condition = false;
-			if (ModuleBase > 0) scan_condition = memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && !(memoryInfo.Type & MEM_PRIVATE);
+			if (ModuleBase) scan_condition = memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && !(memoryInfo.Type & MEM_PRIVATE);
 			else scan_condition = memoryInfo.State == MEM_COMMIT && memoryInfo.Protect != PAGE_NOACCESS && memoryInfo.Type == MEM_PRIVATE && memoryInfo.Protect == PAGE_READWRITE;
 			// Check if the memory region is accessible and not reserved
 			if (scan_condition)
@@ -1525,7 +1525,7 @@ void WindowInfo::scan_zeiwang_id() {
 		}
 		auto npc_waixing_list = PerformAoBScanEx(
 			hProcess,
-			0,
+			NULL,
 			"A0 52 7D 8F 18 4F 48 51 A7 7E 3D 00 38 00 20 00 16 59 62 5F 3D 00 32 00 30 00 34 00 35 00 20 00 F6 65 C5 88 35 00 3D 00 30 00 20 00"  //加载优先级=8 外形=2045 时装5=0 特效=0 
 		);
 		int symbol_len = 44;
@@ -1566,7 +1566,7 @@ void WindowInfo::scan_current_scene_npc_id() {
 	struct_AoB.substr(0, struct_AoB.size() - 1);
 	auto npc_id_addrs = PerformAoBScanEx(
 		hProcess,
-		0,
+		NULL,
 		struct_AoB);
 	for (const auto &npc_id_addr : npc_id_addrs) {
 		SIZE_T regionSize = 0xA8;
@@ -2852,7 +2852,7 @@ void WindowInfo::parse_baotu_task_info() {
 	// "08 FF CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00 ? ? 23 00 6E 00 2F 00 35 00 30 00 21 6B 09 FF",  // （今天已领取#R8#n/50次）
 	auto baotu_task_symbol_list = PerformAoBScanEx(
 		hProcess,
-		0,
+		NULL,
 		"23 00 6E 00 2F 00 35 00 30 00 21 6B 09 FF"  // （今天已领取#R8#n/50次）
 	);
 	int temp_count = 0;
@@ -2943,7 +2943,7 @@ void WindowInfo::parse_baotu_task_info() {
 					struct_AoB += "22 00 2C 00 22 00 65 00 76 00 61 00 6C 00 49 00 44 00 22 00 3A 00";
 					baotu_task_content_list = PerformAoBScanEx(
 						hProcess,
-						0,
+						NULL,
 						struct_AoB.c_str()
 					);
 					break;
@@ -3001,7 +3001,7 @@ void WindowInfo::parse_baotu_task_info_card() {
 	// "28 00 CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00 ? ? 23 00 42 00 21 6B 29 00 23 00 72 00 00 00",  // (今天已领取#R1#B次)#r
 	auto baotu_task_symbol_list = PerformAoBScanEx(
 		hProcess,
-		0,
+		NULL,
 		"? ? 23 00 42 00 21 6B 29 00 23 00 72 00 00 00"  // (今天已领取#R1#B次)#r
 	);
 	int symbol_len = 16;
@@ -3089,7 +3089,7 @@ void WindowInfo::parse_zeiwang_info() {
 	//贼王位置有时候会刷新变动，但只是界面显示变了，实际坐标没变
 	auto zeiwang_symbol_list = PerformAoBScanEx(
 		hProcess,
-		0,
+		NULL,
 		"22 00 2C 00 22 00 65 00 73 00 74 00 72 00 22 00 3A 00 22 00 3C 8D 8B 73"  // ","estr":"贼王
 	);
 	int symbol_len = 24;

@@ -21,12 +21,21 @@
     <ClCompile Include="morning.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="astar.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="morning.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="log.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="astar.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="nlohmann\json.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
