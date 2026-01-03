@@ -1,4 +1,4 @@
-//#include "pch.h" // use stdafx.h in Visual Studio 2017 and earlier
+ï»¿//#include "pch.h" // use stdafx.h in Visual Studio 2017 and earlier
 #include <stdio.h>
 #include <Windows.h>
 #include <math.h>
@@ -14,29 +14,29 @@ typedef std::shared_ptr<AStarNode> AStarNodePtr;
 MAZE get_maze(unsigned int scene_id) {
 	switch (scene_id)
 	{
-		case Å®¶ù´å:
+		case å¥³å„¿æ‘:
 			return nvercun_maze;
-		case ÆÕÍÓÉ½:
+		case æ™®é™€å±±:
 			return putuoshan_maze;
-		case ½­ÄÏÒ°Íâ:
+		case æ±Ÿå—é‡å¤–:
 			return jiangnanyewai_maze;
-		case ´óÌÆ¾³Íâ:
+		case å¤§å”å¢ƒå¤–:
 			return datangjingwai_maze;
-		case Öì×Ï¹ú:
+		case æœ±ç´«å›½:
 			return zhuziguo_maze;
-		case °ÁÀ´¹ú:
+		case å‚²æ¥å›½:
 			return aolaiguo_maze;
-		case ±¦Ïó¹ú:
+		case å®è±¡å›½:
 			return baoxiangguo_maze;
-		case ½¨Úş³Ç:
+		case å»ºé‚ºåŸ:
 			return jianyecheng_maze;
-		case Îå×¯¹Û:
+		case äº”åº„è§‚:
 			return wuzhuangguan_maze;
-		case ³¤ÊÙ´å:
+		case é•¿å¯¿æ‘:
 			return changshoucun_maze;
-		case Î÷ÁºÅ®¹ú:
+		case è¥¿æ¢å¥³å›½:
 			return xiliangnvguo_maze;
-		case ³¤°²¾Æµê:
+		case é•¿å®‰é…’åº—:
 			return changanjiudian_maze;
 	}
 	return MAZE();
@@ -45,65 +45,65 @@ MAZE get_maze(unsigned int scene_id) {
 POINT get_map_max_loc(unsigned int scene_id) {
 	switch (scene_id)
 	{
-		case ³¤°²³Ç:
+		case é•¿å®‰åŸ:
 			return { 548, 279 };
-		case »¯ÉúËÂ:
+		case åŒ–ç”Ÿå¯º:
 			return { 127, 95 };
-		case ³¤°²ÔÓ»õµê:
+		case é•¿å®‰æ‚è´§åº—:
 			return { 31, 29 };
-		case ³¤°²ÊÎÆ·µê:
+		case é•¿å®‰é¥°å“åº—:
 			return { 51, 38 };
-		case ³¤°²¹ú×Ó¼à:
+		case é•¿å®‰å›½å­ç›‘:
 			return { 79, 59 };
-		case ³¤°²¾Æµê:
+		case é•¿å®‰é…’åº—:
 			return { 66, 49 };
-		case ³¤°²¾Æµê¶şÂ¥:
+		case é•¿å®‰é…’åº—äºŒæ¥¼:
 			return { 63, 47 };
-		case Î÷ÁºÅ®¹ú:
+		case è¥¿æ¢å¥³å›½:
 			return { 163, 123 };
-		case ³¤ÊÙ´å:
+		case é•¿å¯¿æ‘:
 			return { 158, 208 };
-		case ³¤ÊÙ´åµ±ÆÌ:
+		case é•¿å¯¿æ‘å½“é“º:
 			return { 26, 25 };
-		case ³¤ÊÙ½¼Íâ:
-			return { 190, 167 };
-		case ³¤ÊÙ´å¾Æµê:
+		case é•¿å¯¿éƒŠå¤–:
+			return { 191, 167 };
+		case é•¿å¯¿æ‘é…’åº—:
 			return { 33, 34 };
-		case °ÁÀ´¹ú:
+		case å‚²æ¥å›½:
 			return { 223, 150 };
-		case °ÁÀ´¿ÍÕ»:
+		case å‚²æ¥å®¢æ ˆ:
 			return { 57, 38 };
-		case °ÁÀ´¿ÍÕ»¶şÂ¥:
+		case å‚²æ¥å®¢æ ˆäºŒæ¥¼:
 			return { 60, 43 };
-		case °ÁÀ´¹úÒ©µê:
+		case å‚²æ¥å›½è¯åº—:
 			return { 50, 44 };
-		case ´óÌÆ¹ú¾³:
+		case å¤§å”å›½å¢ƒ:
 			return { 351, 335 };
-		case µØ¸®:
+		case åœ°åºœ:
 			return { 159, 119 };
-		case Ê¨ÍÕÁë:
+		case ç‹®é©¼å²­:
 			return { 131, 98 };
-		case ÆÕÍÓÉ½:
+		case æ™®é™€å±±:
 			return { 95, 71 };
-		case Å®¶ù´å:
+		case å¥³å„¿æ‘:
 			return { 127, 143 };
-		case Îå×¯¹Û:
+		case äº”åº„è§‚:
 			return { 98, 73 };
-		case ´óÌÆ¾³Íâ:
+		case å¤§å”å¢ƒå¤–:
 			return { 637, 117 };
-		case ½­ÄÏÒ°Íâ:
+		case æ±Ÿå—é‡å¤–:
 			return { 159, 119 };
-		case Öì×Ï¹ú:
+		case æœ±ç´«å›½:
 			return { 191, 119 };
-		case ±¦Ïó¹ú:
+		case å®è±¡å›½:
 			return { 158, 118 };
-		case ½¨Úş³Ç:
+		case å»ºé‚ºåŸ:
 			return { 287, 143 };
-		case ½¨ÚşÔÓ»õµê:
+		case å»ºé‚ºæ‚è´§åº—:
 			return { 35, 39 };
-		case ¶«º£Íå:
+		case ä¸œæµ·æ¹¾:
 			return { 119, 119 };
-		case »¨¹ûÉ½:
+		case èŠ±æœå±±:
 			return { 159, 119 };
 	}
 	return { -1, -1 };
@@ -111,38 +111,38 @@ POINT get_map_max_loc(unsigned int scene_id) {
 
 unsigned int get_scene_id_by_name(std::wstring name) {
 	unsigned int scene_id = 0;
-	if (name == L"³¤°²³Ç") { scene_id = ³¤°²³Ç; }
-	else if (name == L"»¯ÉúËÂ") { scene_id = »¯ÉúËÂ; }
-	else if (name == L"ÌÒÔ´´å") { scene_id = ÌÒÔ´´å; }
-	else if (name == L"³¤°²ÔÓ»õµê") { scene_id = ³¤°²ÔÓ»õµê; }
-	else if (name == L"³¤°²ÊÎÆ·µê") { scene_id = ³¤°²ÊÎÆ·µê; }
-	else if (name == L"³¤°²¹ú×Ó¼à") { scene_id = ³¤°²¹ú×Ó¼à; }
-	else if (name == L"³¤°²¾Æµê") { scene_id = ³¤°²¾Æµê; }
-	else if (name == L"³¤°²¾Æµê¶şÂ¥") { scene_id = ³¤°²¾Æµê¶şÂ¥; }
-	else if (name == L"Î÷ÁºÅ®¹ú") { scene_id = Î÷ÁºÅ®¹ú; }
-	else if (name == L"³¤ÊÙ´å") { scene_id = ³¤ÊÙ´å; }
-	else if (name == L"³¤ÊÙ´åµ±ÆÌ") { scene_id = ³¤ÊÙ´åµ±ÆÌ; }
-	else if (name == L"³¤ÊÙ½¼Íâ") { scene_id = ³¤ÊÙ½¼Íâ; }
-	else if (name == L"³¤ÊÙ´å¾Æµê") { scene_id = ³¤ÊÙ´å¾Æµê; }
-	else if (name == L"°ÁÀ´¹ú") { scene_id = °ÁÀ´¹ú; }
-	else if (name == L"°ÁÀ´¿ÍÕ»") { scene_id = °ÁÀ´¿ÍÕ»; }
-	else if (name == L"°ÁÀ´¿ÍÕ»¶şÂ¥") { scene_id = °ÁÀ´¿ÍÕ»¶şÂ¥; }
-	else if (name == L"°ÁÀ´¹úÒ©µê") { scene_id = °ÁÀ´¹úÒ©µê; }
-	else if (name == L"´óÌÆ¹ú¾³") { scene_id = ´óÌÆ¹ú¾³; }
-	else if (name == L"µØ¸®") { scene_id = µØ¸®; }
-	else if (name == L"Ê¨ÍÕÁë") { scene_id = Ê¨ÍÕÁë; }
-	else if (name == L"ÆÕÍÓÉ½") { scene_id = ÆÕÍÓÉ½; }
-	else if (name == L"Å®¶ù´å") { scene_id = Å®¶ù´å; }
-	else if (name == L"Îå×¯¹Û") { scene_id = Îå×¯¹Û; }
-	else if (name == L"´óÌÆ¾³Íâ") { scene_id = ´óÌÆ¾³Íâ; }
-	else if (name == L"½­ÄÏÒ°Íâ") { scene_id = ½­ÄÏÒ°Íâ; }
-	else if (name == L"Öì×Ï¹ú") { scene_id = Öì×Ï¹ú; }
-	else if (name == L"±¦Ïó¹ú") { scene_id = ±¦Ïó¹ú; }
-	else if (name == L"½¨Úş³Ç" || name == L"½¨Úş") { scene_id = ½¨Úş³Ç; }
-	else if (name == L"½¨ÚşÑÃÃÅ") { scene_id = ½¨ÚşÑÃÃÅ; }
-	else if (name == L"½¨ÚşÔÓ»õµê") { scene_id = ½¨ÚşÔÓ»õµê; }
-	else if (name == L"¶«º£Íå") { scene_id = ¶«º£Íå; }
-	else if (name == L"»¨¹ûÉ½") { scene_id = »¨¹ûÉ½; }
+	if (name == L"é•¿å®‰åŸ") { scene_id = é•¿å®‰åŸ; }
+	else if (name == L"åŒ–ç”Ÿå¯º") { scene_id = åŒ–ç”Ÿå¯º; }
+	else if (name == L"æ¡ƒæºæ‘") { scene_id = æ¡ƒæºæ‘; }
+	else if (name == L"é•¿å®‰æ‚è´§åº—") { scene_id = é•¿å®‰æ‚è´§åº—; }
+	else if (name == L"é•¿å®‰é¥°å“åº—") { scene_id = é•¿å®‰é¥°å“åº—; }
+	else if (name == L"é•¿å®‰å›½å­ç›‘") { scene_id = é•¿å®‰å›½å­ç›‘; }
+	else if (name == L"é•¿å®‰é…’åº—") { scene_id = é•¿å®‰é…’åº—; }
+	else if (name == L"é•¿å®‰é…’åº—äºŒæ¥¼") { scene_id = é•¿å®‰é…’åº—äºŒæ¥¼; }
+	else if (name == L"è¥¿æ¢å¥³å›½") { scene_id = è¥¿æ¢å¥³å›½; }
+	else if (name == L"é•¿å¯¿æ‘") { scene_id = é•¿å¯¿æ‘; }
+	else if (name == L"é•¿å¯¿æ‘å½“é“º") { scene_id = é•¿å¯¿æ‘å½“é“º; }
+	else if (name == L"é•¿å¯¿éƒŠå¤–") { scene_id = é•¿å¯¿éƒŠå¤–; }
+	else if (name == L"é•¿å¯¿æ‘é…’åº—") { scene_id = é•¿å¯¿æ‘é…’åº—; }
+	else if (name == L"å‚²æ¥å›½") { scene_id = å‚²æ¥å›½; }
+	else if (name == L"å‚²æ¥å®¢æ ˆ") { scene_id = å‚²æ¥å®¢æ ˆ; }
+	else if (name == L"å‚²æ¥å®¢æ ˆäºŒæ¥¼") { scene_id = å‚²æ¥å®¢æ ˆäºŒæ¥¼; }
+	else if (name == L"å‚²æ¥å›½è¯åº—") { scene_id = å‚²æ¥å›½è¯åº—; }
+	else if (name == L"å¤§å”å›½å¢ƒ") { scene_id = å¤§å”å›½å¢ƒ; }
+	else if (name == L"åœ°åºœ") { scene_id = åœ°åºœ; }
+	else if (name == L"ç‹®é©¼å²­") { scene_id = ç‹®é©¼å²­; }
+	else if (name == L"æ™®é™€å±±") { scene_id = æ™®é™€å±±; }
+	else if (name == L"å¥³å„¿æ‘") { scene_id = å¥³å„¿æ‘; }
+	else if (name == L"äº”åº„è§‚") { scene_id = äº”åº„è§‚; }
+	else if (name == L"å¤§å”å¢ƒå¤–") { scene_id = å¤§å”å¢ƒå¤–; }
+	else if (name == L"æ±Ÿå—é‡å¤–") { scene_id = æ±Ÿå—é‡å¤–; }
+	else if (name == L"æœ±ç´«å›½") { scene_id = æœ±ç´«å›½; }
+	else if (name == L"å®è±¡å›½") { scene_id = å®è±¡å›½; }
+	else if (name == L"å»ºé‚ºåŸ" || name == L"å»ºé‚º") { scene_id = å»ºé‚ºåŸ; }
+	else if (name == L"å»ºé‚ºè¡™é—¨") { scene_id = å»ºé‚ºè¡™é—¨; }
+	else if (name == L"å»ºé‚ºæ‚è´§åº—") { scene_id = å»ºé‚ºæ‚è´§åº—; }
+	else if (name == L"ä¸œæµ·æ¹¾") { scene_id = ä¸œæµ·æ¹¾; }
+	else if (name == L"èŠ±æœå±±") { scene_id = èŠ±æœå±±; }
 	return scene_id;
 }
 
@@ -245,7 +245,7 @@ POINT doAStarSearch(int startx, int starty, int endx, int endy, MAZE mz, int mz_
 				node = node->parent;
 			}
 			for (auto it = path.rbegin(); it != path.rend(); ++it) {
-				// Ñ°Â·¾àÀëÄ¿µÄ×ø±êµÄ²î¾à£¬×½¹íÊÇ12,10 ±¦Í¼ÊÇx,y
+				// å¯»è·¯è·ç¦»ç›®çš„åæ ‡çš„å·®è·ï¼Œæ‰é¬¼æ˜¯12,10 å®å›¾æ˜¯x,y
 				if (abs(endx - (*it).x) <= far_x && abs(endy - (*it).y) <= far_y) {
 					pt = { (*it).x, (*it).y };
 					break;
@@ -254,7 +254,7 @@ POINT doAStarSearch(int startx, int starty, int endx, int endy, MAZE mz, int mz_
 			break;
 		}
 
-		if (GetTickCount() - startTime > 4000) break;  // ³¬Ê±ÍË³ö
+		if (GetTickCount() - startTime > 4000) break;  // è¶…æ—¶é€€å‡º
 
 		auto children = node->getChildren(mz, mz_x_len, mz_y_len);
 		for (auto c = children.begin(); c != children.end(); c++)
@@ -284,7 +284,7 @@ POINT doAStarSearch(int startx, int starty, int endx, int endy, MAZE mz, int mz_
 		frontier.pop();
 	}
 	if (pt.x == -1 || pt.y == -1) {
-		// Æ¥Åä²»ÉÏ×ø±ê
+		// åŒ¹é…ä¸ä¸Šåæ ‡
 		const int side = 4;
 		int x_v = 1;
 		int y_v = 1;

@@ -1297,7 +1297,7 @@ void loop() {
         Serial.println("ok");
       }
       else if (prefix("mmp3:PLAY_", inData)) {
-        myMP3.volume(5);
+        myMP3.volume(28);
         char* d = strtok(inData, "_");
         d = strtok(NULL, "");
         const int n = atoi(d);

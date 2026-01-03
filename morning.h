@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <Windows.h>
 #include <TlHelp32.h> //for PROCESSENTRY32, needs to be included after windows.h
 #include <codecvt>
@@ -55,26 +55,26 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define START 0
 #define LEN_OF_INT64 22  // 21 + 1
 
-#define dianxiaoer_valid_distence 4  // ÓëµêĞ¡¶ş¶Ô»°Ê±µÄ×î´óÓĞĞ§¾àÀë
-#define MAP_MOVE_DISTENCE 5  // µØÍ¼ÒÆ¶¯±£³Ö¾àÀë
-#define NPC_TALK_VALID_DISTENCE 9  // ÓëNPC¶Ô»°Ê±µÄ×î´óÓĞĞ§¾àÀë
+#define dianxiaoer_valid_distence 4  // ä¸åº—å°äºŒå¯¹è¯æ—¶çš„æœ€å¤§æœ‰æ•ˆè·ç¦»
+#define MAP_MOVE_DISTENCE 5  // åœ°å›¾ç§»åŠ¨ä¿æŒè·ç¦»
+#define NPC_TALK_VALID_DISTENCE 9  // ä¸NPCå¯¹è¯æ—¶çš„æœ€å¤§æœ‰æ•ˆè·ç¦»
 #define MATCHCENTER 1
 #define MATCHLEFTTOP 2
 #define MATCHEXIST 3
 
-#define THREAD_IDLE 0  // Ïß³Ì¿ÕÏĞ
-#define µêĞ¡¶ş 1073742231 // µêĞ¡¶ş
-#define µêĞ¡¶ş_card 536871319 // µêĞ¡¶ş
-#define ³¤°²æäÕ¾ÀÏ°å 1073741826  // ³¤°²æäÕ¾ÀÏ°å
-#define ³¤°²æäÕ¾ÀÏ°å_card 536870914  // ³¤°²æäÕ¾ÀÏ°å
-#define ÔôÍõ 2  // ÔôÍõ
-#define TASK_BAOTU 4  // ±¦Í¼ÈÎÎñ
-#define TASK_ZEIWANG 5  // ÔôÍõÈÎÎñ
+#define THREAD_IDLE 0  // çº¿ç¨‹ç©ºé—²
+#define åº—å°äºŒ 1073742231 // åº—å°äºŒ
+#define åº—å°äºŒ_card 536871319 // åº—å°äºŒ
+#define é•¿å®‰é©¿ç«™è€æ¿ 1073741826  // é•¿å®‰é©¿ç«™è€æ¿
+#define é•¿å®‰é©¿ç«™è€æ¿_card 536870914  // é•¿å®‰é©¿ç«™è€æ¿
+#define è´¼ç‹ 2  // è´¼ç‹
+#define TASK_BAOTU 4  // å®å›¾ä»»åŠ¡
+#define TASK_ZEIWANG 5  // è´¼ç‹ä»»åŠ¡
 
 const char* PLAY_MP3 = "mmp3:PLAY_%d\n";
 const char* STOP_MP3 = "mmp3:STOP\n";
 
-//# ÄâÈË
+//# æ‹Ÿäºº
 const char* MS_MOVE_SYMBOL = "movedf:%d,%d,%d\n";  // x,y,mode
 //const char* MS_MOVE_HUMAN_SYMBOL = "movehm:%d,%d,%d,%d,%d\n";  // cx, cy, x, y, mode
 const char* CLICK_CURRENT_SYMBOL = "hkeyCC\n";
@@ -113,25 +113,25 @@ std::vector<std::string*> datu_step = {
 	&baotu_end
 };
 //std::vector<std::thread>
-double gThreshold = 0.89;  // Ä¬ÈÏÖµ
-int gMatchMethod = cv::TM_CCOEFF_NORMED;  // Ä¬ÈÏÖµ
+double gThreshold = 0.83;  // é»˜è®¤å€¼
+int gMatchMethod = cv::TM_CCOEFF_NORMED;  // é»˜è®¤å€¼
 
-// ³¡¾°NPC¹Ì¶¨×ø±ê
-//std::vector<POINT> changan_zahuodian_npc_list = { {370,250} };  //³¤°²ÔÓ»õµê
-//std::vector<POINT> changan_shipindian_npc_list = { {530,350} };   //³¤°²ÊÎÆ·µê
-//std::vector<POINT> changan_guozijian_npc_list = {  };// ³¤°²¹ú×Ó¼à 
-//std::vector<POINT> jianyecheng_npc_list = {  };//½¨Úş³Ç 
-////std::vector<POINT> jianyeyamen_npc_list = {  };//½¨ÚşÑÃÃÅ 
-//std::vector<POINT> jianyezahuodian_npc_list = { {690,510} };//½¨ÚşÔÓ»õµê 
-//std::vector<POINT> aolaikezhanerlou_npc_list = {  };//°ÁÀ´¿ÍÕ»¶şÂ¥ 
-//std::vector<POINT> aolaiguo_yaodian_npc_list = {  };//°ÁÀ´Ò©µê 
-//std::vector<POINT> changshoucun_dangpu_npc_list = { {410,250} };//³¤ÊÙ´åµ±ÆÌ 
-////std::vector<POINT> changshoujiaowai_npc_list = {  };//³¤ÊÙ½¼Íâ 
+// åœºæ™¯NPCå›ºå®šåæ ‡
+//std::vector<POINT> changan_zahuodian_npc_list = { {370,250} };  //é•¿å®‰æ‚è´§åº—
+//std::vector<POINT> changan_shipindian_npc_list = { {530,350} };   //é•¿å®‰é¥°å“åº—
+//std::vector<POINT> changan_guozijian_npc_list = {  };// é•¿å®‰å›½å­ç›‘ 
+//std::vector<POINT> jianyecheng_npc_list = {  };//å»ºé‚ºåŸ 
+////std::vector<POINT> jianyeyamen_npc_list = {  };//å»ºé‚ºè¡™é—¨ 
+//std::vector<POINT> jianyezahuodian_npc_list = { {690,510} };//å»ºé‚ºæ‚è´§åº— 
+//std::vector<POINT> aolaikezhanerlou_npc_list = {  };//å‚²æ¥å®¢æ ˆäºŒæ¥¼ 
+//std::vector<POINT> aolaiguo_yaodian_npc_list = {  };//å‚²æ¥è¯åº— 
+//std::vector<POINT> changshoucun_dangpu_npc_list = { {410,250} };//é•¿å¯¿æ‘å½“é“º 
+////std::vector<POINT> changshoujiaowai_npc_list = {  };//é•¿å¯¿éƒŠå¤– 
 
-vector<unsigned int>monster_scene_list = { ´óÌÆ¹ú¾³,Ê¨ÍÕÁë,ÆÕÍÓÉ½,´óÌÆ¾³Íâ,½­ÄÏÒ°Íâ,¶«º£Íå,»¨¹ûÉ½,³¤ÊÙ½¼Íâ };//Ò°ÍâÓö¹Ö³¡¾°
+vector<unsigned int>monster_scene_list = { å¤§å”å›½å¢ƒ,ç‹®é©¼å²­,æ™®é™€å±±,å¤§å”å¢ƒå¤–,æ±Ÿå—é‡å¤–,ä¸œæµ·æ¹¾,èŠ±æœå±±,é•¿å¯¿éƒŠå¤– };//é‡å¤–é‡æ€ªåœºæ™¯
 
-//Ğ¡³¡¾°Ã»ÓĞĞ¡µØÍ¼£¬Ö»ÄÜÍ¨¹ıµã»÷ÆÁÄ»ÒÆ¶¯
-std::vector<unsigned int> mini_scene_list = { ³¤°²ÔÓ»õµê,³¤°²ÊÎÆ·µê,½¨ÚşÔÓ»õµê,°ÁÀ´¿ÍÕ»,°ÁÀ´¿ÍÕ»¶şÂ¥,°ÁÀ´¹úÒ©µê,³¤ÊÙ´åµ±ÆÌ,³¤ÊÙ´å¾Æµê }; //todo
+//å°åœºæ™¯æ²¡æœ‰å°åœ°å›¾ï¼Œåªèƒ½é€šè¿‡ç‚¹å‡»å±å¹•ç§»åŠ¨
+std::vector<unsigned int> mini_scene_list = { é•¿å®‰æ‚è´§åº—,é•¿å®‰é¥°å“åº—,å»ºé‚ºæ‚è´§åº—,å‚²æ¥å®¢æ ˆ,å‚²æ¥å®¢æ ˆäºŒæ¥¼,å‚²æ¥å›½è¯åº—,é•¿å¯¿æ‘å½“é“º,é•¿å¯¿æ‘é…’åº— }; //todo
 
 class Step {
 public:
@@ -244,7 +244,7 @@ public:
 	void fly_to_scene(long x, long y, unsigned int scene_id);
 	void UpdateWindowRect();
 	void SplitTitleAsPlayerId();
-	void use_beibao_prop(const cv::Mat& image, bool turn = true, bool keep = false);
+	bool use_beibao_prop(const cv::Mat& image, bool turn = true, bool keep = false);
 	void use_changan777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false, bool wait_scene = true);
 	void use_zhuziguo777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false, bool wait_scene = true);
 	void use_changshoucun777(cv::Rect roi, bool move = true, bool turn = true, bool keep = false, bool wait_scene = true);
@@ -313,9 +313,9 @@ public:
 	cv::Rect ROI_yidongdezi();
 	cv::Rect ROI_fight_action();
 
-	bool RegionMonthly = false;//ÊÇ·ñ³©Íæ·ş
-	float player_x = 0;  // ÕâÀïµÄÍæ¼Ò×ø±êÊÇfloatÖµ£¬ÊÇÄÚ²¿µØÍ¼×ø±ê
-	float player_y = 0;  // ÕâÀïµÄÍæ¼Ò×ø±êÊÇfloatÖµ£¬ÊÇÄÚ²¿µØÍ¼×ø±ê
+	bool RegionMonthly = false;//æ˜¯å¦ç•…ç©æœ
+	float player_x = 0;  // è¿™é‡Œçš„ç©å®¶åæ ‡æ˜¯floatå€¼ï¼Œæ˜¯å†…éƒ¨åœ°å›¾åæ ‡
+	float player_y = 0;  // è¿™é‡Œçš„ç©å®¶åæ ‡æ˜¯floatå€¼ï¼Œæ˜¯å†…éƒ¨åœ°å›¾åæ ‡
 	POINT player_pos = { 0, 0 };
 
 	uintptr_t player_pos_addr = 0;
@@ -325,15 +325,15 @@ public:
 	uintptr_t npc_first_static_addr = 0;
 	uintptr_t npc_loc_first_static_addr = 0;
 	bool npc_found = false;
-	//Õâ¸ö½á¹¹°üº¬ËùÓĞNPCºÍÍæ¼Ò£¨°üÀ¨×Ô¼º£©µÄ×ø±ê
+	//è¿™ä¸ªç»“æ„åŒ…å«æ‰€æœ‰NPCå’Œç©å®¶ï¼ˆåŒ…æ‹¬è‡ªå·±ï¼‰çš„åæ ‡
 	//uintptr_t location_first_static_addr = 0;
 	//uintptr_t location_second_static_addr = 0;
 	//uintptr_t location_dynamic_addr_third_child_first_static_addr = 0;
 	uintptr_t dianxiaoer_pos_addr = 0;
 	uintptr_t changan_yizhanlaoban_pos_addr = 0;
 	uintptr_t zeiwang_pos_addr = 0;
-	std::vector<POINT> dianxiaoer_pos_list;  // µêĞ¡¶ş¹Ì¶¨ÒÆ¶¯µÄ¼¸¸ö×ø±ê
-	std::vector<POINT> changan_yizhanlaoban_pos_list;  // ³¤°²æäÕ¾ÀÏ°å¹Ì¶¨ÒÆ¶¯µÄ¼¸¸ö×ø±ê
+	std::vector<POINT> dianxiaoer_pos_list;  // åº—å°äºŒå›ºå®šç§»åŠ¨çš„å‡ ä¸ªåæ ‡
+	std::vector<POINT> changan_yizhanlaoban_pos_list;  // é•¿å®‰é©¿ç«™è€æ¿å›ºå®šç§»åŠ¨çš„å‡ ä¸ªåæ ‡
 	float dianxiaoer_pos_x = 0;
 	float dianxiaoer_pos_y = 0;
 	float changan_yizhanlaoban_pos_x = 0;
@@ -341,7 +341,7 @@ public:
 
 	unsigned int baotu_target_scene_id = 0;
 	POINT baotu_target_pos = { 0, 0 };
-	unsigned int baotu_task_count = 0;  // ½ñÈÕÁìÈ¡µÚ¼¸´ÎÈÎÎñ
+	unsigned int baotu_task_count = 0;  // ä»Šæ—¥é¢†å–ç¬¬å‡ æ¬¡ä»»åŠ¡
 	unsigned int zeiwang_scene_id = 0;
 	unsigned int zeiwang_id = 0;
 	std::wstring zeiwang_name;
@@ -351,7 +351,7 @@ public:
 	uintptr_t scene_id_addr = 0;
 	std::string scene;
 	unsigned int m_scene_id = 0;
-	std::string player_name;  // ÃÎ»ÃÎ÷ÓÎ ONLINE - (ËÄ´¨1Çø[¼ÎÁê½­] - ¢üãÉ¦®Çà[16705567])
+	std::string player_name;  // æ¢¦å¹»è¥¿æ¸¸ ONLINE - (å››å·1åŒº[å˜‰é™µæ±Ÿ] - â…«é—µÎé’[16705567])
 	std::string player_id;
 	bool mp3_playing = false;
 	bool moving = false;
@@ -359,17 +359,17 @@ public:
 	bool popup_verify = false;
 	int f_round = 0;
 	uint64_t wait_hero_action_time = 0;
-	int tScan_npc = THREAD_IDLE;  //Ïß³ÌºóÌ¨É¨ÃèÄÚ´æ
+	int tScan_npc = THREAD_IDLE;  //çº¿ç¨‹åå°æ‰«æå†…å­˜
 	// Atomic variable shared across threads
-	//std::atomic<int> tScan_npc{ NPC_IDLE }; //Ïß³ÌºóÌ¨É¨ÃèÄÚ´æ
+	//std::atomic<int> tScan_npc{ NPC_IDLE }; //çº¿ç¨‹åå°æ‰«æå†…å­˜
 
 	HANDLE pid;
 	HWND hwnd;
 	RECT rect;
-	long wWidth = 1024;  // ÓÎÏ·´°¿Ú´óĞ¡
-	long wHeight = 768;  // ÓÎÏ·´°¿Ú´óĞ¡
-	int mScreen_x = 21;  // wWidth / 2 / 20  ÆÁÄ»¿ÉÒÔ·¶Î§×ø±ê¿ç¶È
-	int mScreen_y = 15;  // wHeight / 2 / 20 ÆÁÄ»¿ÉÒÔ·¶Î§×ø±ê¿ç¶È
+	long wWidth = 1024;  // æ¸¸æˆçª—å£å¤§å°
+	long wHeight = 768;  // æ¸¸æˆçª—å£å¤§å°
+	int mScreen_x = 21;  // wWidth / 2 / 20  å±å¹•å¯ä»¥èŒƒå›´åæ ‡è·¨åº¦
+	int mScreen_y = 15;  // wHeight / 2 / 20 å±å¹•å¯ä»¥èŒƒå›´åæ ‡è·¨åº¦
 	HANDLE hProcess = 0;
 	HMODULE hNtdll = 0;
 	HMODULE mhmainDllBase = 0;
@@ -450,7 +450,7 @@ private:
 	const cv::Mat* m_img_symbol_feixingfu_aolaiguo;
 	const cv::Mat* m_img_symbol_feixingfu_zhuziguo;
 	const cv::Mat* m_img_symbol_yidongdezi_gray;
-	//const cv::Mat* m_img_symbol_gaosunitadecangshenweizhi;
+	const cv::Mat* m_img_symbol_gaosunitadecangshenweizhi;
 	const cv::Mat* m_img_symbol_wozhidaowomenlaodadexingzong;
 	const cv::Mat* m_img_symbol_wabao_title_gray;
 	const cv::Mat* m_img_symbol_task_track_gray;
@@ -504,6 +504,7 @@ POINT get_map_max_pixel(unsigned int scene_id);
 cv::Mat CannyThreshold(cv::Mat src);
 cv::Mat ThresholdinginRange(cv::Mat frame);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
+void ForceSetForegroundWindow(HWND hWnd);
 void init_log();
 int randint(int min, int max);
 cv::Rect ROI_NULL();

@@ -19,6 +19,16 @@
 
 #include <direct.h>
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_win32.h"
+#include "imgui/imgui_impl_dx11.h"
+#include <d3d11.h>
+
+#pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "dxgi.lib")
+
 #pragma comment(lib, "ntdll")
 #pragma comment(lib, "setupapi.lib")
 // GUID for COM ports
@@ -28,6 +38,21 @@ struct ComPortInfo {
 	std::wstring portName;
 	std::wstring description;
 };
+
+// Data
+static ID3D11Device* g_pd3dDevice = nullptr;
+static ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
+static IDXGISwapChain* g_pSwapChain = nullptr;
+static bool                     g_SwapChainOccluded = false;
+static UINT                     g_ResizeWidth = 0, g_ResizeHeight = 0;
+static ID3D11RenderTargetView* g_mainRenderTargetView = nullptr;
+
+// Forward declarations of helper functions
+bool CreateDeviceD3D(HWND hWnd);
+void CleanupDeviceD3D();
+void CreateRenderTarget();
+void CleanupRenderTarget();
+LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace fs = std::filesystem;
 
@@ -111,7 +136,7 @@ const cv::Mat img_symbol_feixingfu_aolaiguo = cv_imread("object\\symbol\\feixing
 const cv::Mat img_symbol_feixingfu_zhuziguo = cv_imread("object\\symbol\\feixingfu_zhuziguo.png");
 //const cv::Mat img_symbol_ciyushunxu_gray = cv_imread("object\\symbol\\ciyushunxu_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_symbol_yidongdezi_gray = cv_imread("object\\symbol\\yidongdezi_gray.png", cv::IMREAD_GRAYSCALE);
-//const cv::Mat img_symbol_gaosunitadecangshenweizhi = cv_imread("object\\symbol\\gaosunitadecangshenweizhi.png");
+const cv::Mat img_symbol_gaosunitadecangshenweizhi = cv_imread("object\\symbol\\gaosunitadecangshenweizhi.png");
 const cv::Mat img_symbol_wozhidaowomenlaodadexingzong = cv_imread("object\\symbol\\wozhidaowomenlaodadexingzong.png");
 const cv::Mat img_symbol_wabao_title_gray = cv_imread("object\\symbol\\wabao_title_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_symbol_task_track_gray = cv_imread("object\\symbol\\task_track_gray.png", cv::IMREAD_GRAYSCALE);
@@ -192,7 +217,7 @@ const cv::Mat img_symbol_feixingfu_aolaiguo_card = cv_imread("object_card\\symbo
 const cv::Mat img_symbol_feixingfu_zhuziguo_card = cv_imread("object_card\\symbol\\feixingfu_zhuziguo.png");
 //const cv::Mat img_symbol_ciyushunxu_gray = cv_imread("object_card\\symbol\\ciyushunxu_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_symbol_yidongdezi_gray_card = cv_imread("object_card\\symbol\\yidongdezi_gray.png", cv::IMREAD_GRAYSCALE);
-//const cv::Mat img_symbol_gaosunitadecangshenweizhi_card = cv_imread("object_card\\symbol\\gaosunitadecangshenweizhi.png");
+const cv::Mat img_symbol_gaosunitadecangshenweizhi_card = cv_imread("object_card\\symbol\\gaosunitadecangshenweizhi.png");
 const cv::Mat img_symbol_wozhidaowomenlaodadexingzong_card = cv_imread("object_card\\symbol\\wozhidaowomenlaodadexingzong.png");
 const cv::Mat img_symbol_wabao_title_gray_card = cv_imread("object_card\\symbol\\wabao_title_gray.png", cv::IMREAD_GRAYSCALE);
 const cv::Mat img_symbol_task_track_gray_card = cv_imread("object_card\\symbol\\task_track_gray.png", cv::IMREAD_GRAYSCALE);
@@ -301,7 +326,7 @@ void WindowInfo::init() {
 		m_img_symbol_feixingfu_aolaiguo=&img_symbol_feixingfu_aolaiguo;
 		m_img_symbol_feixingfu_zhuziguo=&img_symbol_feixingfu_zhuziguo;
 		m_img_symbol_yidongdezi_gray=&img_symbol_yidongdezi_gray;
-		//m_img_symbol_gaosunitadecangshenweizhi=&img_symbol_gaosunitadecangshenweizhi;
+		m_img_symbol_gaosunitadecangshenweizhi=&img_symbol_gaosunitadecangshenweizhi;
 		m_img_symbol_wozhidaowomenlaodadexingzong=&img_symbol_wozhidaowomenlaodadexingzong;
 		m_img_symbol_wabao_title_gray=&img_symbol_wabao_title_gray;
 		m_img_symbol_task_track_gray=&img_symbol_task_track_gray;
@@ -385,7 +410,7 @@ void WindowInfo::init() {
 		m_img_symbol_feixingfu_aolaiguo = &img_symbol_feixingfu_aolaiguo_card;
 		m_img_symbol_feixingfu_zhuziguo = &img_symbol_feixingfu_zhuziguo_card;
 		m_img_symbol_yidongdezi_gray = &img_symbol_yidongdezi_gray_card;
-		//m_img_symbol_gaosunitadecangshenweizhi = &img_symbol_gaosunitadecangshenweizhi_card;
+		m_img_symbol_gaosunitadecangshenweizhi = &img_symbol_gaosunitadecangshenweizhi_card;
 		m_img_symbol_wozhidaowomenlaodadexingzong = &img_symbol_wozhidaowomenlaodadexingzong_card;
 		m_img_symbol_wabao_title_gray = &img_symbol_wabao_title_gray_card;
 		m_img_symbol_task_track_gray = &img_symbol_task_track_gray_card;
@@ -510,8 +535,23 @@ void WindowInfo::hook_init() {
 		4);
 }
 void WindowInfo::datu() {
+	if (RegionMonthly) {
+		if (baotu_task_count >= 50) {
+			log_info("畅玩服一天只能打50次图");
+			return;//一天只能打50次
+		}
+	}
+	else {
+		if (baotu_task_count >= 150){
+			log_info("一天只打150次图");
+			return;//一天只能打50次
+		}
+	}
 	if (popup_verify){
-		SetForegroundWindow(hwnd);
+		//if (IsIconic(hwnd)) {
+		//	ShowWindow(hwnd, SW_RESTORE);
+		//}
+		ForceSetForegroundWindow(hwnd);
 		time_pawn_update();
 		while (is_verifying()) {
 			Sleep(100);
@@ -536,22 +576,21 @@ void WindowInfo::datu() {
 		return;
 	}
 	if (tScan_npc != THREAD_IDLE) return;
-	if (baotu_task_count >= 50)return;//一天只能打50次
 	//必须要经常置顶窗口，否则梦幻后台不更新界面，截图是固定画面
-	if (IsIconic(hwnd)) {
-		// Window is minimized
-		log_info(player_name.c_str());
-		for (int i = 0; i < 5; i++) { log_info("窗口最小化，无法运行，请先激活窗口"); }
-		failure = true;
-		return;
-	}
+	//if (IsIconic(hwnd)) {
+	//	ShowWindow(hwnd, SW_RESTORE);
+	//	// Window is minimized
+	//	//log_info(player_name.c_str());
+	//	//for (int i = 0; i < 5; i++) { log_info("窗口最小化，无法运行，请先激活窗口"); }
+	//	//failure = true;
+	//	//return;
+	//}
 	if (is_fighting()) {
 		//if (time_pawn.timeout(5000)) {
-		//	SetForegroundWindow(hwnd);
 		//	time_pawn_update();
 		//}
 		if (f_round < 1) {
-			SetForegroundWindow(hwnd);
+			ForceSetForegroundWindow(hwnd);
 			//只处理第一回合的战斗，其他回合挂机
 			handle_datu_fight();
 		}
@@ -561,14 +600,13 @@ void WindowInfo::datu() {
 	if (moving) {
 		if (is_moving()) {
 			if (time_pawn.timeout(35000)) {
-				SetForegroundWindow(hwnd);
+				ForceSetForegroundWindow(hwnd);
 				handle_sheyaoxiang_time();
 				time_pawn_update();
 			}
 			return;
 		}
 	}
-	//SetForegroundWindow(hwnd);
 	time_pawn_update();
 	if (step.current == &work_start) {
 		// 重新运行程序，任务步骤预检查
@@ -580,13 +618,13 @@ void WindowInfo::datu() {
 		cv::cvtColor(image, image_gray, cv::COLOR_BGR2GRAY);
 		if (MatchingLoc(image_gray,ROI_task(), *m_img_symbol_task_track_gray).x>-1) {
 			if (MatchingLoc(image_gray,ROI_task(), *m_img_symbol_wabao_title_gray, "", 0.91).x>-1) {
-				if (MatchingLoc(image,ROI_task(), *m_img_symbol_zeiwang, "", 0.91).x>-1) {
+				if (MatchingLoc(image,ROI_task(), *m_img_symbol_zeiwang, "", 0.83).x>-1) {
 					log_info("贼王没打，开始打贼王,%s", player_id);
 					tScan_npc = TASK_ZEIWANG;
 					step.set_current(&goto_zeiwang_scene);
 					auto pixel = MatchingLoc(image,ROI_npc_talk(), *m_img_btn_npc_talk_close);
 					if (pixel.x > -1) {
-						SetForegroundWindow(hwnd);
+						ForceSetForegroundWindow(hwnd);
 						close_npc_talk();
 					}
 				}
@@ -602,7 +640,7 @@ void WindowInfo::datu() {
 		log_info("to_changan_jiudian,%s", player_id);
 		update_scene_id();
 		if (m_scene_id != 长安酒店) {
-			SetForegroundWindow(hwnd);
+			ForceSetForegroundWindow(hwnd);
 			goto_changanjiudian();
 		}
 		if (m_scene_id == 长安酒店) {
@@ -626,10 +664,10 @@ void WindowInfo::datu() {
 			//线程扫描结束，开始移动
 			move_to_dianxiaoer();
 			if (is_near_dianxiaoer()) {
-				SetForegroundWindow(hwnd);
+				ForceSetForegroundWindow(hwnd);
 				log_info("talk_get_baoturenwu,%s", player_id);
 				if (talk_to_dianxiaoer()) {
-					if (WaitMatchingGrayRectExist(ROI_task(), *m_img_symbol_wabao_title_gray, 600)) {
+					if (WaitMatchingGrayRectExist(ROI_task(), *m_img_symbol_wabao_title_gray, 600,"",0.91)) {
 						// 接任务后关闭对话窗
 						//if (close_npc_talk_fast()) {
 						//	tScan_npc = TASK_BAOTU;
@@ -667,12 +705,13 @@ void WindowInfo::datu() {
 		}
 	}
 	else if (step.current == &close_dianxiaoer) {
+		log_info("close_dianxiaoer");
 		if (baotu_target_scene_id <= 0 || baotu_target_pos.x <= 0) {
 			log_info("解析宝图任务失败，需要手动处理");
 			failure = true;
 		}
 		else {
-			SetForegroundWindow(hwnd);
+			ForceSetForegroundWindow(hwnd);
 			close_npc_talk_fast();
 			goto_scene(baotu_target_pos, baotu_target_scene_id);
 			step.next();
@@ -684,7 +723,7 @@ void WindowInfo::datu() {
 			failure = true;
 		}
 		else {
-			SetForegroundWindow(hwnd);
+			ForceSetForegroundWindow(hwnd);
 			if (goto_scene(baotu_target_pos, baotu_target_scene_id)) {
 				step.next();
 			}
@@ -693,7 +732,7 @@ void WindowInfo::datu() {
 	else if (step.current == &attack_qiangdao) {
 		log_info("attack_qiangdao,%s", player_id);
 		if (is_near_loc(baotu_target_pos, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
-			SetForegroundWindow(hwnd);
+			ForceSetForegroundWindow(hwnd);
 			talk_to_npc_fight(baotu_target_pos, *m_img_btn_woshilaishoushinide);
 			step.next();
 		}
@@ -701,13 +740,15 @@ void WindowInfo::datu() {
 	}
 	else if (step.current == &scan_zeiwang_task) {
 		log_info("scan_zeiwang_task,%s", player_id);
-		SetForegroundWindow(hwnd);
+		ForceSetForegroundWindow(hwnd);
 		move_cursor_center_bottom();
-		if (WaitMatchingRectExist(ROI_npc_talk(), *m_img_symbol_wozhidaowomenlaodadexingzong, 100)) {
+		if (WaitMatchingRectExist(ROI_npc_talk(), *m_img_symbol_gaosunitadecangshenweizhi, 100)) {
 			//关闭贼王提示对话窗
 			close_npc_talk_fast();
 			tScan_npc = TASK_ZEIWANG;
 			step.next();
+			play_mp3_once();
+			for (int i = 0; i < 5; i++) { log_info("***贼王出现，请手动战斗***"); }
 		}
 		else { 
 			data_reset(); 	
@@ -719,7 +760,7 @@ void WindowInfo::datu() {
 			failure = true;
 		}
 		else {
-			SetForegroundWindow(hwnd);
+			ForceSetForegroundWindow(hwnd);
 			log_info("goto_zeiwang_scene");
 			if (goto_scene(zeiwang_fake_pos, zeiwang_scene_id)) {
 				if (zeiwang_fake_pos.x > 0) {
@@ -780,10 +821,6 @@ void WindowInfo::datu() {
 	}
 	else if (step.current == &scan_zeiwang_pos) {
 		log_info("scan_zeiwang_pos");
-		//if (zeiwang_fake_pos.x > 0) {
-		//	SetForegroundWindow(hwnd);
-		//	move_to_position(zeiwang_fake_pos, MAP_MOVE_DISTENCE, MAP_MOVE_DISTENCE);
-		//}
 		tScan_npc = 贼王;
 		step.next();
 	}
@@ -793,7 +830,9 @@ void WindowInfo::datu() {
 			failure = true;
 			return;
 		}
-		SetForegroundWindow(hwnd);
+		ForceSetForegroundWindow(hwnd);
+		update_scene_id(); 
+		update_player_float_pos();
 		log_info("贼王坐标:%d,%d", zeiwang_pos.x, zeiwang_pos.y);
 		if (!is_near_loc(zeiwang_pos, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
 			log_info("goto_zeiwang");
@@ -1838,6 +1877,7 @@ POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id,bool fix) {
 
 	if (fix) {
 		// 如果目的像素靠近窗口边缘，鼠标漂移有时候会不显示游戏光标，需要做修正
+		log_info("修正点击坐标");
 		int px_fix = 30;
 		if (px.x <= px_fix) px.x = px_fix;
 		else if (wWidth - px.x <= px_fix) px.x = wWidth - px_fix;
@@ -1858,7 +1898,7 @@ void WindowInfo::move_to_dianxiaoer() {
 		//auto astar_pos = astar(player_pos.x, player_pos.y, dst.x, dst.y, m_scene_id, dianxiaoer_valid_distence - 1, dianxiaoer_valid_distence - 1);
 		//log_info("店小二坐标:%d, %d", dst.x, dst.y);
 		//log_info("A星寻路结果:%d, %d", astar_pos.x, astar_pos.y);
-		SetForegroundWindow(hwnd);
+		ForceSetForegroundWindow(hwnd);
 		if (RegionMonthly) {
 			move_to_position_flat(dst);
 		}
@@ -1901,7 +1941,7 @@ void WindowInfo::goto_changanjiudian() {
 void WindowInfo::move_to_changanjidian_center() {
 	// 有时候离店小二太远，店小二会消失看不见，移动到酒店中间，就不存在这个问题
 	if (dianxiaoer_pos_addr == 0) {
-		SetForegroundWindow(hwnd);
+		ForceSetForegroundWindow(hwnd);
 		click_position({ 23,13 });
 		moving = true;
 	}
@@ -1934,12 +1974,12 @@ void WindowInfo::from_datangguojing_to_datangjingwai() {
 }
 void WindowInfo::from_changan_to_datangguojing() {
 	if (m_scene_id == 长安城) {
-		move_to_other_scene({ 6,5 }, 大唐国境, 30, -30);
+		move_to_other_scene({ 6,5 }, 大唐国境, 60, -60);
 	}
 	else {
 		log_info("从长安到大唐国境");
 		use_changan777(ROI_changan777_datangguojing(), false);
-		move_to_other_scene({ 6,5 }, 大唐国境, 30, -30);
+		move_to_other_scene({ 6,5 }, 大唐国境, 60, -60);
 	}
 }
 void WindowInfo::fly_to_changanjiudian() {
@@ -2033,11 +2073,11 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			if (via_zhuziguo) {
 				log_info("从朱紫国到大唐境外");
 				if (m_scene_id == 朱紫国) {
-					move_to_other_scene({ 2,4 }, 大唐境外, 30, -30);
+					move_to_other_scene({ 2,4 }, 大唐境外, 60, -60);
 				}
 				else {
 					use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false);
-					move_to_other_scene({ 2,4 }, 大唐境外, 30, -30);
+					move_to_other_scene({ 2,4 }, 大唐境外, 60, -60);
 				}
 			}
 			else {
@@ -2283,10 +2323,10 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			else if (m_scene_id != 朱紫国) {
 				log_info("从朱紫国到狮驼岭");
 				use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false);
-				move_to_other_scene({ 3, 4 }, 大唐境外, 30, -30);
+				move_to_other_scene({ 3, 4 }, 大唐境外, 30, -60);
 			}
 			else {
-				move_to_other_scene({ 3, 4 }, 大唐境外, 30, -30);
+				move_to_other_scene({ 3, 4 }, 大唐境外, 30, -60);
 			}
 			break;
 		}
@@ -2351,13 +2391,14 @@ bool WindowInfo::goto_scene(POINT dst, unsigned int scene_id) {
 	fly_to_scene(dst.x, dst.y, scene_id);
 	return false;
 }
-void WindowInfo::use_beibao_prop(const cv::Mat& image, bool turn, bool keep) {
+bool WindowInfo::use_beibao_prop(const cv::Mat& image, bool turn, bool keep) {
 	if (turn) open_beibao(); // 这里的动作是：用完道具后是否关闭背包。打开背包使用飞行旗的时候，背包自动关闭了，不需要再关闭背包
-	ClickMatchImage(ROI_beibao_props(), image, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 2, 2500);
+	bool ret = ClickMatchImage(ROI_beibao_props(), image, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 2, 2500);
 	if (!keep) {
 		//Sleep(150);
 		input_alt_e();
 	}
+	return ret;
 }
 
 void WindowInfo::use_changan777(cv::Rect roi, bool move, bool turn, bool keep, bool wait_scene) {
@@ -2475,9 +2516,10 @@ void WindowInfo::handle_sheyaoxiang_time() {
 	time_t now_time = time(NULL);
 	if (now_time - old_time >= 1770) {
 		log_info("摄妖香已过时，使用摄妖香");
-		use_beibao_prop(*m_img_props_sheyaoxiang);
-		gm.db[player_id][utf_8_sheyaoxiang] = now_time;
-		gm.update_db();
+		if (use_beibao_prop(*m_img_props_sheyaoxiang)) {
+			gm.db[player_id][utf_8_sheyaoxiang] = now_time;
+			gm.update_db();
+		}
 	}
 }
 void WindowInfo::handle_wrong_attack() {
@@ -2795,7 +2837,6 @@ void WindowInfo::handle_datu_fight() {
 			}
 			if (gm.db[player_id]["round"] >= randint(19, 24) && f_round == 0) {
 				log_info("重置自动战斗挂机剩余回合");
-				//SetForegroundWindow(hwnd);
 				move_cursor_center_top();
 				auto btn_pos = WaitMatchingRectLoc(ROI_NULL(), *m_img_btn_reset_auto_round, 500, "", 0.95);
 				if (btn_pos.x > 0) {
@@ -3255,8 +3296,8 @@ bool WindowInfo::click_position(POINT dst, int xs, int ys, int x_fix, int y_fix,
 	// 如果NPC在视野范围内，可以和NPC对话
 	// 如果没有NPC，则移动到目的坐标
 	update_player_float_pos();
-	auto px = compute_pos_pixel({ dst.x, dst.y}, m_scene_id, xs == 0 && ys == 0);
-	return mouse_click_human({px.x + x_fix, px.y + y_fix }, xs, xs, mode);
+	auto px = compute_pos_pixel(dst, m_scene_id, xs == 0 && ys == 0);
+	return mouse_click_human({px.x + x_fix, px.y + y_fix }, xs, ys, mode);
 }
 void WindowInfo::click_position_at_edge(POINT dst, int xs, int ys, int x_fix, int y_fix, int mode) {
 	for (int i = 0; i < 3; i++) {
@@ -3619,6 +3660,7 @@ void WindowInfo::test() {
 		//update_npc_pos(店小二);
 		update_scene_id();
 		update_player_float_pos();
+		move_to_other_scene({ 6,5 }, 大唐国境, 60, -60);
 		update_player_float_pos();
 		//log_info("测试日志22222");
 	}
@@ -3713,7 +3755,8 @@ void GoodMorning::work() {
 		threads.emplace_back(std::move(t1));
 	}
 
-	while (true) {
+	bool www = true;
+	while (www) {
 		//std::thread t1;
 		for (const auto& winfo : this->winsInfo) {
 			//log_info("测试日志");
@@ -3727,19 +3770,24 @@ void GoodMorning::work() {
 			}
 			if (winfo->time_pawn.timeout(300000)) {
 				winfo->play_mp3_once();
-				SetForegroundWindow(winfo->hwnd);
+				ForceSetForegroundWindow(winfo->hwnd);
 				for (int i = 0;i < 5;i++) { log_info("运行超时，退出"); }
-				return;
+				www = false;
+				break;
 			}
 			if (winfo->failure) {
 				winfo->play_mp3_once();
-				SetForegroundWindow(winfo->hwnd);
+				ForceSetForegroundWindow(winfo->hwnd);
 				for (int i = 0;i < 5;i++) { log_info("运行失败，请重新运行程序退出"); }
-				return;
+				www = false;
+				break;
 			}
 
 		}
 		//Sleep(10);
+	}
+	while (true) {
+		Sleep(10000);
 	}
 }
 //void GoodMorning::time_pawn_update() {
@@ -3760,6 +3808,8 @@ void GoodMorning::test() {
 	//RECT rect;
 	//cv::Rect roi_test;
 	//MatchingRectPos(roi_test, "screenshot\\2025-12-09 01-11-22-r30319.png", "object\\btn\\tingtingwufang.png","",0.78);
+	//while (true) {
+
 	for (const auto& winfo : this->winsInfo) {
 		//cv::Rect roi_test(450, 338, 300, 300);
 		//cv::Rect roi_test;
@@ -3779,27 +3829,27 @@ void GoodMorning::test() {
 		//winfo.update_player_float_pos();
 		//winfo.update_scene_id();
 		//winfo.click_position({ 189, 121 });
-		//SetForegroundWindow(winfo.hwnd);
+		ForceSetForegroundWindow(winfo->hwnd);
 		//winfo.update_scene_id();
 		//winfo.update_player_float_pos();
 		//winfo.parse_baotu_task_info();
 		//winfo.parse_zeiwang_info();
 		while (true) {
-			//winfo.update_player_float_pos();
+		//	//winfo.update_player_float_pos();
 			winfo->test();
-			//winfo.update_scene_id();
-			//winfo.from_changan_fly_to_datangguojing();
-			//winfo.click_position({189, 130});
-			//winfo.update_scene();
-			//winfo.update_dianxiaoer_pos();
-			//winfo.move_to_dianxiaoer();
-			//winfo.parse_baotu_task_info();
-			//winfo.scan_npc_pos_addr();
-			//gm.update_db();
-			//Sleep(3000);
+		//	//winfo.update_scene_id();
+		//	//winfo.from_changan_fly_to_datangguojing();
+		//	//winfo.click_position({189, 130});
+		//	//winfo.update_scene();
+		//	//winfo.update_dianxiaoer_pos();
+		//	//winfo.move_to_dianxiaoer();
+		//	//winfo.parse_baotu_task_info();
+		//	//winfo.scan_npc_pos_addr();
+		//	//gm.update_db();
+		//	//Sleep(3000);
 			//printf("\n");
 		}
-
+		Sleep(1000);
 
 		//GetWindowRect(winfo.hwnd, &rect);
 
@@ -3814,7 +3864,7 @@ void GoodMorning::test() {
 	}
 	//hwnd2mat(sc);
 	printf("\n");
-
+	//}
 }
 
 Step::Step() {}
@@ -4051,7 +4101,6 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 			//hwnd2mat(hwnd);
 			//win_hwnd = hwnd;
 			// 如果是多标签模式,只有mhtab.exe有窗口
-			//SetForegroundWindow(hwnd);
 			auto winfo = std::make_unique<WindowInfo>((HANDLE)targetProcessId);
 			//WindowInfo winfo((HANDLE)targetProcessId);
 			winfo->hwnd = hwnd;
@@ -4075,7 +4124,29 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 	}
 	return TRUE; // Continue enumeration
 }
+void ForceSetForegroundWindow(HWND hWnd) {
+	// 1. 获取当前前台窗口的线程 ID
+	DWORD dwForeThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+	// 2. 获取自己程序的线程 ID
+	DWORD dwCurrentThreadId = GetCurrentThreadId();
 
+	// 3. 如果两个线程不同，则进行挂载
+	if (dwCurrentThreadId != dwForeThreadId) {
+		// 将自己的输入状态连接到前台窗口的输入状态
+		AttachThreadInput(dwCurrentThreadId, dwForeThreadId, TRUE);
+
+		// 4. 执行置顶和激活操作
+		SetForegroundWindow(hWnd);
+		BringWindowToTop(hWnd);
+		ShowWindow(hWnd, SW_RESTORE); // 确保窗口不是最小化状态
+
+		// 5. 完成后解除挂载（非常重要，否则可能导致输入状态混乱）
+		AttachThreadInput(dwCurrentThreadId, dwForeThreadId, FALSE);
+	}
+	else {
+		SetForegroundWindow(hWnd);
+	}
+}
 void init_log() {
 	log_close();
 	/* Get current time */
@@ -4919,7 +4990,7 @@ POINT get_map_max_pixel(unsigned int scene_id) {
 //	}
 //	return std::vector<POINT>{};
 //}
-int main(int argc, const char** argv)
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nCmdShow)
 {
 	//log_info("日志输出测试");
 
@@ -4948,11 +5019,11 @@ int main(int argc, const char** argv)
 	//}
 	//Sleep(10);  // 等一下枚举窗口句柄回调完成再执行
 
-	HWND hwnd = GetConsoleWindow();
+	//HWND hwnd = GetConsoleWindow();
 	// 2. Set new position (x=100, y=100)
 	// SWP_NOSIZE: Keeps the current width and height
 	// SWP_NOZORDER: Keeps the window's current place in the stack (front/back)
-	SetWindowPos(hwnd, NULL, 1280, 510, 640, 530, SWP_NOZORDER);
+	//SetWindowPos(hwnd, NULL, 1280, 510, 640, 530, SWP_NOZORDER);
 
 	init_log();
 	log_info("开始，检测到窗口数量:%d个.", gm.winsInfo.size());
@@ -4962,6 +5033,180 @@ int main(int argc, const char** argv)
 	Serial();
 	//stop_laba();
 
+	// Make process DPI aware and obtain main monitor scale
+	ImGui_ImplWin32_EnableDpiAwareness();
+	float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY));
+
+	// Create application window
+	WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"Morning", nullptr };
+	::RegisterClassExW(&wc);
+	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Morning", WS_OVERLAPPEDWINDOW, 960, 100, (int)(640 * main_scale), (int)(480 * main_scale), nullptr, nullptr, wc.hInstance, nullptr);
+
+	// Initialize Direct3D
+	if (!CreateDeviceD3D(hwnd))
+	{
+		CleanupDeviceD3D();
+		::UnregisterClassW(wc.lpszClassName, wc.hInstance);
+		return 1;
+	}
+
+	// Show the window
+	::ShowWindow(hwnd, SW_SHOWDEFAULT);
+	::UpdateWindow(hwnd);
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	// 路径通常为 Windows 字体目录，或者将字体文件拷贝到项目目录下
+	// 注意：使用 u8 前缀确保字符串以 UTF-8 处理
+	ImFont* font = io.Fonts->AddFontFromFileTTF(
+		"fonts/msyh.ttc", // 微软雅黑
+		18.0f,                          // 字号
+		NULL,
+		io.Fonts->GetGlyphRangesChineseFull() // 加载完整的中文范围
+	);
+	// 检查字体是否加载成功
+	//if (font == NULL) {
+	//    // 处理错误（如路径不对）
+	//}
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplWin32_Init(hwnd);
+	ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+
+	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+	// Main loop
+	bool done = false;
+	while (!done)
+	{
+		// Poll and handle messages (inputs, window resize, etc.)
+		// See the WndProc() function below for our to dispatch events to the Win32 backend.
+		MSG msg;
+		while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
+		{
+			::TranslateMessage(&msg);
+			::DispatchMessage(&msg);
+			if (msg.message == WM_QUIT)
+				done = true;
+		}
+		if (done)
+			break;
+
+		// Handle window being minimized or screen locked
+		if (g_SwapChainOccluded && g_pSwapChain->Present(0, DXGI_PRESENT_TEST) == DXGI_STATUS_OCCLUDED)
+		{
+			::Sleep(10);
+			continue;
+		}
+		g_SwapChainOccluded = false;
+
+		// Handle window resize (we don't resize directly in the WM_SIZE handler)
+		if (g_ResizeWidth != 0 && g_ResizeHeight != 0)
+		{
+			CleanupRenderTarget();
+			g_pSwapChain->ResizeBuffers(0, g_ResizeWidth, g_ResizeHeight, DXGI_FORMAT_UNKNOWN, 0);
+			g_ResizeWidth = g_ResizeHeight = 0;
+			CreateRenderTarget();
+		}
+
+		// Start the Dear ImGui frame
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+
+		//ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+		//ImGui::SetNextWindowSize(ImVec2(620, 440), ImGuiCond_Always);
+
+		auto f_size = ImGui::GetFontSize();
+
+		// 1. 获取主视口的信息
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		// 2. 设置下一个窗口的位置和大小为视口的全部范围
+		ImGui::SetNextWindowPos(viewport->WorkPos);
+		ImGui::SetNextWindowSize(viewport->WorkSize);
+		// 3. 使用特定的 Flag 移除标题栏、缩放手柄和背景，使其看起来像背景层
+		ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | // 无标题栏、无边框、无缩放
+			ImGuiWindowFlags_NoMove |       // 禁止用户移动
+			ImGuiWindowFlags_NoResize |     // 禁止用户缩放
+			ImGuiWindowFlags_NoSavedSettings | // 不保存到 .ini
+			ImGuiWindowFlags_NoBringToFrontOnFocus; // 点击时不改变层级
+
+		// 2. 编写 UI 界面
+		ImGui::Begin("FullscreenWindow", NULL, flags);
+		if (ImGui::Button("宝图", ImVec2(f_size * 8.0f, f_size * 2.0f))) {
+			/* 点击逻辑 */
+		}
+
+		ImGui::SameLine(); // 关键：告诉 ImGui 不要换行
+		ImGui::SameLine(0.0f, 20.0f); // 20.0f 是两个按钮之间的像素间距
+		if (ImGui::Button("捉鬼", ImVec2(f_size * 8.0f, f_size * 2.0f))) {
+			/* 点击逻辑 */
+		}
+
+		// 1. 获取窗口的可用空间大小
+		ImVec2 windowSize = ImGui::GetWindowSize();
+		ImVec2 contentSize = ImGui::GetContentRegionAvail();
+
+		// 2. 定义按钮的大小
+		ImVec2 buttonSize(f_size * 8.0f, f_size * 2.0f);
+		float spacing = ImGui::GetStyle().ItemSpacing.x; // 按钮间的间距
+		float padding = ImGui::GetStyle().WindowPadding.y; // 底部留白
+
+		// 3. 计算右下角的起始位置
+		// X 轴：窗口宽度 - 两个按钮宽度 - 按钮间距 - 右侧边距
+		float posX = windowSize.x - (buttonSize.x * 3) - spacing - ImGui::GetStyle().WindowPadding.x;
+		// Y 轴：窗口高度 - 按钮高度 - 底部边距
+		float posY = windowSize.y - buttonSize.y - padding;
+
+		// 4. 设置光标位置（这是关键）
+		ImGui::SetCursorPos(ImVec2(posX, posY));
+
+		// 5. 渲染按钮
+		if (ImGui::Button("刷新", buttonSize)) {
+			// 处理确定逻辑
+		}
+
+		ImGui::SameLine(); // 并排
+
+		if (ImGui::Button("暂停", buttonSize)) {
+			// 处理取消逻辑
+		}
+		ImGui::SameLine(); // 并排
+
+		if (ImGui::Button("开始", buttonSize)) {
+			// 处理取消逻辑
+		}
+		ImGui::End();
+
+
+
+		// Rendering
+		ImGui::Render();
+		const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
+		g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
+		g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+		// Present
+		HRESULT hr = g_pSwapChain->Present(1, 0);   // Present with vsync
+		//HRESULT hr = g_pSwapChain->Present(0, 0); // Present without vsync
+		g_SwapChainOccluded = (hr == DXGI_STATUS_OCCLUDED);
+	}
+
+	// Cleanup
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
+	CleanupDeviceD3D();
+	::DestroyWindow(hwnd);
+	::UnregisterClassW(wc.lpszClassName, wc.hInstance);
+
 	gm.init();
 	gm.hook_data();
 	//gm.test();
@@ -4969,4 +5214,91 @@ int main(int argc, const char** argv)
 	return 0;
 }
 
+// Helper functions
 
+bool CreateDeviceD3D(HWND hWnd)
+{
+	// Setup swap chain
+	// This is a basic setup. Optimally could use e.g. DXGI_SWAP_EFFECT_FLIP_DISCARD and handle fullscreen mode differently. See #8979 for suggestions.
+	DXGI_SWAP_CHAIN_DESC sd;
+	ZeroMemory(&sd, sizeof(sd));
+	sd.BufferCount = 2;
+	sd.BufferDesc.Width = 0;
+	sd.BufferDesc.Height = 0;
+	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	sd.BufferDesc.RefreshRate.Numerator = 60;
+	sd.BufferDesc.RefreshRate.Denominator = 1;
+	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	sd.OutputWindow = hWnd;
+	sd.SampleDesc.Count = 1;
+	sd.SampleDesc.Quality = 0;
+	sd.Windowed = TRUE;
+	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+
+	UINT createDeviceFlags = 0;
+	//createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+	D3D_FEATURE_LEVEL featureLevel;
+	const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
+	HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
+	if (res == DXGI_ERROR_UNSUPPORTED) // Try high-performance WARP software driver if hardware is not available.
+		res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
+	if (res != S_OK)
+		return false;
+
+	CreateRenderTarget();
+	return true;
+}
+
+void CleanupDeviceD3D()
+{
+	CleanupRenderTarget();
+	if (g_pSwapChain) { g_pSwapChain->Release(); g_pSwapChain = nullptr; }
+	if (g_pd3dDeviceContext) { g_pd3dDeviceContext->Release(); g_pd3dDeviceContext = nullptr; }
+	if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = nullptr; }
+}
+
+void CreateRenderTarget()
+{
+	ID3D11Texture2D* pBackBuffer;
+	g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
+	g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_mainRenderTargetView);
+	pBackBuffer->Release();
+}
+
+void CleanupRenderTarget()
+{
+	if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = nullptr; }
+}
+
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+// Win32 message handler
+// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
+// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
+// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
+// Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
+LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+		return true;
+
+	switch (msg)
+	{
+	case WM_SIZE:
+		if (wParam == SIZE_MINIMIZED)
+			return 0;
+		g_ResizeWidth = (UINT)LOWORD(lParam); // Queue resize
+		g_ResizeHeight = (UINT)HIWORD(lParam);
+		return 0;
+	case WM_SYSCOMMAND:
+		if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
+			return 0;
+		break;
+	case WM_DESTROY:
+		::PostQuitMessage(0);
+		return 0;
+	}
+	return ::DefWindowProcW(hWnd, msg, wParam, lParam);
+}
