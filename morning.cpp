@@ -68,6 +68,129 @@ auto current_path = fs::current_path();
 static bool pawn = false;
 static bool show_win = false;
 
+struct AppLog
+{
+	ImGuiTextBuffer     Buf;
+	ImGuiTextFilter     Filter;
+	ImVector<int>       LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
+	bool                AutoScroll;  // Keep scrolling if already at the bottom.
+
+	AppLog()
+	{
+		AutoScroll = true;
+		Clear();
+	}
+
+	void    Clear()
+	{
+		Buf.clear();
+		LineOffsets.clear();
+		LineOffsets.push_back(0);
+	}
+
+	void    AddLog(const char* fmt, ...) IM_FMTARGS(2)
+	{
+		int old_size = Buf.size();
+		va_list args;
+		va_start(args, fmt);
+		Buf.appendfv(fmt, args);
+		va_end(args);
+		for (int new_size = Buf.size(); old_size < new_size; old_size++)
+			if (Buf[old_size] == '\n')
+				LineOffsets.push_back(old_size + 1);
+	}
+
+	void    Draw(const char* title, bool* p_open = NULL)
+	{
+		if (!ImGui::Begin(title, p_open))
+		{
+			ImGui::End();
+			return;
+		}
+
+		// Options menu
+		if (ImGui::BeginPopup("Options"))
+		{
+			ImGui::Checkbox("Auto-scroll", &AutoScroll);
+			ImGui::EndPopup();
+		}
+
+		// Main window
+		if (ImGui::Button("Options"))
+			ImGui::OpenPopup("Options");
+		ImGui::SameLine();
+		bool clear = ImGui::Button("Clear");
+		ImGui::SameLine();
+		bool copy = ImGui::Button("Copy");
+		ImGui::SameLine();
+		Filter.Draw("Filter", -100.0f);
+
+		ImGui::Separator();
+
+		if (ImGui::BeginChild("scrolling", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar))
+		{
+			if (clear)
+				Clear();
+			if (copy)
+				ImGui::LogToClipboard();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+			const char* buf = Buf.begin();
+			const char* buf_end = Buf.end();
+			if (Filter.IsActive())
+			{
+				// In this example we don't use the clipper when Filter is enabled.
+				// This is because we don't have random access to the result of our filter.
+				// A real application processing logs with ten of thousands of entries may want to store the result of
+				// search/filter.. especially if the filtering function is not trivial (e.g. reg-exp).
+				for (int line_no = 0; line_no < LineOffsets.Size; line_no++)
+				{
+					const char* line_start = buf + LineOffsets[line_no];
+					const char* line_end = (line_no + 1 < LineOffsets.Size) ? (buf + LineOffsets[line_no + 1] - 1) : buf_end;
+					if (Filter.PassFilter(line_start, line_end))
+						ImGui::TextUnformatted(line_start, line_end);
+				}
+			}
+			else
+			{
+				// The simplest and easy way to display the entire buffer:
+				//   ImGui::TextUnformatted(buf_begin, buf_end);
+				// And it'll just work. TextUnformatted() has specialization for large blob of text and will fast-forward
+				// to skip non-visible lines. Here we instead demonstrate using the clipper to only process lines that are
+				// within the visible area.
+				// If you have tens of thousands of items and their processing cost is non-negligible, coarse clipping them
+				// on your side is recommended. Using ImGuiListClipper requires
+				// - A) random access into your data
+				// - B) items all being the  same height,
+				// both of which we can handle since we have an array pointing to the beginning of each line of text.
+				// When using the filter (in the block of code above) we don't have random access into the data to display
+				// anymore, which is why we don't use the clipper. Storing or skimming through the search result would make
+				// it possible (and would be recommended if you want to search through tens of thousands of entries).
+				ImGuiListClipper clipper;
+				clipper.Begin(LineOffsets.Size);
+				while (clipper.Step())
+				{
+					for (int line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd; line_no++)
+					{
+						const char* line_start = buf + LineOffsets[line_no];
+						const char* line_end = (line_no + 1 < LineOffsets.Size) ? (buf + LineOffsets[line_no + 1] - 1) : buf_end;
+						ImGui::TextUnformatted(line_start, line_end);
+					}
+				}
+				clipper.End();
+			}
+			ImGui::PopStyleVar();
+
+			// Keep up at the bottom of the scroll region if we were already at the bottom at the beginning of the frame.
+			// Using a scrollbar or mouse-wheel will take away from the bottom edge.
+			if (AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+				ImGui::SetScrollHereY(1.0f);
+		}
+		ImGui::EndChild();
+		ImGui::End();
+	}
+};
+
 //畅玩服
 const cv::Mat img_btn_beibao = cv_imread("object\\btn\\beibao.png");
 const cv::Mat img_btn_package_prop = cv_imread("object\\btn\\package_prop.png");
@@ -1295,7 +1418,7 @@ void WindowInfo::update_scene_id() {
 }
 
 void WindowInfo::scan_npc_pos_in_thread() {
-	while (1) {
+	while (pawn) {
 		//log_info("scan_npc_pos_in_thread");
 		switch (tScan_npc)
 		{
@@ -3355,7 +3478,7 @@ bool WindowInfo::talk_to_npc_fight(POINT dst, const cv::Mat& templ) {
 		log_info("点击的坐标:%d,%d", dst.x, dst.y);
 		click_position_at_edge({ dst.x,dst.y}, 0, 0, 0, -3,5);
 		// 一页显示5个NPC，只尝试前3个
-		click_position_at_edge({ dst.x,dst.y}, 0, 0, 15, 30+j*20);
+		click_position_at_edge({ dst.x,dst.y}, 0, 0, 20, 27+j*20);
 		if (ClickMatchImage(ROI_npc_talk(), templ, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 1, 1200) && wait_fighting()) {
 			log_info("发起战斗成功");
 			is_four_man();
@@ -4211,9 +4334,9 @@ void ForceSetForegroundWindow(HWND hWnd) {
 		// 5. 完成后解除挂载（非常重要，否则可能导致输入状态混乱）
 		AttachThreadInput(dwCurrentThreadId, dwForeThreadId, FALSE);
 	}
-	//else {
-	//	SetForegroundWindow(hWnd);
-	//}
+	else {
+		SetForegroundWindow(hWnd);
+	}
 }
 void init_log() {
 	log_close();
@@ -5081,6 +5204,7 @@ void handle_hotkey() {
 		}
 	}
 }
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nCmdShow)
 {
 	//log_info("日志输出测试");
@@ -5182,14 +5306,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 	auto t2 = std::thread(handle_hotkey);
 	t2.detach();
 
-	//auto t2 = std::thread(&GoodMorning::work, &gm);
-	// 注册热键：ID为1，组合键为 MOD_CONTROL (Ctrl) + '1' (0x31)
-	// 0x31 是字符 '1' 的虚拟键码
-	//if (RegisterHotKey(NULL, 1, MOD_CONTROL | MOD_NOREPEAT, 0x31)) {
-	//	std::cout << "Ctrl + 1 热键注册成功，正在监听...\n";
-	//}
-	//MSG msg = { 0 };
-
 	// Main loop
 	bool done = false;
 	while (!done)
@@ -5208,7 +5324,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 			break;
 
 		if (show_win) {
-			gm->find_windows();
 			ForceSetForegroundWindow(hwnd);
 			show_win = false;
 		}
@@ -5234,6 +5349,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 
+
+		// 1. 初始化一个全局或静态对象
+		static AppLog my_log;
+
+		// 2. 在业务代码中调用（支持格式化字符串）
+		my_log.AddLog(u8"[%05d] 系统启动中...\n", ImGui::GetFrameCount());
+		my_log.AddLog(u8"警告：检测到内存占用过高：%d MB\n", 512);
+
+		// 3. 在 ImGui 渲染循环中绘制窗口
+		my_log.Draw(u8"系统日志控制台");
+
+		int win_num = gm->winsInfo.size();
 		// 1. 定义一个全局或静态的布尔变量来控制窗口显示状态
 		static bool show_settings_window = false;
 
@@ -5261,7 +5388,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 			}
 			if (ImGui::BeginMenu(u8"帮助")) {
 				ImGui::Begin(u8"使用说明");
-				ImGui::Text(u8"1.显示窗口：Ctrl+1");
+				ImGui::Text(u8"1.显示窗口：Ctrl+1\n2.刷新：换角色、增加或减少角色，都要点一下刷新\n");
 				ImGui::End();
 				ImGui::EndMenu();
 			}
@@ -5281,11 +5408,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 
 			ImGui::SetNextWindowSize(ImVec2(450, 300));
 
-			// 定义存储状态的变量（建议放在类成员或静态区）
-			// selection[0] 存储第一行的选中值（0或1）
-			// selection[1] 存储第二行的选中值（0或1）
-			static int selection[2] = { 0, 0 };
-			ImGui::Begin(u8"设置角色打坐技能");
+			//窗口关闭按钮：ImGui::Begin 的第二个参数（如 &show_settings_window）非常关键。如果传入了布尔指针，ImGui 会在窗口右上角显示一个关闭按钮 [X]。点击它时，ImGui 会自动将该变量改为 false，从而关闭窗口。
+			ImGui::Begin(u8"设置打坐技能", &show_settings_window, ImGuiWindowFlags_AlwaysAutoResize);
 
 			// 定义一个 3 列的表格：
 			// 1. Text 列 (自动伸缩宽度)
@@ -5298,20 +5422,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 				ImGui::TableSetupColumn(u8" ", ImGuiTableColumnFlags_WidthFixed);
 				ImGui::TableSetupColumn(u8" ", ImGuiTableColumnFlags_WidthFixed);
 				ImGui::TableHeadersRow();
+				static auto utf_8_meditation = AnsiToUtf8("打坐");
 
-				for (int i = 0; i < gm->winsInfo.size(); i++) {
+				static vector<int>selection(win_num, 0);
+				if (selection.size() != win_num) {
+					selection.resize(win_num, 1);
+				}
+				for (int i = 0; i < win_num; i++) {
+					const auto& winfo = gm->winsInfo[i];
 					ImGui::TableNextRow(); // 开始新的一行
 
 					// --- 第一列：左对齐的文本 ---
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text(AnsiToUtf8(gm->winsInfo[i]->player_name).c_str(), ImVec2(ImGui::GetFontSize() * 12.0f, ImGui::GetFontSize() * 2.0f));
+					ImGui::Text(AnsiToUtf8(winfo->player_name).c_str(), ImVec2(ImGui::GetFontSize() * 12.0f, ImGui::GetFontSize() * 2.0f));
+					//ImGui::Text(u8"dsdsdsd", ImVec2(ImGui::GetFontSize() * 12.0f, ImGui::GetFontSize() * 2.0f));
 					// ImGui::Text 默认就是左对齐的
-
+					selection[i] = gm->db[winfo->player_id].contains(utf_8_meditation) ? 0 : 1; //对应 RadioButton  v_button
 					// --- 第二列：RadioButton 1 ---
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushID(i * 2); // 隔离 ID
 					if (ImGui::RadioButton(u8"F6", &selection[i], 0)) {
-
+						gm->db[winfo->player_id][utf_8_meditation] = 0;
+						gm->update_db();
 					}
 					ImGui::PopID();
 
@@ -5319,7 +5451,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 					ImGui::TableSetColumnIndex(2);
 					ImGui::PushID(i * 2 + 1); // 隔离 ID
 					if (ImGui::RadioButton(u8"无", &selection[i], 1)) {
-
+						gm->db[winfo->player_id].erase(utf_8_meditation);
+						gm->update_db();
 					}
 					ImGui::PopID();
 				}
@@ -5347,39 +5480,44 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 		static int task_index = 0; // 记录哪个索引被选中
 		// 2. 编写 UI 界面
 		ImGui::Begin("FullscreenWindow", NULL, flags);
-		if(task_index == 0) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
-		if (ImGui::Button(u8"宝图", ImVec2(ImGui::GetFontSize() * 8.0f, ImGui::GetFontSize() * 2.0f))) {
-			task_index = 0;
-		}
-		else {
-			if (task_index == 0) ImGui::PopStyleColor();
-		}
 
-		ImGui::SameLine(); // 关键：告诉 ImGui 不要换行
-		ImGui::SameLine(0.0f, 20.0f); // 20.0f 是两个按钮之间的像素间距
-		if (task_index == 1) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
-		if (ImGui::Button(u8"捉鬼", ImVec2(ImGui::GetFontSize() * 8.0f, ImGui::GetFontSize() * 2.0f))) {
-			/* 点击逻辑 */
-			task_index = 1;
+		// 增加左右边距
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetFontSize() * 2.0f, ImGui::GetFontSize() * 0.5f));
+		// 开始一个标签栏
+		if (ImGui::BeginTabBar("MyTabBar"))
+		{
+			// 第 1 个标签页
+			if (ImGui::BeginTabItem(u8"宝图"))
+			{
+				task_index = 0;
+				ImGui::EndTabItem();
+			}
+
+			// 第 2 个标签页
+			if (ImGui::BeginTabItem(u8"捉鬼"))
+			{
+				task_index = 1;
+				ImGui::EndTabItem();
+			}
+
+			ImGui::EndTabBar();
 		}
-		else {
-			if (task_index == 1) ImGui::PopStyleColor();
-		}
-		int num = gm->winsInfo.size();
-		static std::vector<char> selection_states(num, 1); // 0 为未选，1 为选中
+		ImGui::PopStyleVar();
+
+		static std::vector<char> selection_states(win_num, 1); // 0 为未选，1 为选中
 
 		if (task_index == 0) {
 			ImGui::Text(u8"选择角色：");
-			if (selection_states.size() != num) {
-				selection_states.resize(num, 1);
+			if (selection_states.size() != win_num) {
+				selection_states.resize(win_num, 1);
 			}
 			// 建议使用 char 数组或 std::vector<char>，因为 std::vector<bool> 无法取地址
 			static bool select_all = true;
 			if (ImGui::Checkbox(u8"全选", &select_all)) {
-				for (int i = 0; i < num; i++) selection_states[i] = select_all;
+				for (int i = 0; i < win_num; i++) selection_states[i] = select_all;
 			}
 
-			for (int i = 0; i < num; i++) {
+			for (int i = 0; i < win_num; i++) {
 				// ImGui::Checkbox 需要传入 bool 的指针
 				// 使用 char 强转 bool 指针是安全的
 				bool selected = (bool)selection_states[i];
@@ -5410,17 +5548,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 
 		// 5. 渲染按钮
 		if (ImGui::Button(u8"刷新", buttonSize)) {
-			// 处理确定逻辑
+			pawn = false;
 			gm->find_windows();
+			gm->init();
+			gm->hook_data();
+			gm->scan_thread();
 		}
 		ImGui::SameLine(); // 并排
 		if (ImGui::Button(u8"暂停", buttonSize)) {
-			// 处理取消逻辑
 			pawn = false;
 		}
 		ImGui::SameLine(); // 并排
 		if (ImGui::Button(u8"开始", buttonSize)) {
-			// 处理取消逻辑
 			pawn = true;
 			gm->win_selected = selection_states;
 			// 安全检查：如果之前的线程已经结束但没回收，先 join 回收资源
