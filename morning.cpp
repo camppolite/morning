@@ -5259,6 +5259,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 				}
 				ImGui::EndMenu();
 			}
+			if (ImGui::BeginMenu(u8"帮助")) {
+				ImGui::Begin(u8"使用说明");
+				ImGui::Text(u8"1.显示窗口：Ctrl+1");
+				ImGui::End();
+				ImGui::EndMenu();
+			}
 			ImGui::EndMainMenuBar();
 		}
 		// 2. 务必弹出变量，以免影响后续 UI
