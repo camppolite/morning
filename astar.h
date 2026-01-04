@@ -1,4 +1,4 @@
-ï»¿#pragma once
+#pragma once
 #include <set>
 #include <memory>
 #include <map>
@@ -21,39 +21,39 @@ typedef struct {
 	int max;
 } range;
 
-// åœºæ™¯id
-#define é•¿å®‰åŸ 1001
-#define åŒ–ç”Ÿå¯º 1002
-#define æ¡ƒæºæ‘ 1003
-#define é•¿å®‰æ‚è´§åº— 1015
-#define é•¿å®‰é¥°å“åº— 1017
-#define é•¿å®‰å›½å­ç›‘ 1026
-#define é•¿å®‰é…’åº— 1028
-#define é•¿å®‰é…’åº—äºŒæ¥¼ 1029
-#define	è¥¿æ¢å¥³å›½ 1040
-#define	é•¿å¯¿æ‘ 1070
-#define é•¿å¯¿æ‘å½“é“º 1072
-#define é•¿å¯¿éƒŠå¤– 1091
-#define é•¿å¯¿æ‘é…’åº— 1075
-#define	å‚²æ¥å›½ 1092
-#define å‚²æ¥å®¢æ ˆ 1093
-#define å‚²æ¥å®¢æ ˆäºŒæ¥¼ 1535
-#define å‚²æ¥å›½è¯åº— 1104
-#define å¤§å”å›½å¢ƒ 1110
-#define åœ°åºœ 1122
-#define ç‹®é©¼å²­ 1131
-#define	æ™®é™€å±± 1140
-#define	å¥³å„¿æ‘ 1142
-#define	äº”åº„è§‚ 1146
-#define	å¤§å”å¢ƒå¤– 1173
-#define	æ±Ÿå—é‡å¤– 1193
-#define	æœ±ç´«å›½ 1208
-#define	å®è±¡å›½ 1226
-#define å»ºé‚ºåŸ 1501
-#define å»ºé‚ºè¡™é—¨ 1537
-#define å»ºé‚ºæ‚è´§åº— 1505
-#define ä¸œæµ·æ¹¾ 1506
-#define èŠ±æœå±± 1514
+// ³¡¾°id
+#define ³¤°²³Ç 1001
+#define »¯ÉúËÂ 1002
+#define ÌÒÔ´´å 1003
+#define ³¤°²ÔÓ»õµê 1015
+#define ³¤°²ÊÎÆ·µê 1017
+#define ³¤°²¹ú×Ó¼à 1026
+#define ³¤°²¾Æµê 1028
+#define ³¤°²¾Æµê¶şÂ¥ 1029
+#define	Î÷ÁºÅ®¹ú 1040
+#define	³¤ÊÙ´å 1070
+#define ³¤ÊÙ´åµ±ÆÌ 1072
+#define ³¤ÊÙ½¼Íâ 1091
+#define ³¤ÊÙ´å¾Æµê 1075
+#define	°ÁÀ´¹ú 1092
+#define °ÁÀ´¿ÍÕ» 1093
+#define °ÁÀ´¿ÍÕ»¶şÂ¥ 1535
+#define °ÁÀ´¹úÒ©µê 1104
+#define ´óÌÆ¹ú¾³ 1110
+#define µØ¸® 1122
+#define Ê¨ÍÕÁë 1131
+#define	ÆÕÍÓÉ½ 1140
+#define	Å®¶ù´å 1142
+#define	Îå×¯¹Û 1146
+#define	´óÌÆ¾³Íâ 1173
+#define	½­ÄÏÒ°Íâ 1193
+#define	Öì×Ï¹ú 1208
+#define	±¦Ïó¹ú 1226
+#define ½¨Úş³Ç 1501
+#define ½¨ÚşÑÃÃÅ 1537
+#define ½¨ÚşÔÓ»õµê 1505
+#define ¶«º£Íå 1506
+#define »¨¹ûÉ½ 1514
 
 
 

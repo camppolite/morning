@@ -1,4 +1,4 @@
-ï»¿#include "morning.h"
+#include "morning.h"
 #include "log.h"
 
 
@@ -62,10 +62,13 @@ typedef unsigned long long QWORD;
 #define MHMAIN_DLL L"mhmain.dll"
 #define MAX_WIN = 10
 
-GoodMorning gm;
-auto current_path = fs::current_path();
+auto gm = std::make_unique<GoodMorning>();
 
-//ç•…ç©æœ
+auto current_path = fs::current_path();
+static bool pawn = false;
+static bool show_win = false;
+
+//³©Íæ·ş
 const cv::Mat img_btn_beibao = cv_imread("object\\btn\\beibao.png");
 const cv::Mat img_btn_package_prop = cv_imread("object\\btn\\package_prop.png");
 const cv::Mat img_btn_tingtingwufang = cv_imread("object\\btn\\tingtingwufang.png");
@@ -146,7 +149,7 @@ const cv::Mat img_symbol_jibaile50geqiangdao = cv_imread("object\\symbol\\jibail
 
 const cv::Mat img_cursors_cursor = cv_imread("object\\cursors\\cursor.png");
 
-//æ—¶é—´æœ
+//Ê±¼ä·ş
 const cv::Mat img_btn_beibao_card = cv_imread("object_card\\btn\\beibao.png");
 const cv::Mat img_btn_package_prop_card = cv_imread("object_card\\btn\\package_prop.png");
 const cv::Mat img_btn_tingtingwufang_card = cv_imread("object_card\\btn\\tingtingwufang.png");
@@ -231,22 +234,22 @@ const cv::Mat img_cursors_cursor_card = cv_imread("object_card\\cursors\\cursor.
 WindowInfo::WindowInfo(HANDLE processID) {
 	pid = processID;
 
-	//æ¥ä»»åŠ¡ç«™ä½(18,13)
+	//½ÓÈÎÎñÕ¾Î»(18,13)
 	dianxiaoer_pos_list.push_back(POINT{ 230, 750 }); // (11,12)
 	dianxiaoer_pos_list.push_back(POINT{ 230, 630 }); // (11,18)
 	dianxiaoer_pos_list.push_back(POINT{ 470, 650 }); // (23,17)
-	//æ¥ä»»åŠ¡ç«™ä½(18,11)
+	//½ÓÈÎÎñÕ¾Î»(18,11)
 	dianxiaoer_pos_list.push_back(POINT{ 410, 850 }); // (20,7)
-	//æ¥ä»»åŠ¡ç«™ä½(26,8)
+	//½ÓÈÎÎñÕ¾Î»(26,8)
 	dianxiaoer_pos_list.push_back(POINT{ 450, 850 }); // (22,7)
-	//æ¥ä»»åŠ¡ç«™ä½(26,9)
+	//½ÓÈÎÎñÕ¾Î»(26,9)
 	dianxiaoer_pos_list.push_back(POINT{ 650, 790 }); // (32,10)
-	//æ¥ä»»åŠ¡ç«™ä½(39,14)
+	//½ÓÈÎÎñÕ¾Î»(39,14)
 	dianxiaoer_pos_list.push_back(POINT{ 750, 610 }); // (37,19)
 	dianxiaoer_pos_list.push_back(POINT{ 890, 690 }); // (44,15)
-	//æ¥ä»»åŠ¡ç«™ä½(34,16)
+	//½ÓÈÎÎñÕ¾Î»(34,16)
 	dianxiaoer_pos_list.push_back(POINT{ 710, 710 }); // (35,14)
-	//æ¥ä»»åŠ¡ç«™ä½(30,22)
+	//½ÓÈÎÎñÕ¾Î»(30,22)
 	dianxiaoer_pos_list.push_back(POINT{ 570, 450 }); // (28,27)
 
 	changan_yizhanlaoban_pos_list.push_back(POINT{ 5570, 4710 });
@@ -337,11 +340,11 @@ void WindowInfo::init() {
 		m_img_cursors_cursor=&img_cursors_cursor;
 
 
-		mScreen_x = 16;  // wWidth / 2 / 25  å±å¹•å¯ä»¥èŒƒå›´åæ ‡è·¨åº¦
-		mScreen_y = 11;  // wHeight / 2 / 25 å±å¹•å¯ä»¥èŒƒå›´åæ ‡è·¨åº¦
+		mScreen_x = 16;  // wWidth / 2 / 25  ÆÁÄ»¿ÉÒÔ·¶Î§×ø±ê¿ç¶È
+		mScreen_y = 11;  // wHeight / 2 / 25 ÆÁÄ»¿ÉÒÔ·¶Î§×ø±ê¿ç¶È
 	}
 	else {
-		//_card for ç‚¹å¡æœ
+		//_card for µã¿¨·ş
 		m_img_btn_beibao = &img_btn_beibao_card;
 		m_img_btn_package_prop = &img_btn_package_prop_card;
 		m_img_btn_tingtingwufang = &img_btn_tingtingwufang_card;
@@ -477,32 +480,32 @@ void WindowInfo::hook_init() {
 
 	mhmainDllBase = getProcessModulesAddress(hProcess, MHMAIN_DLL);
 
-	// ç©å®¶åæ ‡åœ°å€
+	// Íæ¼Ò×ø±êµØÖ·
 	player_pos_addr = getRelativeStaticAddressByAoB(
 		hProcess,
 		mhmainDllBase,
 		"83 3D ? ? ? ? FF 75 DF 0F 57 D2 0F 57 C9 48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 0D ? ? ? ? E8 ? ? ? ?",
 		18);
-	if (player_pos_addr == 0) log_error("æŸ¥æ‰¾ç©å®¶åæ ‡åœ°å€å¤±è´¥");
+	if (player_pos_addr == 0) log_error("²éÕÒÍæ¼Ò×ø±êµØÖ·Ê§°Ü");
 
-	//log_info("æŸ¥æ‰¾åœºæ™¯åœ°å€å¼€å§‹:0x%X", winfo.hProcess);
-	//// åœºæ™¯[100,10] (111,111)
+	//log_info("²éÕÒ³¡¾°µØÖ·¿ªÊ¼:0x%X", winfo.hProcess);
+	//// ³¡¾°[100,10] (111,111)
 	//// B4 F3 CC C6 B9 FA BE B3 5B 31 39 38 2C 32 33 32 5D 00 B6 FE 28 31 31 31 2C 31 31 31 29 00
 	//auto map_info_AoB_adr = winfo.PerformAoBScan(winfo.hProcess, 0, "28 31 31 31 2C 31 31 31 29 00", "xxxxxxxxxx");
-	//if (map_info_AoB_adr == 0) log_error("æŸ¥æ‰¾åœºæ™¯åœ°å€å¤±è´¥");
+	//if (map_info_AoB_adr == 0) log_error("²éÕÒ³¡¾°µØÖ·Ê§°Ü");
 	//else winfo.map_info_addr = map_info_AoB_adr - winfo.map_offset;
-	//log_info("æŸ¥æ‰¾åœºæ™¯åœ°å€ç»“æŸ:0x%X", winfo.hProcess);
+	//log_info("²éÕÒ³¡¾°µØÖ·½áÊø:0x%X", winfo.hProcess);
 
-	// åœºæ™¯id
+	// ³¡¾°id
 	//48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 ? ? ? ? 44 89 3D ? ? ? ?
 	scene_id_addr = getRelativeStaticAddressByAoB(
 		hProcess,
 		mhmainDllBase,
 		"48 89 00 48 89 40 08 48 89 40 10 66 C7 40 18 01 01 48 89 05 ? ? ? ? 44 89 3D ? ? ? ?",
 		27);
-	if (scene_id_addr == 0) log_error("æŸ¥æ‰¾åœºæ™¯idåœ°å€å¤±è´¥");
+	if (scene_id_addr == 0) log_error("²éÕÒ³¡¾°idµØÖ·Ê§°Ü");
 
-	// åº—å°äºŒç»“æ„ä½“é™æ€åœ°å€
+	// µêĞ¡¶ş½á¹¹Ìå¾²Ì¬µØÖ·
 	//location_first_static_addr = getRelativeStaticAddressByAoB(
 	//	hProcess,
 	//	mhmainDllBase,
@@ -522,11 +525,11 @@ void WindowInfo::hook_init() {
 	//	"xxx????xxxxxxxx????",
 	//	3);
 
-	// NPCç»“æ„é™æ€æŒ‡é’ˆåœ°å€
+	// NPC½á¹¹¾²Ì¬Ö¸ÕëµØÖ·
 	npc_first_static_addr = getRelativeStaticAddressByAoB(
 		hProcess,
 		mhmainDllBase,
-		"4C 8D 05 ? ? ? ? 4C 8B CB 4C 89 01 48 8B D1 44 8B C7",  // å¾—åˆ°4ä¸ªç»“æœï¼Œç¬¬1ä¸ªå°±æ˜¯æƒ³è¦çš„
+		"4C 8D 05 ? ? ? ? 4C 8B CB 4C 89 01 48 8B D1 44 8B C7",  // µÃµ½4¸ö½á¹û£¬µÚ1¸ö¾ÍÊÇÏëÒªµÄ
 		3);
 	npc_loc_first_static_addr = getRelativeStaticAddressByAoB(
 		hProcess,
@@ -537,14 +540,14 @@ void WindowInfo::hook_init() {
 void WindowInfo::datu() {
 	if (RegionMonthly) {
 		if (baotu_task_count >= 50) {
-			log_info("ç•…ç©æœä¸€å¤©åªèƒ½æ‰“50æ¬¡å›¾");
-			return;//ä¸€å¤©åªèƒ½æ‰“50æ¬¡
+			log_info("³©Íæ·şÒ»ÌìÖ»ÄÜ´ò50´ÎÍ¼");
+			return;//Ò»ÌìÖ»ÄÜ´ò50´Î
 		}
 	}
 	else {
 		if (baotu_task_count >= 150){
-			log_info("ä¸€å¤©åªæ‰“150æ¬¡å›¾");
-			return;//ä¸€å¤©åªèƒ½æ‰“50æ¬¡
+			log_info("Ò»ÌìÖ»´ò150´ÎÍ¼");
+			return;//Ò»ÌìÖ»ÄÜ´ò50´Î
 		}
 	}
 	if (popup_verify){
@@ -565,23 +568,23 @@ void WindowInfo::datu() {
 		popup_verify = false;
 		auto image = hwnd2mat(hwnd);
 		if (!is_hangup(image)) {
-			// è‡ªåŠ¨æˆ˜æ–—æŒ‰é’®å‡ºç°ï¼Œç‚¹å‡»ä¸€ä¸‹
+			// ×Ô¶¯Õ½¶·°´Å¥³öÏÖ£¬µã»÷Ò»ÏÂ
 			auto fight_rc = ROI_fight_action();
 			auto auto_btn_pos = MatchingLoc(image, fight_rc, *m_img_fight_auto);
 			if (auto_btn_pos.x > 0) {
-				log_info("ç‚¹å‡»è‡ªåŠ¨æˆ˜æ–—:%d,%d", auto_btn_pos.x, auto_btn_pos.y);
+				log_info("µã»÷×Ô¶¯Õ½¶·:%d,%d", auto_btn_pos.x, auto_btn_pos.y);
 				click_position_at_edge({ rect.left + fight_rc.x + auto_btn_pos.x, rect.top + fight_rc.y + auto_btn_pos.y }, -60);
 			}
 		}
 		return;
 	}
 	if (tScan_npc != THREAD_IDLE) return;
-	//å¿…é¡»è¦ç»å¸¸ç½®é¡¶çª—å£ï¼Œå¦åˆ™æ¢¦å¹»åå°ä¸æ›´æ–°ç•Œé¢ï¼Œæˆªå›¾æ˜¯å›ºå®šç”»é¢
+	//±ØĞëÒª¾­³£ÖÃ¶¥´°¿Ú£¬·ñÔòÃÎ»ÃºóÌ¨²»¸üĞÂ½çÃæ£¬½ØÍ¼ÊÇ¹Ì¶¨»­Ãæ
 	//if (IsIconic(hwnd)) {
 	//	ShowWindow(hwnd, SW_RESTORE);
 	//	// Window is minimized
 	//	//log_info(player_name.c_str());
-	//	//for (int i = 0; i < 5; i++) { log_info("çª—å£æœ€å°åŒ–ï¼Œæ— æ³•è¿è¡Œï¼Œè¯·å…ˆæ¿€æ´»çª—å£"); }
+	//	//for (int i = 0; i < 5; i++) { log_info("´°¿Ú×îĞ¡»¯£¬ÎŞ·¨ÔËĞĞ£¬ÇëÏÈ¼¤»î´°¿Ú"); }
 	//	//failure = true;
 	//	//return;
 	//}
@@ -591,12 +594,13 @@ void WindowInfo::datu() {
 		//}
 		if (f_round < 1) {
 			ForceSetForegroundWindow(hwnd);
-			//åªå¤„ç†ç¬¬ä¸€å›åˆçš„æˆ˜æ–—ï¼Œå…¶ä»–å›åˆæŒ‚æœº
+			//Ö»´¦ÀíµÚÒ»»ØºÏµÄÕ½¶·£¬ÆäËû»ØºÏ¹Ò»ú
 			handle_datu_fight();
 		}
-		if (step.current == &work_start) { step.set_current(&to_changan_jiudian); }//æˆ˜æ–—ä¸­ï¼Œæ‰“å®Œç›´æ¥å»æ¥ä»»åŠ¡
+		if (step.current == &work_start) { step.set_current(&to_changan_jiudian); }//Õ½¶·ÖĞ£¬´òÍêÖ±½ÓÈ¥½ÓÈÎÎñ
 		return;
 	}
+	handle_meditation_time();
 	if (moving) {
 		if (is_moving()) {
 			if (time_pawn.timeout(35000)) {
@@ -609,9 +613,9 @@ void WindowInfo::datu() {
 	}
 	time_pawn_update();
 	if (step.current == &work_start) {
-		// é‡æ–°è¿è¡Œç¨‹åºï¼Œä»»åŠ¡æ­¥éª¤é¢„æ£€æŸ¥
+		// ÖØĞÂÔËĞĞ³ÌĞò£¬ÈÎÎñ²½ÖèÔ¤¼ì²é
 		log_info("work_start,%s",player_id);
-		//Sleep(150); // æœ‰æ—¶å€™æˆ˜æ–—é€€å‡ºåä¼šæ˜¾ç¤ºä»»åŠ¡ç•Œé¢ï¼Œè¿™é‡Œç­‰å¾…ä¸€ä¼šå†æ£€æŸ¥
+		//Sleep(150); // ÓĞÊ±ºòÕ½¶·ÍË³öºó»áÏÔÊ¾ÈÎÎñ½çÃæ£¬ÕâÀïµÈ´ıÒ»»áÔÙ¼ì²é
 		step.next();
 		cv::Mat image = hwnd2mat(hwnd);
 		cv::Mat image_gray;
@@ -619,7 +623,7 @@ void WindowInfo::datu() {
 		if (MatchingLoc(image_gray,ROI_task(), *m_img_symbol_task_track_gray).x>-1) {
 			if (MatchingLoc(image_gray,ROI_task(), *m_img_symbol_wabao_title_gray, "", 0.91).x>-1) {
 				if (MatchingLoc(image,ROI_task(), *m_img_symbol_zeiwang, "", 0.83).x>-1) {
-					log_info("è´¼ç‹æ²¡æ‰“ï¼Œå¼€å§‹æ‰“è´¼ç‹,%s", player_id);
+					log_info("ÔôÍõÃ»´ò£¬¿ªÊ¼´òÔôÍõ,%s", player_id);
 					tScan_npc = TASK_ZEIWANG;
 					step.set_current(&goto_zeiwang_scene);
 					auto pixel = MatchingLoc(image,ROI_npc_talk(), *m_img_btn_npc_talk_close);
@@ -629,7 +633,7 @@ void WindowInfo::datu() {
 					}
 				}
 				else {
-					log_info("å·²æ¥æ‰“å›¾ä»»åŠ¡ï¼Œç»§ç»­ä»»åŠ¡,%s", player_id);
+					log_info("ÒÑ½Ó´òÍ¼ÈÎÎñ£¬¼ÌĞøÈÎÎñ,%s", player_id);
 					tScan_npc = TASK_BAOTU;
 					step.set_current(&close_dianxiaoer);
 				}
@@ -639,12 +643,12 @@ void WindowInfo::datu() {
 	else if (step.current == &to_changan_jiudian) {
 		log_info("to_changan_jiudian,%s", player_id);
 		update_scene_id();
-		if (m_scene_id != é•¿å®‰é…’åº—) {
+		if (m_scene_id != ³¤°²¾Æµê) {
 			ForceSetForegroundWindow(hwnd);
 			goto_changanjiudian();
 		}
-		if (m_scene_id == é•¿å®‰é…’åº—) {
-			tScan_npc = åº—å°äºŒ;
+		if (m_scene_id == ³¤°²¾Æµê) {
+			tScan_npc = µêĞ¡¶ş;
 			npc_found = false;
 			step.set_current(&to_dianxiaoer_get_task);
 		}
@@ -652,23 +656,23 @@ void WindowInfo::datu() {
 	else if (step.current == &scan_dianxiaoer_pos) {
 		log_info("scan_dianxiaoer,%s", player_id);
 		update_scene_id();
-		if (m_scene_id != é•¿å®‰é…’åº—) step.set_current(&to_changan_jiudian);
+		if (m_scene_id != ³¤°²¾Æµê) step.set_current(&to_changan_jiudian);
 		else {
-			tScan_npc = åº—å°äºŒ;
+			tScan_npc = µêĞ¡¶ş;
 			npc_found = false;
 			step.next();
 		}
 	}
 	else if (step.current == &to_dianxiaoer_get_task) {
 		if (npc_found) {
-			//çº¿ç¨‹æ‰«æç»“æŸï¼Œå¼€å§‹ç§»åŠ¨
+			//Ïß³ÌÉ¨Ãè½áÊø£¬¿ªÊ¼ÒÆ¶¯
 			move_to_dianxiaoer();
 			if (is_near_dianxiaoer()) {
 				ForceSetForegroundWindow(hwnd);
 				log_info("talk_get_baoturenwu,%s", player_id);
 				if (talk_to_dianxiaoer()) {
 					if (WaitMatchingGrayRectExist(ROI_task(), *m_img_symbol_wabao_title_gray, 600,"",0.91)) {
-						// æ¥ä»»åŠ¡åå…³é—­å¯¹è¯çª—
+						// ½ÓÈÎÎñºó¹Ø±Õ¶Ô»°´°
 						//if (close_npc_talk_fast()) {
 						//	tScan_npc = TASK_BAOTU;
 						//	step.next();
@@ -685,7 +689,7 @@ void WindowInfo::datu() {
 						if (is_verifying()) {
 							play_mp3_once();
 							popup_verify = true;
-							for (int i = 0; i < 5; i++) { log_info("***å®å›¾ä»»åŠ¡å¼¹çª—éªŒè¯,è¯·æ‰‹åŠ¨ç‚¹å‡»***"); }
+							for (int i = 0; i < 5; i++) { log_info("***±¦Í¼ÈÎÎñµ¯´°ÑéÖ¤,ÇëÊÖ¶¯µã»÷***"); }
 							return;
 						}
 						step.set_current(&scan_dianxiaoer_pos);
@@ -707,7 +711,7 @@ void WindowInfo::datu() {
 	else if (step.current == &close_dianxiaoer) {
 		log_info("close_dianxiaoer");
 		if (baotu_target_scene_id <= 0 || baotu_target_pos.x <= 0) {
-			log_info("è§£æå®å›¾ä»»åŠ¡å¤±è´¥ï¼Œéœ€è¦æ‰‹åŠ¨å¤„ç†");
+			log_info("½âÎö±¦Í¼ÈÎÎñÊ§°Ü£¬ĞèÒªÊÖ¶¯´¦Àí");
 			failure = true;
 		}
 		else {
@@ -719,7 +723,7 @@ void WindowInfo::datu() {
 	}
 	else if (step.current == &goto_baotu_scene) {
 		if (baotu_target_scene_id <= 0 || baotu_target_pos.x <= 0) {
-			log_info("è§£æå®å›¾ä»»åŠ¡å¤±è´¥ï¼Œéœ€è¦æ‰‹åŠ¨å¤„ç†");
+			log_info("½âÎö±¦Í¼ÈÎÎñÊ§°Ü£¬ĞèÒªÊÖ¶¯´¦Àí");
 			failure = true;
 		}
 		else {
@@ -743,12 +747,12 @@ void WindowInfo::datu() {
 		ForceSetForegroundWindow(hwnd);
 		move_cursor_center_bottom();
 		if (WaitMatchingRectExist(ROI_npc_talk(), *m_img_symbol_gaosunitadecangshenweizhi, 100)) {
-			//å…³é—­è´¼ç‹æç¤ºå¯¹è¯çª—
+			//¹Ø±ÕÔôÍõÌáÊ¾¶Ô»°´°
 			close_npc_talk_fast();
 			tScan_npc = TASK_ZEIWANG;
 			step.next();
 			play_mp3_once();
-			for (int i = 0; i < 5; i++) { log_info("***è´¼ç‹å‡ºç°ï¼Œè¯·æ‰‹åŠ¨æˆ˜æ–—***"); }
+			for (int i = 0; i < 5; i++) { log_info("***ÔôÍõ³öÏÖ£¬ÇëÊÖ¶¯Õ½¶·***"); }
 		}
 		else { 
 			data_reset(); 	
@@ -756,7 +760,7 @@ void WindowInfo::datu() {
 	}
 	else if (step.current == &goto_zeiwang_scene) {
 		if (zeiwang_scene_id <= 0) {
-			log_info("è§£æè´¼ç‹å¤±è´¥ï¼Œéœ€è¦æ‰‹åŠ¨å¤„ç†");
+			log_info("½âÎöÔôÍõÊ§°Ü£¬ĞèÒªÊÖ¶¯´¦Àí");
 			failure = true;
 		}
 		else {
@@ -764,7 +768,7 @@ void WindowInfo::datu() {
 			log_info("goto_zeiwang_scene");
 			if (goto_scene(zeiwang_fake_pos, zeiwang_scene_id)) {
 				if (zeiwang_fake_pos.x > 0) {
-					//å¯¹äºæœ‰åæ ‡çš„è´¼ç‹ï¼Œç›´æ¥å¯»è·¯åˆ°åæ ‡ç‚¹å°±è¡Œ
+					//¶ÔÓÚÓĞ×ø±êµÄÔôÍõ£¬Ö±½ÓÑ°Â·µ½×ø±êµã¾ÍĞĞ
 					step.set_current(&scan_zeiwang_pos);
 				}
 				else {
@@ -774,43 +778,43 @@ void WindowInfo::datu() {
 		}
 	}
 	else if (step.current == &fix_my_pos_zeiwang) {
-		// å¯¹äºå¤§åœ°å›¾ï¼Œè¦èµ°åˆ°èƒ½çœ‹åˆ°å…¨å›¾çš„ç‰¹å®šä½ç½®å†å¼€å§‹æ‰«æ
+		// ¶ÔÓÚ´óµØÍ¼£¬Òª×ßµ½ÄÜ¿´µ½È«Í¼µÄÌØ¶¨Î»ÖÃÔÙ¿ªÊ¼É¨Ãè
 		log_info("fix_my_pos_zeiwang");
 		switch (zeiwang_scene_id)
 		{
-		case é•¿å®‰æ‚è´§åº—:
+		case ³¤°²ÔÓ»õµê:
 		{
 			break;
 		}
-		case é•¿å®‰é¥°å“åº—:
+		case ³¤°²ÊÎÆ·µê:
 		{
 			break;
 		}
-		case é•¿å®‰å›½å­ç›‘:
+		case ³¤°²¹ú×Ó¼à:
 		{
 			break;
 		}
-		//case å»ºé‚ºæ‚è´§åº—:
+		//case ½¨ÚşÔÓ»õµê:
 		//{
 		//	break;
 		//}
-		case å‚²æ¥å®¢æ ˆ:
+		case °ÁÀ´¿ÍÕ»:
 		{
 			break;
 		}
-		case å‚²æ¥å®¢æ ˆäºŒæ¥¼:
+		case °ÁÀ´¿ÍÕ»¶şÂ¥:
 		{
 			break;
 		}
-		case å‚²æ¥å›½è¯åº—:
+		case °ÁÀ´¹úÒ©µê:
 		{
 			break;
 		}
-		//case é•¿å¯¿æ‘å½“é“º:
+		//case ³¤ÊÙ´åµ±ÆÌ:
 		//{
 		//	break;
 		//}
-		//case é•¿å¯¿éƒŠå¤–:
+		//case ³¤ÊÙ½¼Íâ:
 		//{
 		//	break;
 		//}
@@ -821,19 +825,19 @@ void WindowInfo::datu() {
 	}
 	else if (step.current == &scan_zeiwang_pos) {
 		log_info("scan_zeiwang_pos");
-		tScan_npc = è´¼ç‹;
+		tScan_npc = ÔôÍõ;
 		step.next();
 	}
 	else if (step.current == &attack_zeiwang) {
 		if (zeiwang_pos.x <= 0) {
-			log_info("å¤„ç†è´¼ç‹åæ ‡å¤±è´¥ï¼Œéœ€è¦æ‰‹åŠ¨å¤„ç†");
+			log_info("´¦ÀíÔôÍõ×ø±êÊ§°Ü£¬ĞèÒªÊÖ¶¯´¦Àí");
 			failure = true;
 			return;
 		}
 		ForceSetForegroundWindow(hwnd);
 		update_scene_id(); 
 		update_player_float_pos();
-		log_info("è´¼ç‹åæ ‡:%d,%d", zeiwang_pos.x, zeiwang_pos.y);
+		log_info("ÔôÍõ×ø±ê:%d,%d", zeiwang_pos.x, zeiwang_pos.y);
 		if (!is_near_loc(zeiwang_pos, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
 			log_info("goto_zeiwang");
 			move_to_position(zeiwang_pos, MAP_MOVE_DISTENCE, MAP_MOVE_DISTENCE);
@@ -857,7 +861,7 @@ std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID s
 {
 	std::vector<uintptr_t> res;
 	BYTE* buffer = new BYTE[regionSize];
-	// åˆ†é…å¹¶åˆå§‹åŒ–åå­—ç¬¦è¡¨
+	// ·ÖÅä²¢³õÊ¼»¯»µ×Ö·û±í
 	//unsigned char badChar[ALPHABET_SIZE];
 	//preProcessBadChar(pattern, mask, pattern_size, badChar);
 	SIZE_T bytesRead;
@@ -883,7 +887,7 @@ std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID s
 				//std::cout << i << std::endl;
 				//std::cout << "Pattern match found at address: 0x" << std::hex << matchAddress << std::endl;
 				res.push_back(matchAddress);
-				i += pattern_size; // è·³è¿‡å·²å¯¹æ¯”è¿‡çš„å­—æ®µ
+				i += pattern_size; // Ìø¹ıÒÑ¶Ô±È¹ıµÄ×Ö¶Î
 			}
 		}
 	}
@@ -893,8 +897,8 @@ std::vector<uintptr_t> WindowInfo::ScanMemoryRegionEx(HANDLE hProcess, LPCVOID s
 }
 std::vector<uintptr_t> WindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern)
 {
-	// ModuleBase ä¸ºNULLåˆ™æ‰«æPRVå†…å­˜ï¼Œ
-	// all ä¸ºtrueï¼Œåˆ™æ‰«æå…¨éƒ¨åŒ¹é…ç»“æœ,ä¸ºfalseæ‰«æè¿”å›ç¬¬ä¸€ä¸ª
+	// ModuleBase ÎªNULLÔòÉ¨ÃèPRVÄÚ´æ£¬
+	// all Îªtrue£¬ÔòÉ¨ÃèÈ«²¿Æ¥Åä½á¹û,ÎªfalseÉ¨Ãè·µ»ØµÚÒ»¸ö
 	std::vector<unsigned char> pattern_bytes;
 	std::vector<char> pattern_mask;
 
@@ -912,7 +916,7 @@ std::vector<uintptr_t> WindowInfo::PerformAoBScanEx(HANDLE hProcess, HMODULE Mod
 	LPVOID minimumApplicationAddress = systemInfo.lpMinimumApplicationAddress;
 	LPVOID maximumApplicationAddress = systemInfo.lpMaximumApplicationAddress;
 	if (ModuleBase) {
-		// å…¨ç¨‹åºå†…å­˜æ‰«æ
+		// È«³ÌĞòÄÚ´æÉ¨Ãè
 		DWORD ModuleSize = GetModuleSize(hProcess, ModuleBase);
 		minimumApplicationAddress = ModuleBase;
 		maximumApplicationAddress = ModuleBase + ModuleSize;
@@ -992,8 +996,8 @@ uintptr_t WindowInfo::ScanMemoryRegion(HANDLE hProcess, LPCVOID startAddress, SI
 
 uintptr_t WindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const std::string pattern)
 {
-	// ModuleBase ä¸ºNULLåˆ™æ‰«æPRVå†…å­˜ï¼Œ
-	// all ä¸ºtrueï¼Œåˆ™æ‰«æå…¨éƒ¨åŒ¹é…ç»“æœ,ä¸ºfalseæ‰«æè¿”å›ç¬¬ä¸€ä¸ª
+	// ModuleBase ÎªNULLÔòÉ¨ÃèPRVÄÚ´æ£¬
+	// all Îªtrue£¬ÔòÉ¨ÃèÈ«²¿Æ¥Åä½á¹û,ÎªfalseÉ¨Ãè·µ»ØµÚÒ»¸ö
 	std::vector<unsigned char> pattern_bytes;
 	std::vector<char> pattern_mask;
 
@@ -1011,7 +1015,7 @@ uintptr_t WindowInfo::PerformAoBScan(HANDLE hProcess, HMODULE ModuleBase, const 
 	LPVOID minimumApplicationAddress = systemInfo.lpMinimumApplicationAddress;
 	LPVOID maximumApplicationAddress = systemInfo.lpMaximumApplicationAddress;
 	if (ModuleBase) {
-		// å…¨ç¨‹åºå†…å­˜æ‰«æ
+		// È«³ÌĞòÄÚ´æÉ¨Ãè
 		DWORD ModuleSize = GetModuleSize(hProcess, ModuleBase);
 		minimumApplicationAddress = ModuleBase;
 		maximumApplicationAddress = ModuleBase + ModuleSize;
@@ -1108,9 +1112,9 @@ POINT WindowInfo::MatchingRectLoc(cv::Rect roi_rect, const cv::Mat& templ, std::
 //	//Drawing shapes on a black canvas
 //	//Thresholding an existing image
 //
-//	// cv2.TM_CCORR_NORMED  # è¿™ä¸ªå¯¹é¢œè‰²æ•æ„Ÿåº¦é«˜ï¼Œå¦‚æœç›®æ ‡å­˜åœ¨ï¼Œå¾ˆå®¹æ˜“é…åˆ°ã€‚ä½†æ˜¯å¦‚æœç›®æ ‡ä¸å­˜åœ¨ä¹Ÿå¾ˆå®¹æ˜“è¯¯åŒ¹é…ä¸”è¿”å›çš„åŒ¹é…ç»“æœä¹Ÿå¾ˆé«˜ã€‚æ‰€ä»¥è¿™ä¸ªæ–¹æ³•åªé€‚ç”¨åŒ¹é…100%å­˜åœ¨çš„ç›®æ ‡
-//	// cv::TM_CCOEFF_NORMED è¿™ä¸ªé€šç”¨æ€§å¥½
-//	// loc:1åŒ¹é…ä¸­å¿ƒåæ ‡ï¼Œ2åŒ¹é…å·¦ä¸Šè§’åæ ‡ï¼Œå³åŸå§‹åŒ¹é…,3ä¸è®¡ç®—åæ ‡ï¼ŒåªåŒ¹é…æ˜¯å¦å­˜åœ¨
+//	// cv2.TM_CCORR_NORMED  # Õâ¸ö¶ÔÑÕÉ«Ãô¸Ğ¶È¸ß£¬Èç¹ûÄ¿±ê´æÔÚ£¬ºÜÈİÒ×Åäµ½¡£µ«ÊÇÈç¹ûÄ¿±ê²»´æÔÚÒ²ºÜÈİÒ×ÎóÆ¥ÅäÇÒ·µ»ØµÄÆ¥Åä½á¹ûÒ²ºÜ¸ß¡£ËùÒÔÕâ¸ö·½·¨Ö»ÊÊÓÃÆ¥Åä100%´æÔÚµÄÄ¿±ê
+//	// cv::TM_CCOEFF_NORMED Õâ¸öÍ¨ÓÃĞÔºÃ
+//	// loc:1Æ¥ÅäÖĞĞÄ×ø±ê£¬2Æ¥Åä×óÉÏ½Ç×ø±ê£¬¼´Ô­Ê¼Æ¥Åä,3²»¼ÆËã×ø±ê£¬Ö»Æ¥ÅäÊÇ·ñ´æÔÚ
 //	auto image = hwnd2mat(hwnd);
 //	cv::Mat image_roi = image;
 //	if (!roi_rect.empty()) {
@@ -1189,7 +1193,7 @@ POINT WindowInfo::WaitMatchingRectLoc(cv::Rect roi_rect, const cv::Mat& templ, i
 		if (pos.x > 0) return {rect.left + pos.x, rect.top + pos.y};
 		if (timeout == 0) break;
 		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
-			log_info("è¶…æ—¶");
+			log_info("³¬Ê±");
 			break;
 		}
 	}
@@ -1202,7 +1206,7 @@ bool WindowInfo::WaitMatchingGrayRectExist(cv::Rect roi_rect, const cv::Mat& tem
 		if (match) return true;
 		if (timeout == 0) break;
 		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
-			log_info("è¶…æ—¶");
+			log_info("³¬Ê±");
 			break;
 		}
 	}
@@ -1215,7 +1219,7 @@ bool WindowInfo::WaitMatchingRectExist(cv::Rect roi_rect, const cv::Mat& templ, 
 		if (match) return true;
 		if (timeout == 0) break;
 		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
-			log_info("è¶…æ—¶");
+			log_info("³¬Ê±");
 			break;
 		}
 	}
@@ -1228,7 +1232,7 @@ bool WindowInfo::WaitMatchingRectDisapper(cv::Rect roi_rect, const cv::Mat& temp
 		if (!MatchingRectExist(roi_rect, templ, mask_path, threshold, match_method)) return true;
 		if (timeout == 0) break;
 		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
-			log_info("è¶…æ—¶");
+			log_info("³¬Ê±");
 			break;
 		}
 	}
@@ -1236,7 +1240,7 @@ bool WindowInfo::WaitMatchingRectDisapper(cv::Rect roi_rect, const cv::Mat& temp
 }
 
 void WindowInfo::update_player_float_pos() {
-	// è¯»å–æ›´æ–°ç©å®¶åæ ‡
+	// ¶ÁÈ¡¸üĞÂÍæ¼Ò×ø±ê
 	SIZE_T regionSize = 0x8;
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
@@ -1246,11 +1250,11 @@ void WindowInfo::update_player_float_pos() {
 	delete[] buffer;
 	player_pos.x = convert_to_map_pos_x(player_x);
 	player_pos.y = convert_to_map_pos_y(player_y);
-	//log_info("ç©å®¶åæ ‡:%d,%d", player_pos.x, player_pos.y);
+	//log_info("Íæ¼Ò×ø±ê:%d,%d", player_pos.x, player_pos.y);
 }
 
 void WindowInfo::update_scene() {
-	// å¾—åˆ°çš„stringå†…å®¹ä¸º"å»ºé‚ºåŸ[25,88]"ï¼Œå¯ä»¥åˆ†è§£ä¸ºåœºæ™¯å+ç©å®¶åæ ‡
+	// µÃµ½µÄstringÄÚÈİÎª"½¨Úş³Ç[25,88]"£¬¿ÉÒÔ·Ö½âÎª³¡¾°Ãû+Íæ¼Ò×ø±ê
 	BYTE* buffer = new BYTE[map_offset];
 	SIZE_T bytesRead;
 	pNtReadVirtualMemory(hProcess, (PVOID)map_info_addr, buffer, map_offset, &bytesRead);
@@ -1281,7 +1285,7 @@ void WindowInfo::update_scene() {
 }
 
 void WindowInfo::update_scene_id() {
-	// è¯»å–æ›´æ–°åœºæ™¯id
+	// ¶ÁÈ¡¸üĞÂ³¡¾°id
 	SIZE_T regionSize = 0x8;
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
@@ -1295,25 +1299,25 @@ void WindowInfo::scan_npc_pos_in_thread() {
 		//log_info("scan_npc_pos_in_thread");
 		switch (tScan_npc)
 		{
-			case åº—å°äºŒ:
-			case é•¿å®‰é©¿ç«™è€æ¿:
+			case µêĞ¡¶ş:
+			case ³¤°²æäÕ¾ÀÏ°å:
 			{
 				scan_npc_pos_addr_by_id(tScan_npc);
 				tScan_npc = THREAD_IDLE;
 				break;
 			}
-			case è´¼ç‹:
+			case ÔôÍõ:
 			{
-				//Sleep(3000);// ç­‰å¾…å†…å­˜åˆ·æ–°ï¼Œå†å¼€å§‹æ‰«æ
+				//Sleep(3000);// µÈ´ıÄÚ´æË¢ĞÂ£¬ÔÙ¿ªÊ¼É¨Ãè
 				scan_zeiwang_id();
-				if (zeiwang_id > 0) { scan_npc_pos_addr_by_id(è´¼ç‹); }
+				if (zeiwang_id > 0) { scan_npc_pos_addr_by_id(ÔôÍõ); }
 				tScan_npc = THREAD_IDLE;
 				break;
 			}
 			case TASK_BAOTU:
 			{
 				if (RegionMonthly) {
-					//Sleep(1500);// åˆšæ¥ä»»åŠ¡ï¼Œå†…å®¹æ²¡ç”Ÿæˆï¼Œç­‰å¾…ä¸€ä¸‹å†å¼€å§‹æ‰«æ
+					//Sleep(1500);// ¸Õ½ÓÈÎÎñ£¬ÄÚÈİÃ»Éú³É£¬µÈ´ıÒ»ÏÂÔÙ¿ªÊ¼É¨Ãè
 					parse_baotu_task_info();
 				}
 				else {
@@ -1334,15 +1338,15 @@ void WindowInfo::scan_npc_pos_in_thread() {
 
 }
 //void WindowInfo::scan_npc_pos_addr(int npc) {
-//	// è¿™ä¸ªç»“æ„ä¸æ˜¯æ¯æ¬¡éƒ½ä¼šå‡ºç°çš„ï¼Œå¦‚æœæ‰¾ä¸åˆ°ï¼Œå¯ä»¥å…ˆå‡ºå»å†è¿›æ¥ï¼Œé‡å¤è¯•å‡ æ¬¡ä¸€èˆ¬éƒ½ä¼šäº§ç”Ÿè¿™ä¸ªå†…å­˜ç»“æ„
-//	// å…ˆæ‰¾åˆ° #c80c0ffæŒ–å®å›¾ä»»åŠ¡ è¿™ä¸ªåœ°å€
+//	// Õâ¸ö½á¹¹²»ÊÇÃ¿´Î¶¼»á³öÏÖµÄ£¬Èç¹ûÕÒ²»µ½£¬¿ÉÒÔÏÈ³öÈ¥ÔÙ½øÀ´£¬ÖØ¸´ÊÔ¼¸´ÎÒ»°ã¶¼»á²úÉúÕâ¸öÄÚ´æ½á¹¹
+//	// ÏÈÕÒµ½ #c80c0ffÍÚ±¦Í¼ÈÎÎñ Õâ¸öµØÖ·
 //	//auto wabaoturenwu_AoB_adr = PerformAoBScan(
 //	//	hProcess,
 //	//	0,
 //	//	"23 63 38 30 63 30 66 66 CD DA B1 A6 CD BC C8 CE CE F1 00",
 //	//	"xxxxxxxxxxxxxxxxxxx");
-//	//// ç„¶åç»“æ„ä½“ä¸Šæ–¹æœ‰ä¸ªåœ°å€æŒ‡é’ˆï¼ŒæŒ‡å‘ä¸€ä¸ªç»“æ„ï¼Œè¿™ä¸ªç»“æ„åŒ…å«åº—å°äºŒçš„åŠ¨æ€åæ ‡
-//	//// æ³¨æ„ï¼šåº—å°äºŒå¦‚æœè¿™ä¸ªç¦»å¼€äº†ç©å®¶è§†é‡ï¼Œè¿™ä¸ªåœ°å€éœ€è¦é‡æ–°æŸ¥æ‰¾ï¼Œä¹Ÿå°±æ˜¯è¯´è¿™ä¸ªåœ°å€è¦åº—å°äºŒå‡ºç°åœ¨ç©å®¶è§†é‡ä¸­æ‰ä¼šå‡ºç°
+//	//// È»ºó½á¹¹ÌåÉÏ·½ÓĞ¸öµØÖ·Ö¸Õë£¬Ö¸ÏòÒ»¸ö½á¹¹£¬Õâ¸ö½á¹¹°üº¬µêĞ¡¶şµÄ¶¯Ì¬×ø±ê
+//	//// ×¢Òâ£ºµêĞ¡¶şÈç¹ûÕâ¸öÀë¿ªÁËÍæ¼ÒÊÓÒ°£¬Õâ¸öµØÖ·ĞèÒªÖØĞÂ²éÕÒ£¬Ò²¾ÍÊÇËµÕâ¸öµØÖ·ÒªµêĞ¡¶ş³öÏÖÔÚÍæ¼ÒÊÓÒ°ÖĞ²Å»á³öÏÖ
 //	//SIZE_T regionSize = 0x8;
 //	//BYTE* buffer = new BYTE[regionSize];
 //	//SIZE_T bytesRead;
@@ -1356,19 +1360,19 @@ void WindowInfo::scan_npc_pos_in_thread() {
 //	//	pNtReadVirtualMemory(hProcess, (PVOID)(ptr), buffer, regionSize, &bytesRead);
 //	//	if (bytesRead > 0) {
 //	//		dianxiaoer_pos_addr = ptr + 0x4C;
-//	//		log_info("åº—å°äºŒåæ ‡åœ°å€:0x%llX", dianxiaoer_pos_addr);
+//	//		log_info("µêĞ¡¶ş×ø±êµØÖ·:0x%llX", dianxiaoer_pos_addr);
 //	//	}
 //	//	delete[] buffer;
 //	//}
 //	uintptr_t pos_addr=-1;
-//	if (npc == åº—å°äºŒ) {
-//		log_info("æŸ¥æ‰¾åº—å°äºŒåæ ‡å¼€å§‹:0x%p", hProcess);
+//	if (npc == µêĞ¡¶ş) {
+//		log_info("²éÕÒµêĞ¡¶ş×ø±ê¿ªÊ¼:0x%p", hProcess);
 //		pos_addr = dianxiaoer_pos_addr;
 //		dianxiaoer_pos_x = 0;
 //		dianxiaoer_pos_y = 0;
 //	}
-//	else if (npc == é•¿å®‰é©¿ç«™è€æ¿) {
-//		log_info("æŸ¥æ‰¾é©¿ç«™è€æ¿åæ ‡å¼€å§‹:0x%p", hProcess);
+//	else if (npc == ³¤°²æäÕ¾ÀÏ°å) {
+//		log_info("²éÕÒæäÕ¾ÀÏ°å×ø±ê¿ªÊ¼:0x%p", hProcess);
 //		pos_addr = changan_yizhanlaoban_pos_addr;
 //		changan_yizhanlaoban_pos_x = 0;
 //		changan_yizhanlaoban_pos_y = 0;
@@ -1377,7 +1381,7 @@ void WindowInfo::scan_npc_pos_in_thread() {
 //		pos_addr = 0;
 //	}
 //	if (pos_addr == 0) {
-//		// ç»“æ„ç‰¹ç‚¹ï¼š2ä¸ªé™æ€åœ°å€+ä¸€ä¸ªåŠ¨æ€åœ°å€ï¼ŒåŠ¨æ€åœ°å€å¼€å¤´åŒ…å«6ä¸ªæŒ‡é’ˆï¼Œç¬¬1ä¸ªæŒ‡é’ˆä¸ºé™æ€åœ°å€ï¼Œç¬¬5å’Œ6çš„æŒ‡é’ˆä¸ºç©º
+//		// ½á¹¹ÌØµã£º2¸ö¾²Ì¬µØÖ·+Ò»¸ö¶¯Ì¬µØÖ·£¬¶¯Ì¬µØÖ·¿ªÍ·°üº¬6¸öÖ¸Õë£¬µÚ1¸öÖ¸ÕëÎª¾²Ì¬µØÖ·£¬µÚ5ºÍ6µÄÖ¸ÕëÎª¿Õ
 //		std::string struct_AoB;
 //		auto ptr1 = reinterpret_cast<char*>(&location_first_static_addr);
 //		for (int i = 0; i < 8; i++) {
@@ -1414,7 +1418,7 @@ void WindowInfo::scan_npc_pos_in_thread() {
 //			BYTE* buffer = new BYTE[regionSize];
 //			BYTE* buffer1 = new BYTE[regionSize];
 //			SIZE_T bytesRead;
-//			pNtReadVirtualMemory(hProcess, (PVOID)(item + 0x10), buffer, regionSize, &bytesRead);  // åŠ¨æ€åœ°å€
+//			pNtReadVirtualMemory(hProcess, (PVOID)(item + 0x10), buffer, regionSize, &bytesRead);  // ¶¯Ì¬µØÖ·
 //			if (bytesRead > 0) {
 //				auto heap_add = *reinterpret_cast<QWORD*>(buffer);
 //				bytesRead = 0;
@@ -1427,31 +1431,31 @@ void WindowInfo::scan_npc_pos_in_thread() {
 //						if (heap_child_addr5 == 0 && heap_child_addr6 == 0) {
 //							auto x = *reinterpret_cast<float*>(buffer1 + 0x30);
 //							auto y = *reinterpret_cast<float*>(buffer1 + 0x34);
-//							//log_info("npcåæ ‡:%f,%f", x, y);
-//							// é•¿å®‰é…’åº—å†…æœ‰è‡ªå·±åæ ‡ï¼Œé…’æ¥¼è€æ¿åæ ‡ï¼Œåº—å°äºŒåæ ‡ é…’æ¥¼è€æ¿åæ ‡(910, 570)
+//							//log_info("npc×ø±ê:%f,%f", x, y);
+//							// ³¤°²¾ÆµêÄÚÓĞ×Ô¼º×ø±ê£¬¾ÆÂ¥ÀÏ°å×ø±ê£¬µêĞ¡¶ş×ø±ê ¾ÆÂ¥ÀÏ°å×ø±ê(910, 570)
 //							update_player_float_pos();
 //							if (x != player_x && y != player_y) {
-//								// è¿™ä¸ªç»“æ„åŒ…å«æ‰€æœ‰NPCå’Œç©å®¶ï¼ˆåŒ…æ‹¬è‡ªå·±ï¼‰çš„åæ ‡ï¼Œæ‰€ä»¥è¦åšè¿‡æ»¤
-//								if (npc == åº—å°äºŒ) {
+//								// Õâ¸ö½á¹¹°üº¬ËùÓĞNPCºÍÍæ¼Ò£¨°üÀ¨×Ô¼º£©µÄ×ø±ê£¬ËùÒÔÒª×ö¹ıÂË
+//								if (npc == µêĞ¡¶ş) {
 //									if (is_given_pos(x, y, dianxiaoer_pos_list)) {
 //										dianxiaoer_pos_x = x;
 //										dianxiaoer_pos_y = y;
 //										dianxiaoer_pos_addr = item;
-//										log_info("åº—å°äºŒåæ ‡åœ°å€:0x%llX", item);
+//										log_info("µêĞ¡¶ş×ø±êµØÖ·:0x%llX", item);
 //										break;
 //									}
 //								}
-//								else if (npc == é•¿å®‰é©¿ç«™è€æ¿) {
+//								else if (npc == ³¤°²æäÕ¾ÀÏ°å) {
 //									if (is_given_pos(x, y, changan_yizhanlaoban_pos_list)) {
 //										changan_yizhanlaoban_pos_x = x;
 //										changan_yizhanlaoban_pos_y = y;
 //										changan_yizhanlaoban_pos_addr = item;
-//										log_info("é©¿ç«™è€ç‰ˆåæ ‡åœ°å€:0x%llX", item);
+//										log_info("æäÕ¾ÀÏ°æ×ø±êµØÖ·:0x%llX", item);
 //										break;
 //									}
 //								}
 //								else if (npc == NPC_ZEIWANG) {
-//									if (x > 0 && y > 0) log_info("npcåæ ‡:%f,%f", x, y);
+//									if (x > 0 && y > 0) log_info("npc×ø±ê:%f,%f", x, y);
 //									if (!is_given_pos(x,y,npc_list)) {
 //										zeiwang_pos_list.push_back({ (long)x,(long)y });
 //									}
@@ -1465,24 +1469,24 @@ void WindowInfo::scan_npc_pos_in_thread() {
 //			delete[] buffer;
 //			delete[] buffer1;
 //		}
-//		log_info("æŸ¥æ‰¾åæ ‡ç»“æŸ:0x%p", hProcess);
+//		log_info("²éÕÒ×ø±ê½áÊø:0x%p", hProcess);
 //	}
 //}
 
 void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
-	// æ ¹æ®NPC idå¾—åˆ°åæ ‡,é€‚ç”¨ç©å®¶+è‡ªå·±åæ ‡
-	// æ‰«æåŒ…å«NPC idçš„ç»“æ„ä½“ï¼Œå…·ä½“ä¸ºï¼šå¼€å¤´é™æ€åœ°å€+ä¸€ä¸ªåŠ¨æ€åœ°å€+NPC_ID(4byte)
-	//åæ ‡åœ°å€: [[[[addr + 0x28]+ 0xA0] + 0x10] ] + 0x4C
+	// ¸ù¾İNPC idµÃµ½×ø±ê,ÊÊÓÃÍæ¼Ò+×Ô¼º×ø±ê
+	// É¨Ãè°üº¬NPC idµÄ½á¹¹Ìå£¬¾ßÌåÎª£º¿ªÍ·¾²Ì¬µØÖ·+Ò»¸ö¶¯Ì¬µØÖ·+NPC_ID(4byte)
+	//×ø±êµØÖ·: [[[[addr + 0x28]+ 0xA0] + 0x10] ] + 0x4C
 	uintptr_t search_addr = 0;
 	unsigned int npc_id = npc;
 	if (!RegionMonthly) {
-		if (npc == åº—å°äºŒ)npc_id = åº—å°äºŒ_card;
-		else if (npc == é•¿å®‰é©¿ç«™è€æ¿)npc_id = é•¿å®‰é©¿ç«™è€æ¿_card;
+		if (npc == µêĞ¡¶ş)npc_id = µêĞ¡¶ş_card;
+		else if (npc == ³¤°²æäÕ¾ÀÏ°å)npc_id = ³¤°²æäÕ¾ÀÏ°å_card;
 	}
-	if (npc == è´¼ç‹)npc_id = zeiwang_id;
-	log_info("æŸ¥æ‰¾%dåæ ‡å¼€å§‹:%s", npc_id, player_id);
+	if (npc == ÔôÍõ)npc_id = zeiwang_id;
+	log_info("²éÕÒ%d×ø±ê¿ªÊ¼:%s", npc_id, player_id);
 
-	// ç»“æ„ç‰¹ç‚¹ï¼š2ä¸ªé™æ€åœ°å€+ä¸€ä¸ªåŠ¨æ€åœ°å€ï¼ŒåŠ¨æ€åœ°å€å¼€å¤´åŒ…å«6ä¸ªæŒ‡é’ˆï¼Œç¬¬1ä¸ªæŒ‡é’ˆä¸ºé™æ€åœ°å€ï¼Œç¬¬5å’Œ6çš„æŒ‡é’ˆä¸ºç©º
+	// ½á¹¹ÌØµã£º2¸ö¾²Ì¬µØÖ·+Ò»¸ö¶¯Ì¬µØÖ·£¬¶¯Ì¬µØÖ·¿ªÍ·°üº¬6¸öÖ¸Õë£¬µÚ1¸öÖ¸ÕëÎª¾²Ì¬µØÖ·£¬µÚ5ºÍ6µÄÖ¸ÕëÎª¿Õ
 	std::string struct_AoB;
 	auto ptr1 = reinterpret_cast<char*>(&npc_first_static_addr);
 	for (int i = 0; i < 8; i++) {
@@ -1492,7 +1496,7 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 		struct_AoB += hexStr;
 	}
 	struct_AoB += "? ? ? ? ? ? ? ?";
-	//unsigned int var = åº—å°äºŒ;
+	//unsigned int var = µêĞ¡¶ş;
 	//unsigned int var = 16710472;
 	auto ptr2 = reinterpret_cast<unsigned char*>(&npc_id);
 	for (int i = 0; i < 4; i++) {
@@ -1506,11 +1510,11 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 		0,
 		struct_AoB);
 	if (npc_id_addr > 0) {
-		log_info("æ‰¾åˆ°NPC idç»“æ„åœ°å€");
+		log_info("ÕÒµ½NPC id½á¹¹µØÖ·");
 		SIZE_T regionSize = 0xA8;
 		BYTE* buffer = new BYTE[regionSize];
 		SIZE_T bytesRead;
-		pNtReadVirtualMemory(hProcess, (PVOID)npc_id_addr, buffer, regionSize, &bytesRead);  // é™æ€åœ°å€
+		pNtReadVirtualMemory(hProcess, (PVOID)npc_id_addr, buffer, regionSize, &bytesRead);  // ¾²Ì¬µØÖ·
 		if (bytesRead > 0) {
 			auto heap_add = *reinterpret_cast<QWORD*>(buffer + 0x28);
 			bytesRead = 0;
@@ -1522,7 +1526,7 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 				memset(buffer, 0, regionSize);
 				pNtReadVirtualMemory(hProcess, (PVOID)heap_child1_addr, buffer, regionSize, &bytesRead);
 				if (bytesRead > 0) {
-					int offset = RegionMonthly ? 0x20 : 0x10;// ç•…ç©æœå’Œç‚¹å¡æœè¿™ä¸ªç»“æ„æœ‰ç‚¹ä¸ä¸€æ ·
+					int offset = RegionMonthly ? 0x20 : 0x10;// ³©Íæ·şºÍµã¿¨·şÕâ¸ö½á¹¹ÓĞµã²»Ò»Ñù
 					auto p_npc_loc_addr = *reinterpret_cast<QWORD*>(buffer + offset);
 					bytesRead = 0;
 					memset(buffer, 0, regionSize);
@@ -1532,7 +1536,7 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 						if (is_npc_visible(npc_loc_addr)) {
 							npc_found = true;
 							search_addr = npc_loc_addr;
-							log_info("æ‰¾åˆ°åæ ‡åœ°å€:0x%p", search_addr);
+							log_info("ÕÒµ½×ø±êµØÖ·:0x%p", search_addr);
 						}
 					}
 				}
@@ -1541,21 +1545,21 @@ void WindowInfo::scan_npc_pos_addr_by_id(unsigned int npc) {
 		delete[] buffer;
 	}
 	
-	if (npc == åº—å°äºŒ) {
+	if (npc == µêĞ¡¶ş) {
 		dianxiaoer_pos_addr = search_addr;
 	}
-	else if (npc == é•¿å®‰é©¿ç«™è€æ¿) {
+	else if (npc == ³¤°²æäÕ¾ÀÏ°å) {
 		changan_yizhanlaoban_pos_addr = search_addr;
 	}
-	else if (npc == è´¼ç‹) {
+	else if (npc == ÔôÍõ) {
 		zeiwang_pos_addr = search_addr;
-		update_npc_pos(è´¼ç‹);
+		update_npc_pos(ÔôÍõ);
 	}
-	log_info("æŸ¥æ‰¾åæ ‡ç»“æŸ:%s", player_id);
+	log_info("²éÕÒ×ø±ê½áÊø:%s", player_id);
 }
 void WindowInfo::scan_zeiwang_id() {
 	if (!zeiwang_name.empty()) {
-		log_info("æŸ¥æ‰¾è´¼ç‹idå¼€å§‹:%s", player_id);
+		log_info("²éÕÒÔôÍõid¿ªÊ¼:%s", player_id);
 		auto ptr1 = reinterpret_cast<char*>(&npc_first_static_addr);
 		for (int i = 0; i < 8; i++) {
 			auto c = *reinterpret_cast<const unsigned char*>(ptr1 + i);
@@ -1565,18 +1569,18 @@ void WindowInfo::scan_zeiwang_id() {
 		auto npc_waixing_list = PerformAoBScanEx(
 			hProcess,
 			NULL,
-			"A0 52 7D 8F 18 4F 48 51 A7 7E 3D 00 38 00 20 00 16 59 62 5F 3D 00 32 00 30 00 34 00 35 00 20 00 F6 65 C5 88 35 00 3D 00 30 00 20 00"  //åŠ è½½ä¼˜å…ˆçº§=8 å¤–å½¢=2045 æ—¶è£…5=0 ç‰¹æ•ˆ=0 
+			"A0 52 7D 8F 18 4F 48 51 A7 7E 3D 00 38 00 20 00 16 59 62 5F 3D 00 32 00 30 00 34 00 35 00 20 00 F6 65 C5 88 35 00 3D 00 30 00 20 00"  //¼ÓÔØÓÅÏÈ¼¶=8 ÍâĞÎ=2045 Ê±×°5=0 ÌØĞ§=0 
 		);
 		int symbol_len = 44;
 		for (const auto& wai_xing : npc_waixing_list) {
 			SIZE_T regionSize = 0x200;
 			BYTE* buffer = new BYTE[regionSize];
 			SIZE_T bytesRead;
-			pNtReadVirtualMemory(hProcess, (PVOID)(wai_xing - regionSize + symbol_len), buffer, regionSize, &bytesRead);  // é™æ€åœ°å€
+			pNtReadVirtualMemory(hProcess, (PVOID)(wai_xing - regionSize + symbol_len), buffer, regionSize, &bytesRead);  // ¾²Ì¬µØÖ·
 			if (bytesRead > 0) {
 				std::wstring content;
 				for (int i = 0; i < bytesRead - 8; i++) {
-					if (buffer[i] == 0x00 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0xB9 && buffer[i + 3] == 0x65 && buffer[i + 4] == 0x11 && buffer[i + 5] == 0x54 && buffer[i + 6] == 0x3D && buffer[i + 7] == 0x00) {	// æ–¹å‘=:B9 65 11 54 3D 00
+					if (buffer[i] == 0x00 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0xB9 && buffer[i + 3] == 0x65 && buffer[i + 4] == 0x11 && buffer[i + 5] == 0x54 && buffer[i + 6] == 0x3D && buffer[i + 7] == 0x00) {	// ·½Ïò=:B9 65 11 54 3D 00
 						content = bytes_to_wstring(&buffer[i+2], bytesRead - i+2 - symbol_len);
 						break;
 					}
@@ -1585,12 +1589,12 @@ void WindowInfo::scan_zeiwang_id() {
 					auto tags_wstr = findContentBetweenTags(content, L"id=", L" X=");
 					if (!tags_wstr.empty()) {
 						zeiwang_id = std::stoi(tags_wstr.at(0));
-						log_info("æ‰¾åˆ°è´¼ç‹id:%d", zeiwang_id);
+						log_info("ÕÒµ½ÔôÍõid:%d", zeiwang_id);
 					}
 				}
 			}
 		}
-		log_info("æŸ¥æ‰¾è´¼ç‹idç»“æŸ:%s", player_id);
+		log_info("²éÕÒÔôÍõid½áÊø:%s", player_id);
 	}
 }
 void WindowInfo::scan_current_scene_npc_id() {
@@ -1611,7 +1615,7 @@ void WindowInfo::scan_current_scene_npc_id() {
 		SIZE_T regionSize = 0xA8;
 		BYTE* buffer = new BYTE[regionSize];
 		SIZE_T bytesRead;
-		pNtReadVirtualMemory(hProcess, (PVOID)npc_id_addr, buffer, regionSize, &bytesRead);  // é™æ€åœ°å€
+		pNtReadVirtualMemory(hProcess, (PVOID)npc_id_addr, buffer, regionSize, &bytesRead);  // ¾²Ì¬µØÖ·
 		if (bytesRead > 0) {
 			auto npc_id = *reinterpret_cast<QWORD*>(buffer + 0x10);
 			auto heap_add = *reinterpret_cast<QWORD*>(buffer + 0x28);
@@ -1624,7 +1628,7 @@ void WindowInfo::scan_current_scene_npc_id() {
 				memset(buffer, 0, regionSize);
 				pNtReadVirtualMemory(hProcess, (PVOID)heap_child1_addr, buffer, regionSize, &bytesRead);
 				if (bytesRead > 0) {
-					int offset = RegionMonthly?0x20:0x10;// ç•…ç©æœå’Œç‚¹å¡æœè¿™ä¸ªç»“æ„æœ‰ç‚¹ä¸ä¸€æ ·
+					int offset = RegionMonthly?0x20:0x10;// ³©Íæ·şºÍµã¿¨·şÕâ¸ö½á¹¹ÓĞµã²»Ò»Ñù
 					auto p_npc_loc_addr = *reinterpret_cast<QWORD*>(buffer + offset);
 					bytesRead = 0;
 					memset(buffer, 0, regionSize);
@@ -1640,7 +1644,7 @@ void WindowInfo::scan_current_scene_npc_id() {
 								auto float_y = *reinterpret_cast<float*>(buffer + 0x50);
 								auto x = convert_to_map_pos_x(float_x);
 								auto y = convert_to_map_pos_y(float_y);
-								log_info("æ‰¾åˆ°id:%d, (%d,%d)", npc_id, x, y);
+								log_info("ÕÒµ½id:%d, (%d,%d)", npc_id, x, y);
 							}
 						}
 					}
@@ -1651,14 +1655,14 @@ void WindowInfo::scan_current_scene_npc_id() {
 	}
 }
 //void WindowInfo::update_npc_pos(int npc) {
-//	// è¯»å–æ›´æ–°åæ ‡
+//	// ¶ÁÈ¡¸üĞÂ×ø±ê
 //	uintptr_t pos_addr = -1;
-//	if (npc == åº—å°äºŒ) {
+//	if (npc == µêĞ¡¶ş) {
 //		pos_addr = dianxiaoer_pos_addr;
 //		dianxiaoer_pos_x = 0;
 //		dianxiaoer_pos_y = 0;
 //	}
-//	else if (npc == é•¿å®‰é©¿ç«™è€æ¿) {
+//	else if (npc == ³¤°²æäÕ¾ÀÏ°å) {
 //		pos_addr = changan_yizhanlaoban_pos_addr;
 //		changan_yizhanlaoban_pos_x = 0;
 //		changan_yizhanlaoban_pos_y = 0;
@@ -1673,17 +1677,17 @@ void WindowInfo::scan_current_scene_npc_id() {
 //			if (location_first_static_addr == first_static_addr) {
 //				auto x = *reinterpret_cast<float*>(buffer + 0x18);
 //				auto y = *reinterpret_cast<float*>(buffer + 0x1C);
-//				if (npc == åº—å°äºŒ) {
+//				if (npc == µêĞ¡¶ş) {
 //					if (is_given_pos(x, y, dianxiaoer_pos_list)) {
 //						dianxiaoer_pos_x = x;
 //						dianxiaoer_pos_y = y;
-//						log_info("åº—å°äºŒåæ ‡åœ°å€:%f,%f", x,y);
+//						log_info("µêĞ¡¶ş×ø±êµØÖ·:%f,%f", x,y);
 //						auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 //						auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
-//						log_info("åº—å°äºŒåæ ‡:%d, %d", dxe_x, dxe_y);
+//						log_info("µêĞ¡¶ş×ø±ê:%d, %d", dxe_x, dxe_y);
 //					}
 //				}
-//				else if (npc == é•¿å®‰é©¿ç«™è€æ¿) {
+//				else if (npc == ³¤°²æäÕ¾ÀÏ°å) {
 //					if (is_given_pos(x, y, changan_yizhanlaoban_pos_list)) {
 //						changan_yizhanlaoban_pos_x = x;
 //						changan_yizhanlaoban_pos_y = y;
@@ -1691,11 +1695,11 @@ void WindowInfo::scan_current_scene_npc_id() {
 //				}
 //			}
 //			else {
-//				// åº—å°äºŒæ¶ˆå¤±ï¼Œå†…å­˜é‡Šæ”¾åï¼Œç»“æ„ä½“å˜äº†
-//				if (npc == åº—å°äºŒ) {
+//				// µêĞ¡¶şÏûÊ§£¬ÄÚ´æÊÍ·Åºó£¬½á¹¹Ìå±äÁË
+//				if (npc == µêĞ¡¶ş) {
 //					dianxiaoer_pos_addr = 0;
 //				}
-//				else if (npc == é•¿å®‰é©¿ç«™è€æ¿) {
+//				else if (npc == ³¤°²æäÕ¾ÀÏ°å) {
 //					changan_yizhanlaoban_pos_addr = 0;
 //				}
 //			}
@@ -1706,19 +1710,19 @@ void WindowInfo::scan_current_scene_npc_id() {
 //}
 
 void WindowInfo::update_npc_pos(int npc) {
-	// è¯»å–æ›´æ–°åæ ‡
+	// ¶ÁÈ¡¸üĞÂ×ø±ê
 	uintptr_t pos_addr = -1;
-	if (npc == åº—å°äºŒ) {
+	if (npc == µêĞ¡¶ş) {
 		pos_addr = dianxiaoer_pos_addr;
 		dianxiaoer_pos_x = 0;
 		dianxiaoer_pos_y = 0;
 	}
-	else if (npc == é•¿å®‰é©¿ç«™è€æ¿) {
+	else if (npc == ³¤°²æäÕ¾ÀÏ°å) {
 		pos_addr = changan_yizhanlaoban_pos_addr;
 		changan_yizhanlaoban_pos_x = 0;
 		changan_yizhanlaoban_pos_y = 0;
 	}
-	else if (npc == è´¼ç‹) {
+	else if (npc == ÔôÍõ) {
 		pos_addr = zeiwang_pos_addr;
 		zeiwang_pos.x = 0;
 		zeiwang_pos.y = 0;
@@ -1733,37 +1737,37 @@ void WindowInfo::update_npc_pos(int npc) {
 			if (npc_loc_first_static_addr == npc_loc_addr) {
 				auto x = *reinterpret_cast<float*>(buffer + 0x4C);
 				auto y = *reinterpret_cast<float*>(buffer + 0x50);
-				if (npc == åº—å°äºŒ) {
+				if (npc == µêĞ¡¶ş) {
 					if (is_given_pos(x, y, dianxiaoer_pos_list)) {
 						dianxiaoer_pos_x = x;
 						dianxiaoer_pos_y = y;
-						log_info("åº—å°äºŒåæ ‡åœ°å€:%f,%f", x, y);
+						log_info("µêĞ¡¶ş×ø±êµØÖ·:%f,%f", x, y);
 						auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 						auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
-						log_info("åº—å°äºŒåæ ‡:%d, %d", dxe_x, dxe_y);
+						log_info("µêĞ¡¶ş×ø±ê:%d, %d", dxe_x, dxe_y);
 					}
 				}
-				else if (npc == é•¿å®‰é©¿ç«™è€æ¿) {
+				else if (npc == ³¤°²æäÕ¾ÀÏ°å) {
 					if (is_given_pos(x, y, changan_yizhanlaoban_pos_list)) {
 						changan_yizhanlaoban_pos_x = x;
 						changan_yizhanlaoban_pos_y = y;
 					}
 				}
-				else if (npc == è´¼ç‹) {
+				else if (npc == ÔôÍõ) {
 					zeiwang_pos.x = convert_to_map_pos_x(x);
 					zeiwang_pos.y = convert_to_map_pos_y(y);
 				}
 			}
 			else {
-				// åº—å°äºŒæ¶ˆå¤±ï¼Œå†…å­˜é‡Šæ”¾åï¼Œç»“æ„ä½“å˜äº†
+				// µêĞ¡¶şÏûÊ§£¬ÄÚ´æÊÍ·Åºó£¬½á¹¹Ìå±äÁË
 				npc_found = false;
-				if (npc == åº—å°äºŒ) {
+				if (npc == µêĞ¡¶ş) {
 					dianxiaoer_pos_addr = 0;
 				}
-				else if (npc == é•¿å®‰é©¿ç«™è€æ¿) {
+				else if (npc == ³¤°²æäÕ¾ÀÏ°å) {
 					changan_yizhanlaoban_pos_addr = 0;
 				}
-				else if (npc == è´¼ç‹) {
+				else if (npc == ÔôÍõ) {
 					zeiwang_pos_addr = 0;
 				}
 			}
@@ -1851,19 +1855,19 @@ POINT WindowInfo::compute_dianxiaoer_pos_lazy() {
 	return{ -1,-1 };
 }
 POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id,bool fix) {
-	// æ ¹æ®åæ ‡è®¡ç®—ç›¸å¯¹è‡ªå·±åœ¨å±å¹•ä¸Šçš„åƒç´ 
+	// ¸ù¾İ×ø±ê¼ÆËãÏà¶Ô×Ô¼ºÔÚÆÁÄ»ÉÏµÄÏñËØ
 	POINT px = { 0, 0 };
 	//int x_pixel = 0;
 	//int y_pixel = 0;
-	int center_x = wWidth / 2;  // ä¸­ç‚¹åæ ‡ 1024 / 2 + x_rim
-	int center_y = wHeight / 2;  // ä¸­ç‚¹åæ ‡ 768 / 2 + y_rim
-	int x_edge = 20;  // è¶…è¿‡è¿™ä¸ªåæ ‡ï¼Œäººç‰©ä¼šåœ¨çª—å£ä¸­é—´
-	int y_edge = 15;  // è¶…è¿‡è¿™ä¸ªåæ ‡ï¼Œäººç‰©ä¼šåœ¨çª—å£ä¸­é—´
-	int pixel = 25;	 // 25åƒç´ ä¸€ä¸ªåæ ‡ç‚¹
+	int center_x = wWidth / 2;  // ÖĞµã×ø±ê 1024 / 2 + x_rim
+	int center_y = wHeight / 2;  // ÖĞµã×ø±ê 768 / 2 + y_rim
+	int x_edge = 20;  // ³¬¹ıÕâ¸ö×ø±ê£¬ÈËÎï»áÔÚ´°¿ÚÖĞ¼ä
+	int y_edge = 15;  // ³¬¹ıÕâ¸ö×ø±ê£¬ÈËÎï»áÔÚ´°¿ÚÖĞ¼ä
+	int pixel = 25;	 // 25ÏñËØÒ»¸ö×ø±êµã
 	if (!RegionMonthly) {
-		x_edge = 25;  // è¶…è¿‡è¿™ä¸ªåæ ‡ï¼Œäººç‰©ä¼šåœ¨çª—å£ä¸­é—´
-		y_edge = 19;  // è¶…è¿‡è¿™ä¸ªåæ ‡ï¼Œäººç‰©ä¼šåœ¨çª—å£ä¸­é—´
-		pixel = 20;	 // 20åƒç´ ä¸€ä¸ªåæ ‡ç‚¹
+		x_edge = 25;  // ³¬¹ıÕâ¸ö×ø±ê£¬ÈËÎï»áÔÚ´°¿ÚÖĞ¼ä
+		y_edge = 19;  // ³¬¹ıÕâ¸ö×ø±ê£¬ÈËÎï»áÔÚ´°¿ÚÖĞ¼ä
+		pixel = 20;	 // 20ÏñËØÒ»¸ö×ø±êµã
 	}
 	auto max_loc = get_map_max_loc(scene_id);
 
@@ -1876,8 +1880,8 @@ POINT WindowInfo::compute_pos_pixel(POINT dst, unsigned int scene_id,bool fix) {
 	else px.y = center_y + (player_pos.y - dst.y) * pixel;
 
 	if (fix) {
-		// å¦‚æœç›®çš„åƒç´ é è¿‘çª—å£è¾¹ç¼˜ï¼Œé¼ æ ‡æ¼‚ç§»æœ‰æ—¶å€™ä¼šä¸æ˜¾ç¤ºæ¸¸æˆå…‰æ ‡ï¼Œéœ€è¦åšä¿®æ­£
-		log_info("ä¿®æ­£ç‚¹å‡»åæ ‡");
+		// Èç¹ûÄ¿µÄÏñËØ¿¿½ü´°¿Ú±ßÔµ£¬Êó±êÆ¯ÒÆÓĞÊ±ºò»á²»ÏÔÊ¾ÓÎÏ·¹â±ê£¬ĞèÒª×öĞŞÕı
+		log_info("ĞŞÕıµã»÷×ø±ê");
 		int px_fix = 30;
 		if (px.x <= px_fix) px.x = px_fix;
 		else if (wWidth - px.x <= px_fix) px.x = wWidth - px_fix;
@@ -1894,10 +1898,10 @@ void WindowInfo::move_to_dianxiaoer() {
 		//auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		//auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 		auto dst = compute_dianxiaoer_pos_lazy();
-		// Aæ˜Ÿå¯»è·¯
+		// AĞÇÑ°Â·
 		//auto astar_pos = astar(player_pos.x, player_pos.y, dst.x, dst.y, m_scene_id, dianxiaoer_valid_distence - 1, dianxiaoer_valid_distence - 1);
-		//log_info("åº—å°äºŒåæ ‡:%d, %d", dst.x, dst.y);
-		//log_info("Aæ˜Ÿå¯»è·¯ç»“æœ:%d, %d", astar_pos.x, astar_pos.y);
+		//log_info("µêĞ¡¶ş×ø±ê:%d, %d", dst.x, dst.y);
+		//log_info("AĞÇÑ°Â·½á¹û:%d, %d", astar_pos.x, astar_pos.y);
 		ForceSetForegroundWindow(hwnd);
 		if (RegionMonthly) {
 			move_to_position_flat(dst);
@@ -1910,36 +1914,36 @@ void WindowInfo::move_to_dianxiaoer() {
 }
 void WindowInfo::goto_changanjiudian() {
 	update_player_float_pos();
-	if (m_scene_id == é•¿å®‰åŸ) {
-		POINT jiudian = { 468, 171 };	// é•¿å®‰åŸåˆ°é•¿å®‰é…’åº—å…¥å£(464,168)
+	if (m_scene_id == ³¤°²³Ç) {
+		POINT jiudian = { 468, 171 };	// ³¤°²³Çµ½³¤°²¾ÆµêÈë¿Ú(464,168)
 		if (!(abs(player_pos.x - jiudian.x) <= NPC_TALK_VALID_DISTENCE && abs(player_pos.y - jiudian.y) <= NPC_TALK_VALID_DISTENCE)) {
 			fly_to_changanjiudian();
 		}
-		move_to_other_scene(jiudian, é•¿å®‰é…’åº—);
+		move_to_other_scene(jiudian, ³¤°²¾Æµê);
 		wait_moving_stop(3000);
 	}
-	else if (m_scene_id == é•¿å®‰é…’åº—äºŒæ¥¼) {
-		POINT jiudian = { 34, 31 };	// é•¿å®‰é…’åº—äºŒæ¥¼åˆ°é•¿å®‰é…’åº—å…¥å£
+	else if (m_scene_id == ³¤°²¾Æµê¶şÂ¥) {
+		POINT jiudian = { 34, 31 };	// ³¤°²¾Æµê¶şÂ¥µ½³¤°²¾ÆµêÈë¿Ú
 		if (!(abs(player_pos.x - jiudian.x) <= mScreen_x && abs(player_pos.y - jiudian.y) <= mScreen_y)) {
 			fly_to_changanjiudian();
 		}
-		move_to_other_scene(jiudian, é•¿å®‰é…’åº—);
+		move_to_other_scene(jiudian, ³¤°²¾Æµê);
 		wait_moving_stop(3000);
 	}
 	else {
-		// ä¸åœ¨é…’åº—é—¨å£ï¼Œ
-		log_info("ä¸åœ¨é…’åº—é—¨å£ï¼Œä½¿ç”¨é£è¡Œæ£‹");
+		// ²»ÔÚ¾ÆµêÃÅ¿Ú£¬
+		log_info("²»ÔÚ¾ÆµêÃÅ¿Ú£¬Ê¹ÓÃ·ÉĞĞÆå");
 		fly_to_changanjiudian();
 	}
 	//if (!(abs(player_pos.x - jiudian.x) <= NPC_TALK_VALID_DISTENCE && abs(player_pos.y - jiudian.y) <= NPC_TALK_VALID_DISTENCE)) {
 	//	fly_to_changanjiudian();
 	//}
-	//move_to_other_scene(jiudian, é•¿å®‰é…’åº—);
+	//move_to_other_scene(jiudian, ³¤°²¾Æµê);
 	//wait_moving_stop(3000);
 	moving = true;
 }
 void WindowInfo::move_to_changanjidian_center() {
-	// æœ‰æ—¶å€™ç¦»åº—å°äºŒå¤ªè¿œï¼Œåº—å°äºŒä¼šæ¶ˆå¤±çœ‹ä¸è§ï¼Œç§»åŠ¨åˆ°é…’åº—ä¸­é—´ï¼Œå°±ä¸å­˜åœ¨è¿™ä¸ªé—®é¢˜
+	// ÓĞÊ±ºòÀëµêĞ¡¶şÌ«Ô¶£¬µêĞ¡¶ş»áÏûÊ§¿´²»¼û£¬ÒÆ¶¯µ½¾ÆµêÖĞ¼ä£¬¾Í²»´æÔÚÕâ¸öÎÊÌâ
 	if (dianxiaoer_pos_addr == 0) {
 		ForceSetForegroundWindow(hwnd);
 		click_position({ 23,13 });
@@ -1947,39 +1951,39 @@ void WindowInfo::move_to_changanjidian_center() {
 	}
 }
 void WindowInfo::from_changan_fly_to_datangguojing() {
-	log_info("ä»é•¿å®‰é©¿ç«™è€æ¿é£åˆ°å¤§å”å›½å¢ƒ");
+	log_info("´Ó³¤°²æäÕ¾ÀÏ°å·Éµ½´óÌÆ¹ú¾³");
 	if (!npc_found) {
-		tScan_npc = é•¿å®‰é©¿ç«™è€æ¿;
+		tScan_npc = ³¤°²æäÕ¾ÀÏ°å;
 		return;
 	}
 	//scan_npc_pos_addr(NPC_CHANGAN_YIZHANLAOBAN);
 
 	if (!is_near_changan_yizhanlaoban() && changan_yizhanlaoban_pos_x > 0) {
 		hide_player_n_stalls();
-		move_to_position({247,43}, é•¿å®‰é©¿ç«™è€æ¿, é•¿å®‰é©¿ç«™è€æ¿);  // è¿™ä¸ªå›ºå®šåæ ‡å¯ä»¥å’Œé©¿ç«™è€æ¿å¯¹è¯
+		move_to_position({247,43}, ³¤°²æäÕ¾ÀÏ°å, ³¤°²æäÕ¾ÀÏ°å);  // Õâ¸ö¹Ì¶¨×ø±ê¿ÉÒÔºÍæäÕ¾ÀÏ°å¶Ô»°
 		wait_moving_stop(5000);
-		update_npc_pos(é•¿å®‰é©¿ç«™è€æ¿);
+		update_npc_pos(³¤°²æäÕ¾ÀÏ°å);
 		update_player_float_pos();
 	}
 	if (changan_yizhanlaoban_pos_x > 0) {
 		auto dst_x = convert_to_map_pos_x(changan_yizhanlaoban_pos_x);
 		auto dst_y = convert_to_map_pos_y(changan_yizhanlaoban_pos_y);
 		hide_player();
-		ship_to_other_scene({dst_x,dst_y}, å¤§å”å›½å¢ƒ);
+		ship_to_other_scene({dst_x,dst_y}, ´óÌÆ¹ú¾³);
 	}
 }
 void WindowInfo::from_datangguojing_to_datangjingwai() {
-	log_info("ä»å¤§å”å›½å¢ƒåˆ°å¤§å”å¢ƒå¤–");
-	move_to_other_scene({ 3,77 }, å¤§å”å¢ƒå¤–, 30, 0);
+	log_info("´Ó´óÌÆ¹ú¾³µ½´óÌÆ¾³Íâ");
+	move_to_other_scene({ 3,77 }, ´óÌÆ¾³Íâ, 30, 0);
 }
 void WindowInfo::from_changan_to_datangguojing() {
-	if (m_scene_id == é•¿å®‰åŸ) {
-		move_to_other_scene({ 6,5 }, å¤§å”å›½å¢ƒ, 60, -60);
+	if (m_scene_id == ³¤°²³Ç) {
+		move_to_other_scene({ 6,5 }, ´óÌÆ¹ú¾³, 60, -60);
 	}
 	else {
-		log_info("ä»é•¿å®‰åˆ°å¤§å”å›½å¢ƒ");
+		log_info("´Ó³¤°²µ½´óÌÆ¹ú¾³");
 		use_changan777(ROI_changan777_datangguojing(), false);
-		move_to_other_scene({ 6,5 }, å¤§å”å›½å¢ƒ, 60, -60);
+		move_to_other_scene({ 6,5 }, ´óÌÆ¹ú¾³, 60, -60);
 	}
 }
 void WindowInfo::fly_to_changanjiudian() {
@@ -1989,11 +1993,11 @@ void WindowInfo::fly_to_changan_yizhan_laoban() {
 	use_changan777(ROI_changan777_yizhan_laoban(), false);
 }
 void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
-	log_info("é£åˆ°å®å›¾åœºæ™¯");
+	log_info("·Éµ½±¦Í¼³¡¾°");
 	bool turn = true;
 	switch (scene_id)
 	{
-		case é•¿å¯¿æ‘:
+		case ³¤ÊÙ´å:
 		{
 			if ((x <= 86 && y <= 13) || (x <= 62 && y <= 84) || (x <= 76 && 14 <= y && y <= 18)) use_changshoucun777(ROI_changshoucun777_taibaijinxing(), false, turn, false, false);
 			else if ((87 <= x && y <= 32) || (79 <= x && 12 <= y  && y <= 19) || (62 <= x && 20 <= y && y <= 26)) use_changshoucun777(ROI_changshoucun777_changshoujiaowai(), false, turn, false, false);
@@ -2007,7 +2011,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			else use_changshoucun777(ROI_changshoucun777_lucheng_n_qiangzhuan(), true, turn,false,false);
 			break;
 		}
-		case å‚²æ¥å›½:
+		case °ÁÀ´¹ú:
 		{
 			if ((x <= 74 && y <= 38) || (x <= 65 && 39 <= y && y <= 60) || (x <= 93 && y <= 30)) use_aolaiguo777(ROI_aolaiguo777_yaodian(), false, turn, false, false);
 			else if ((121 <= x && y <= 34) || (188 <= x && 35 <= y && y <= 37)) use_aolaiguo777(ROI_aolaiguo777_donghaiwan(), true, turn, false, false);
@@ -2021,7 +2025,7 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			else use_aolaiguo777(ROI_aolaiguo777_qianzhuang(), true, turn, false, false);
 			break;
 		}
-		case æœ±ç´«å›½:
+		case Öì×Ï¹ú:
 		{
 			if (x <= 43  && y <= 22) use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false, turn, false, false);
 			else if (44 <= x && x <= 111 && y <= 24) use_zhuziguo777(ROI_zhuziguo777_duanmuniangzi(), true, turn, false, false);
@@ -2035,26 +2039,26 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			else use_zhuziguo777(ROI_zhuziguo777_jiudian(), false, turn, false, false);
 			break;
 		}
-		case è¥¿æ¢å¥³å›½:
+		case Î÷ÁºÅ®¹ú:
 		{
-			// è¥¿å‡‰å¥³å›½ï¼š1.é£è¡Œç¬¦ 2.åˆæˆæ——-æœ±ç´«å›½é©¿ç«™-è¥¿å‡‰å¥³å›½(è¿™æ¡è·¯å¤æ‚è€Œä¸”æ…¢)
+			// Î÷Á¹Å®¹ú£º1.·ÉĞĞ·û 2.ºÏ³ÉÆì-Öì×Ï¹úæäÕ¾-Î÷Á¹Å®¹ú(ÕâÌõÂ·¸´ÔÓ¶øÇÒÂı)
 			use_feixingfu(scene_id, false);
 			break;
 		}
-		case å®è±¡å›½:
+		case ±¦Ïó¹ú:
 		{
 			use_feixingfu(scene_id, false);
 			break;
 		}
-		case å»ºé‚ºåŸ:
+		case ½¨Úş³Ç:
 		{
-			// å»ºé‚ºåŸï¼š1.é£è¡Œç¬¦ 2.åˆæˆæ——-å‚²æ¥ä¸œæµ·æ¹¾é©¿ç«™-ä¸œæµ·æ¹¾-å»ºé‚ºåŸ
+			// ½¨Úş³Ç£º1.·ÉĞĞ·û 2.ºÏ³ÉÆì-°ÁÀ´¶«º£ÍåæäÕ¾-¶«º£Íå-½¨Úş³Ç
 			use_feixingfu(scene_id, false);
 			break;
 		}
-		case å¤§å”å¢ƒå¤–:
+		case ´óÌÆ¾³Íâ:
 		{
-			// å¤§å”å¢ƒå¤–ï¼š1.åˆæˆæ——-æœ±ç´«å›½å·¦ä¸‹è§’-å¤§å”å¢ƒå¤– 2.åˆæˆæ——-ç½—é“äººæ—çš„é©¿ç«™è€æ¿-ä¼ é€å¤§å”å›½å¢ƒ-å¤§å”å¢ƒå¤–
+			// ´óÌÆ¾³Íâ£º1.ºÏ³ÉÆì-Öì×Ï¹ú×óÏÂ½Ç-´óÌÆ¾³Íâ 2.ºÏ³ÉÆì-ÂŞµÀÈËÅÔµÄæäÕ¾ÀÏ°å-´«ËÍ´óÌÆ¹ú¾³-´óÌÆ¾³Íâ
 			bool via_zhuziguo = true;
 			if (x <= 504) {
 				if(502 <= x and 25 <= y <= 41)via_zhuziguo = false;
@@ -2071,21 +2075,21 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			}
 			else via_zhuziguo = false;
 			if (via_zhuziguo) {
-				log_info("ä»æœ±ç´«å›½åˆ°å¤§å”å¢ƒå¤–");
-				if (m_scene_id == æœ±ç´«å›½) {
-					move_to_other_scene({ 2,4 }, å¤§å”å¢ƒå¤–, 60, -60);
+				log_info("´ÓÖì×Ï¹úµ½´óÌÆ¾³Íâ");
+				if (m_scene_id == Öì×Ï¹ú) {
+					move_to_other_scene({ 2,4 }, ´óÌÆ¾³Íâ, 60, -60);
 				}
 				else {
 					use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false);
-					move_to_other_scene({ 2,4 }, å¤§å”å¢ƒå¤–, 60, -60);
+					move_to_other_scene({ 2,4 }, ´óÌÆ¾³Íâ, 60, -60);
 				}
 			}
 			else {
-				if (m_scene_id == å¤§å”å›½å¢ƒ) {
+				if (m_scene_id == ´óÌÆ¹ú¾³) {
 					from_datangguojing_to_datangjingwai();
 				}
-				else if (m_scene_id != é•¿å®‰åŸ) {
-					log_info("å¤§å”å›½å¢ƒåˆ°å¤§å”å¢ƒå¤–");
+				else if (m_scene_id != ³¤°²³Ç) {
+					log_info("´óÌÆ¹ú¾³µ½´óÌÆ¾³Íâ");
 					use_changan777(ROI_changan777_yizhan_laoban(), false);
 					from_changan_fly_to_datangguojing();
 				}
@@ -2095,39 +2099,39 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			}
 			break;
 		}
-		case æ±Ÿå—é‡å¤–:
+		case ½­ÄÏÒ°Íâ:
 		{
-			// æ±Ÿå—é‡å¤–:1.åˆæˆæ——-é•¿å®‰å³ä¸‹è§’-æ±Ÿå—é‡å¤– 2.é£è¡Œç¬¦-å»ºé‚ºåŸ-æ±Ÿå—é‡å¤–
-			if (m_scene_id == é•¿å®‰åŸ) {
-				move_to_other_scene({ 542, 6 }, æ±Ÿå—é‡å¤–, -30, -30);
+			// ½­ÄÏÒ°Íâ:1.ºÏ³ÉÆì-³¤°²ÓÒÏÂ½Ç-½­ÄÏÒ°Íâ 2.·ÉĞĞ·û-½¨Úş³Ç-½­ÄÏÒ°Íâ
+			if (m_scene_id == ³¤°²³Ç) {
+				move_to_other_scene({ 542, 6 }, ½­ÄÏÒ°Íâ, -30, -30);
 			}
 			else {
-				log_info("ä»é•¿å®‰åˆ°æ±Ÿå—é‡å¤–");
+				log_info("´Ó³¤°²µ½½­ÄÏÒ°Íâ");
 				use_changan777(ROI_changan777_jiangnanyewai(), false);
-				move_to_other_scene({ 542, 6 }, æ±Ÿå—é‡å¤–, -30, -30);
+				move_to_other_scene({ 542, 6 }, ½­ÄÏÒ°Íâ, -30, -30);
 			}
 			break;
 		}
-		case å¥³å„¿æ‘:
+		case Å®¶ù´å:
 		{
-			// å¥³å„¿æ‘ï¼šåˆæˆæ——-å‚²æ¥å›½å·¦ä¸Šè§’-å¥³å„¿æ‘
-			if (m_scene_id == å‚²æ¥å›½) {
-				move_to_other_scene({ 5, 139 }, å¥³å„¿æ‘, 30, 30);
+			// Å®¶ù´å£ººÏ³ÉÆì-°ÁÀ´¹ú×óÉÏ½Ç-Å®¶ù´å
+			if (m_scene_id == °ÁÀ´¹ú) {
+				move_to_other_scene({ 5, 139 }, Å®¶ù´å, 30, 30);
 			}
 			else {
-				log_info("ä»å‚²æ¥å›½åˆ°å¥³å„¿æ‘");
+				log_info("´Ó°ÁÀ´¹úµ½Å®¶ù´å");
 				use_aolaiguo777(ROI_aolaiguo777_nvercun(), false);
-				move_to_other_scene({ 5, 139 }, å¥³å„¿æ‘, 30, 30);
+				move_to_other_scene({ 5, 139 }, Å®¶ù´å, 30, 30);
 			}
 			break;
 		}
-		case æ™®é™€å±±:
+		case ÆÕÍÓÉ½:
 		{
-			// æ™®é™€å±±ï¼šåˆæˆæ——-é•¿å®‰å·¦ä¸‹è§’-å¤§å”å›½å¢ƒ-æ™®é™€æ¥å¼•ä»™å¥³
-			if (m_scene_id == å¤§å”å›½å¢ƒ) {
+			// ÆÕÍÓÉ½£ººÏ³ÉÆì-³¤°²×óÏÂ½Ç-´óÌÆ¹ú¾³-ÆÕÍÓ½ÓÒıÏÉÅ®
+			if (m_scene_id == ´óÌÆ¹ú¾³) {
 				POINT dst = { 221,60 };
 				if (!is_near_loc(dst, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE)) {
-					log_info("ä»å¤§å”å›½å¢ƒåˆ°æ™®é™€æ¥å¼•ä»™å¥³");
+					log_info("´Ó´óÌÆ¹ú¾³µ½ÆÕÍÓ½ÓÒıÏÉÅ®");
 					move_to_position(dst, MAP_MOVE_DISTENCE, MAP_MOVE_DISTENCE);
 					close_beibao_smart();
 					moving = true;
@@ -2136,9 +2140,9 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 					click_position({ dst.x + 2,dst.y });
 				}
 				else {
-					log_info("ä¼ é€æ™®é™€å±±");
+					log_info("´«ËÍÆÕÍÓÉ½");
 					hide_player();
-					ship_to_other_scene(dst, æ™®é™€å±±);
+					ship_to_other_scene(dst, ÆÕÍÓÉ½);
 				}
 			}
 			else {
@@ -2146,18 +2150,18 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			}
 			break;
 		}
-		case äº”åº„è§‚:
+		case Îå×¯¹Û:
 		{
-			// äº”åº„è§‚:åˆæˆæ——-é•¿å®‰åŸé©¿ç«™è€æ¿-å¤§å”å›½å¢ƒ-å¤§å”å¢ƒå¤–-äº”åº„è§‚
-			if (m_scene_id == å¤§å”å›½å¢ƒ) {
+			// Îå×¯¹Û:ºÏ³ÉÆì-³¤°²³ÇæäÕ¾ÀÏ°å-´óÌÆ¹ú¾³-´óÌÆ¾³Íâ-Îå×¯¹Û
+			if (m_scene_id == ´óÌÆ¹ú¾³) {
 				from_datangguojing_to_datangjingwai();
-				move_to_other_scene({ 636,76 }, äº”åº„è§‚, -30, 0, true);
+				move_to_other_scene({ 636,76 }, Îå×¯¹Û, -30, 0, true);
 			}
-			else if (m_scene_id == å¤§å”å¢ƒå¤–) {
-				log_info("ä»å¤§å”å¢ƒå¤–åˆ°äº”åº„è§‚");
-				move_to_other_scene({ 636,76 }, äº”åº„è§‚,-30,0,true);
+			else if (m_scene_id == ´óÌÆ¾³Íâ) {
+				log_info("´Ó´óÌÆ¾³Íâµ½Îå×¯¹Û");
+				move_to_other_scene({ 636,76 }, Îå×¯¹Û,-30,0,true);
 			}
-			else if (m_scene_id != é•¿å®‰åŸ) {
+			else if (m_scene_id != ³¤°²³Ç) {
 				use_changan777(ROI_changan777_yizhan_laoban(), false);
 				from_changan_fly_to_datangguojing();
 			}
@@ -2166,211 +2170,211 @@ void WindowInfo::fly_to_scene(long x, long y, unsigned int scene_id) {
 			}
 			break;
 		}
-		case åŒ–ç”Ÿå¯º:
+		case »¯ÉúËÂ:
 		{
-			if (m_scene_id == é•¿å®‰åŸ) {
-				move_to_other_scene({ 511, 274 }, åŒ–ç”Ÿå¯º, 0, 30);
+			if (m_scene_id == ³¤°²³Ç) {
+				move_to_other_scene({ 511, 274 }, »¯ÉúËÂ, 0, 30);
 			}
 			else {
-				log_info("ä»é•¿å®‰åˆ°åŒ–ç”Ÿå¯º");
+				log_info("´Ó³¤°²µ½»¯ÉúËÂ");
 				use_changan777(ROI_changan777_huashengsi(), false);
-				move_to_other_scene({ 511, 274 }, åŒ–ç”Ÿå¯º, 0, 30);
+				move_to_other_scene({ 511, 274 }, »¯ÉúËÂ, 0, 30);
 			}
 			break;
 		}
-		case é•¿å®‰æ‚è´§åº—:
+		case ³¤°²ÔÓ»õµê:
 		{
-			if (m_scene_id == é•¿å®‰åŸ) {
-				move_to_other_scene({ 534,136 }, é•¿å®‰æ‚è´§åº—);
+			if (m_scene_id == ³¤°²³Ç) {
+				move_to_other_scene({ 534,136 }, ³¤°²ÔÓ»õµê);
 			}
 			else {
 				use_changan777(ROI_changan777_changanjiudian());
-				move_to_other_scene({ 534,136 }, é•¿å®‰æ‚è´§åº—);
+				move_to_other_scene({ 534,136 }, ³¤°²ÔÓ»õµê);
 			}
 			break;
 		}
-		case é•¿å®‰é¥°å“åº—:
+		case ³¤°²ÊÎÆ·µê:
 		{
-			if (m_scene_id == é•¿å®‰åŸ) {
-				move_to_other_scene({ 387,15 }, é•¿å®‰é¥°å“åº—);
+			if (m_scene_id == ³¤°²³Ç) {
+				move_to_other_scene({ 387,15 }, ³¤°²ÊÎÆ·µê);
 			}
 			else {
 				use_changan777(ROI_changan777_dangpu());
-				move_to_other_scene({ 387,15 }, é•¿å®‰é¥°å“åº—);
+				move_to_other_scene({ 387,15 }, ³¤°²ÊÎÆ·µê);
 			}
 			break;
 		}
-		case é•¿å®‰å›½å­ç›‘:
+		case ³¤°²¹ú×Ó¼à:
 		{
-			if (m_scene_id == é•¿å®‰åŸ) {
-				move_to_other_scene({ 275,204 }, é•¿å®‰å›½å­ç›‘);
+			if (m_scene_id == ³¤°²³Ç) {
+				move_to_other_scene({ 275,204 }, ³¤°²¹ú×Ó¼à);
 			}
 			else {
-				use_feixingfu(é•¿å®‰åŸ);
-				move_to_other_scene({ 275,204 }, é•¿å®‰å›½å­ç›‘);
+				use_feixingfu(³¤°²³Ç);
+				move_to_other_scene({ 275,204 }, ³¤°²¹ú×Ó¼à);
 			}
 			break;
 		}
-		case é•¿å®‰é…’åº—äºŒæ¥¼:
+		case ³¤°²¾Æµê¶şÂ¥:
 		{
-			if (m_scene_id == é•¿å®‰åŸ) {
-				move_to_other_scene({ 470, 170 }, é•¿å®‰åŸ);
+			if (m_scene_id == ³¤°²³Ç) {
+				move_to_other_scene({ 470, 170 }, ³¤°²³Ç);
 			}
-			else if (m_scene_id == é•¿å®‰é…’åº—) {
-				move_to_other_scene({ 36,34 }, é•¿å®‰é…’åº—äºŒæ¥¼);
+			else if (m_scene_id == ³¤°²¾Æµê) {
+				move_to_other_scene({ 36,34 }, ³¤°²¾Æµê¶şÂ¥);
 			}
 			else {
-				POINT jiudian = { 468, 171 };	// é•¿å®‰é…’åº—å…¥å£(464,168)
+				POINT jiudian = { 468, 171 };	// ³¤°²¾ÆµêÈë¿Ú(464,168)
 				fly_to_changanjiudian();
-				move_to_other_scene(jiudian, é•¿å®‰åŸ);
+				move_to_other_scene(jiudian, ³¤°²³Ç);
 			}
 			break;
 		}
-		case é•¿å¯¿æ‘å½“é“º:
+		case ³¤ÊÙ´åµ±ÆÌ:
 		{
-			if (m_scene_id == é•¿å¯¿æ‘) {
-				move_to_other_scene({ 15,128 }, é•¿å¯¿æ‘å½“é“º);
+			if (m_scene_id == ³¤ÊÙ´å) {
+				move_to_other_scene({ 15,128 }, ³¤ÊÙ´åµ±ÆÌ);
 			}
 			else {
 				use_changshoucun777(ROI_changshoucun777_dangpu());
-				move_to_other_scene({ 15,128 }, é•¿å¯¿æ‘å½“é“º);
+				move_to_other_scene({ 15,128 }, ³¤ÊÙ´åµ±ÆÌ);
 			}
 			break;
 		}
-		case é•¿å¯¿éƒŠå¤–:
+		case ³¤ÊÙ½¼Íâ:
 		{
-			if (m_scene_id != é•¿å¯¿æ‘) {
+			if (m_scene_id != ³¤ÊÙ´å) {
 				use_changshoucun777(ROI_changshoucun777_changshoujiaowai(), false);
-				move_to_other_scene({ 147, 6 }, é•¿å¯¿éƒŠå¤–, 0, 30);
+				move_to_other_scene({ 147, 6 }, ³¤ÊÙ½¼Íâ, 0, 30);
 			}
 			else {
-				move_to_other_scene({ 147, 6 }, é•¿å¯¿éƒŠå¤–, 0, 30);
+				move_to_other_scene({ 147, 6 }, ³¤ÊÙ½¼Íâ, 0, 30);
 			}
 			break;
 		}
-		case é•¿å¯¿æ‘é…’åº—:
+		case ³¤ÊÙ´å¾Æµê:
 		{
-			if (m_scene_id == é•¿å¯¿æ‘) {
-				move_to_other_scene({ 109,148 }, é•¿å¯¿æ‘é…’åº—);
+			if (m_scene_id == ³¤ÊÙ´å) {
+				move_to_other_scene({ 109,148 }, ³¤ÊÙ´å¾Æµê);
 			}
 			else {
 				use_changshoucun777(ROI_changshoucun777_dangpu());
-				move_to_other_scene({ 109,148 }, é•¿å¯¿æ‘é…’åº—);
+				move_to_other_scene({ 109,148 }, ³¤ÊÙ´å¾Æµê);
 			}
 			break;
 		}
-		case å‚²æ¥å®¢æ ˆ:
+		case °ÁÀ´¿ÍÕ»:
 		{
-			if (m_scene_id == å‚²æ¥å›½) {
-				move_to_other_scene({ 180,30 }, å‚²æ¥å®¢æ ˆ);
+			if (m_scene_id == °ÁÀ´¹ú) {
+				move_to_other_scene({ 180,30 }, °ÁÀ´¿ÍÕ»);
 			}
 			else {
 				use_aolaiguo777(ROI_aolaiguo777_donghaiwan());
-				move_to_other_scene({ 180,30 }, å‚²æ¥å®¢æ ˆ);
+				move_to_other_scene({ 180,30 }, °ÁÀ´¿ÍÕ»);
 			}
 			break;
 		}
-		case å‚²æ¥å®¢æ ˆäºŒæ¥¼:
+		case °ÁÀ´¿ÍÕ»¶şÂ¥:
 		{
-			if (m_scene_id == å‚²æ¥å›½) {
-				move_to_other_scene({ 180,30 }, å‚²æ¥å®¢æ ˆ);
+			if (m_scene_id == °ÁÀ´¹ú) {
+				move_to_other_scene({ 180,30 }, °ÁÀ´¿ÍÕ»);
 			}
-			else if (m_scene_id == å‚²æ¥å®¢æ ˆ) {
-				move_to_other_scene({ 32,34 }, å‚²æ¥å®¢æ ˆäºŒæ¥¼);
+			else if (m_scene_id == °ÁÀ´¿ÍÕ») {
+				move_to_other_scene({ 32,34 }, °ÁÀ´¿ÍÕ»¶şÂ¥);
 			}
 			else {
 				use_aolaiguo777(ROI_aolaiguo777_donghaiwan());
-				move_to_other_scene({ 180,30 }, å‚²æ¥å®¢æ ˆ);
+				move_to_other_scene({ 180,30 }, °ÁÀ´¿ÍÕ»);
 			}
 			break;
 		}
-		case å‚²æ¥å›½è¯åº—:
+		case °ÁÀ´¹úÒ©µê:
 		{
-			if (m_scene_id == å‚²æ¥å›½) {
-				move_to_other_scene({ 53,40 }, å‚²æ¥å›½è¯åº—);
+			if (m_scene_id == °ÁÀ´¹ú) {
+				move_to_other_scene({ 53,40 }, °ÁÀ´¹úÒ©µê);
 			}
 			else {
 				use_aolaiguo777(ROI_aolaiguo777_yaodian());
-				move_to_other_scene({ 53,40 }, å‚²æ¥å›½è¯åº—);
+				move_to_other_scene({ 53,40 }, °ÁÀ´¹úÒ©µê);
 			}
 			break;
 		}
-		case å¤§å”å›½å¢ƒ:
+		case ´óÌÆ¹ú¾³:
 		{
 			from_changan_to_datangguojing();
 			break;
 		}
-		case åœ°åºœ:
+		case µØ¸®:
 		{
-			log_info("å¯»è·¯åˆ°åœ°åºœ");
-			if (m_scene_id == å¤§å”å›½å¢ƒ) {
-				move_to_other_scene({ 48,330 }, åœ°åºœ, 0, 30);
+			log_info("Ñ°Â·µ½µØ¸®");
+			if (m_scene_id == ´óÌÆ¹ú¾³) {
+				move_to_other_scene({ 48,330 }, µØ¸®, 0, 30);
 			}
-			else if (m_scene_id == é•¿å®‰åŸ) {
+			else if (m_scene_id == ³¤°²³Ç) {
 				from_changan_fly_to_datangguojing();
 			}
 			else {
 				fly_to_changan_yizhan_laoban();
-				tScan_npc = é•¿å®‰é©¿ç«™è€æ¿;
+				tScan_npc = ³¤°²æäÕ¾ÀÏ°å;
 			}
 			break;
 		}
-		case ç‹®é©¼å²­:
+		case Ê¨ÍÕÁë:
 		{
-			if (m_scene_id == å¤§å”å¢ƒå¤–) {
-				move_to_other_scene({ 5, 48 }, ç‹®é©¼å²­, 0, -60);
+			if (m_scene_id == ´óÌÆ¾³Íâ) {
+				move_to_other_scene({ 5, 48 }, Ê¨ÍÕÁë, 0, -60);
 			}
-			else if (m_scene_id != æœ±ç´«å›½) {
-				log_info("ä»æœ±ç´«å›½åˆ°ç‹®é©¼å²­");
+			else if (m_scene_id != Öì×Ï¹ú) {
+				log_info("´ÓÖì×Ï¹úµ½Ê¨ÍÕÁë");
 				use_zhuziguo777(ROI_zhuziguo777_datangjingwai(), false);
-				move_to_other_scene({ 3, 4 }, å¤§å”å¢ƒå¤–, 30, -60);
+				move_to_other_scene({ 3, 4 }, ´óÌÆ¾³Íâ, 30, -60);
 			}
 			else {
-				move_to_other_scene({ 3, 4 }, å¤§å”å¢ƒå¤–, 30, -60);
+				move_to_other_scene({ 3, 4 }, ´óÌÆ¾³Íâ, 30, -60);
 			}
 			break;
 		}
-		case å»ºé‚ºè¡™é—¨:
+		case ½¨ÚşÑÃÃÅ:
 		{
-			if (m_scene_id == å»ºé‚ºåŸ) {
-				move_to_other_scene({ 146,83 }, å»ºé‚ºè¡™é—¨);
+			if (m_scene_id == ½¨Úş³Ç) {
+				move_to_other_scene({ 146,83 }, ½¨ÚşÑÃÃÅ);
 			}
 			else {
-				use_feixingfu(å»ºé‚ºåŸ);
+				use_feixingfu(½¨Úş³Ç);
 			}
 			break;
 		}
-		case å»ºé‚ºæ‚è´§åº—:
+		case ½¨ÚşÔÓ»õµê:
 		{
-			if (m_scene_id == å»ºé‚ºåŸ) {
-				move_to_other_scene({ 115,130 }, å»ºé‚ºæ‚è´§åº—);
+			if (m_scene_id == ½¨Úş³Ç) {
+				move_to_other_scene({ 115,130 }, ½¨ÚşÔÓ»õµê);
 			}
 			else {
-				use_feixingfu(å»ºé‚ºåŸ);
-				move_to_other_scene({ 115,130 }, å»ºé‚ºæ‚è´§åº—);
+				use_feixingfu(½¨Úş³Ç);
+				move_to_other_scene({ 115,130 }, ½¨ÚşÔÓ»õµê);
 			}
 			break;
 		}
-		case ä¸œæµ·æ¹¾:
+		case ¶«º£Íå:
 		{
-			if (m_scene_id == å‚²æ¥å›½) {
-				ship_to_other_scene({ 168, 15 }, ä¸œæµ·æ¹¾);
+			if (m_scene_id == °ÁÀ´¹ú) {
+				ship_to_other_scene({ 168, 15 }, ¶«º£Íå);
 			}
 			else {
-				log_info("ä»å‚²æ¥å›½åˆ°ä¸œæµ·æ¹¾");
+				log_info("´Ó°ÁÀ´¹úµ½¶«º£Íå");
 				use_aolaiguo777(ROI_aolaiguo777_donghaiwan(), false);
-				ship_to_other_scene({ 168, 15 }, ä¸œæµ·æ¹¾);
+				ship_to_other_scene({ 168, 15 }, ¶«º£Íå);
 			}
 			break;
 		}
-		case èŠ±æœå±±:
+		case »¨¹ûÉ½:
 		{
-			if (m_scene_id != å‚²æ¥å›½) {
+			if (m_scene_id != °ÁÀ´¹ú) {
 				use_aolaiguo777(ROI_aolaiguo777_huaguoshan(), false);
-				move_to_other_scene({ 216, 147 }, èŠ±æœå±±, -30, 30);
+				move_to_other_scene({ 216, 147 }, »¨¹ûÉ½, -30, 30);
 			}
 			else {
-				move_to_other_scene({ 216, 147 }, èŠ±æœå±±, -30, 30);
+				move_to_other_scene({ 216, 147 }, »¨¹ûÉ½, -30, 30);
 			}
 			break;
 		}
@@ -2380,19 +2384,19 @@ bool WindowInfo::goto_scene(POINT dst, unsigned int scene_id) {
 	update_scene_id();
 	update_player_float_pos();
 	if (m_scene_id == scene_id) {
-		if (dst.x == 0 && dst.y == 0)return true;  // åæ ‡ä¸º0ï¼Œä»£è¡¨è¿›å…¥åœºæ™¯å°±å¯ä»¥äº†ã€‚
-		// å·²å¤„åœ¨ç›®çš„åœºæ™¯ï¼Œèµ°è·¯è¿‡å»
+		if (dst.x == 0 && dst.y == 0)return true;  // ×ø±êÎª0£¬´ú±í½øÈë³¡¾°¾Í¿ÉÒÔÁË¡£
+		// ÒÑ´¦ÔÚÄ¿µÄ³¡¾°£¬×ßÂ·¹ıÈ¥
 		//if (is_near_loc(dst, MAP_MOVE_DISTENCE, MAP_MOVE_DISTENCE))	return true;
 		move_to_position(dst, MAP_MOVE_DISTENCE, MAP_MOVE_DISTENCE);
 		close_beibao_smart();
 		return true;
 	}
-	// è·¨åœ°å›¾ï¼Œéœ€è¦ç”¨é£è¡Œæ£‹æˆ–èµ°è·¯
+	// ¿çµØÍ¼£¬ĞèÒªÓÃ·ÉĞĞÆå»ò×ßÂ·
 	fly_to_scene(dst.x, dst.y, scene_id);
 	return false;
 }
 bool WindowInfo::use_beibao_prop(const cv::Mat& image, bool turn, bool keep) {
-	if (turn) open_beibao(); // è¿™é‡Œçš„åŠ¨ä½œæ˜¯ï¼šç”¨å®Œé“å…·åæ˜¯å¦å…³é—­èƒŒåŒ…ã€‚æ‰“å¼€èƒŒåŒ…ä½¿ç”¨é£è¡Œæ——çš„æ—¶å€™ï¼ŒèƒŒåŒ…è‡ªåŠ¨å…³é—­äº†ï¼Œä¸éœ€è¦å†å…³é—­èƒŒåŒ…
+	if (turn) open_beibao(); // ÕâÀïµÄ¶¯×÷ÊÇ£ºÓÃÍêµÀ¾ßºóÊÇ·ñ¹Ø±Õ±³°ü¡£´ò¿ª±³°üÊ¹ÓÃ·ÉĞĞÆìµÄÊ±ºò£¬±³°ü×Ô¶¯¹Ø±ÕÁË£¬²»ĞèÒªÔÙ¹Ø±Õ±³°ü
 	bool ret = ClickMatchImage(ROI_beibao_props(), image, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 2, 2500);
 	if (!keep) {
 		//Sleep(150);
@@ -2402,34 +2406,34 @@ bool WindowInfo::use_beibao_prop(const cv::Mat& image, bool turn, bool keep) {
 }
 
 void WindowInfo::use_changan777(cv::Rect roi, bool move, bool turn, bool keep, bool wait_scene) {
-	log_info("ä½¿ç”¨é•¿å®‰åˆæˆæ——");
+	log_info("Ê¹ÓÃ³¤°²ºÏ³ÉÆì");
 	use_beibao_prop(*m_img_props_red_777, turn, keep);
 	if (move) move_cursor_center_bottom();
 	auto flag_loc = WaitMatchingRectLoc(roi, *m_img_btn_flag_loc, 3000, "", 0.85);
 	mouse_click_human(flag_loc);
-	if (wait_scene)wait_scene_change(é•¿å®‰åŸ);
+	if (wait_scene)wait_scene_change(³¤°²³Ç);
 }
 
 void WindowInfo::use_zhuziguo777(cv::Rect roi, bool move, bool turn, bool keep, bool wait_scene) {
-	log_info("ä½¿ç”¨æœ±ç´«å›½åˆæˆæ——");
+	log_info("Ê¹ÓÃÖì×Ï¹úºÏ³ÉÆì");
 	use_beibao_prop(img_props_white_777, turn, keep);
 	if (move) move_cursor_center_bottom();
 	auto flag_loc = WaitMatchingRectLoc(roi, *m_img_btn_flag_loc, 3000, "", 0.85);
 	mouse_click_human(flag_loc);
-	if (wait_scene)wait_scene_change(æœ±ç´«å›½);
+	if (wait_scene)wait_scene_change(Öì×Ï¹ú);
 }
 
 void WindowInfo::use_changshoucun777(cv::Rect roi, bool move, bool turn, bool keep, bool wait_scene) {
-	log_info("ä½¿ç”¨é•¿å¯¿æ‘åˆæˆæ——");
+	log_info("Ê¹ÓÃ³¤ÊÙ´åºÏ³ÉÆì");
 	use_beibao_prop(img_props_green_777, turn, keep);
 	if (move) move_cursor_center_bottom();
 	auto flag_loc = WaitMatchingRectLoc(roi, *m_img_btn_flag_loc, 3000, "", 0.85);
 	mouse_click_human(flag_loc);
-	if (wait_scene)wait_scene_change(é•¿å¯¿æ‘);
+	if (wait_scene)wait_scene_change(³¤ÊÙ´å);
 }
 
 void WindowInfo::use_aolaiguo777(cv::Rect roi, bool move, bool turn, bool keep, bool wait_scene) {
-	log_info("ä½¿ç”¨å‚²æ¥å›½åˆæˆæ——");
+	log_info("Ê¹ÓÃ°ÁÀ´¹úºÏ³ÉÆì");
 	use_beibao_prop(img_props_yellow_777, turn, keep);
 	if (move) move_cursor_center_bottom();
 	auto flag_loc = WaitMatchingRectLoc(roi, *m_img_btn_flag_loc, 3000, "", 0.85);
@@ -2437,48 +2441,48 @@ void WindowInfo::use_aolaiguo777(cv::Rect roi, bool move, bool turn, bool keep, 
 		if (roi == ROI_aolaiguo777_qianzhuang()) flag_loc = WaitMatchingRectLoc(ROI_aolaiguo777_yaodian(), *m_img_btn_flag_loc, 0, "", 0.85);
 	}
 	mouse_click_human(flag_loc);
-	if(wait_scene) wait_scene_change(å‚²æ¥å›½);
+	if(wait_scene) wait_scene_change(°ÁÀ´¹ú);
 }
 
 void WindowInfo::use_feixingfu(unsigned int scene_id, bool wait_scene) {
-	log_info("ä½¿ç”¨é£è¡Œç¬¦");
+	log_info("Ê¹ÓÃ·ÉĞĞ·û");
 	move_cursor_center_bottom();
 	input_f1();
 	cv::Rect roi;
 	cv::Mat flag_image;
 	switch (scene_id)
 	{
-	case å»ºé‚ºåŸ:
+	case ½¨Úş³Ç:
 	{
 		flag_image = *m_img_symbol_feixingfu_jianyecheng;
 		roi = ROI_feixingfu_jianyecheng();
 		break;
 	}
-	case è¥¿æ¢å¥³å›½:
+	case Î÷ÁºÅ®¹ú:
 	{
 		flag_image = *m_img_symbol_feixingfu_xiliangnvguo;
 		roi = ROI_feixingfu_xiliangnvguo();
 		break;
 	}
-	case å®è±¡å›½:
+	case ±¦Ïó¹ú:
 	{
 		flag_image = *m_img_symbol_feixingfu_baoxiangguo;
 		roi = ROI_feixingfu_baoxiangguo();
 		break;
 	}
-	case é•¿å¯¿æ‘:
+	case ³¤ÊÙ´å:
 	{
 		flag_image = *m_img_symbol_feixingfu_changshoucun;
 		roi = ROI_feixingfu_changshoucun();
 		break;
 	}
-	case å‚²æ¥å›½:
+	case °ÁÀ´¹ú:
 	{
 		flag_image = *m_img_symbol_feixingfu_aolaiguo;
 		roi = ROI_feixingfu_aolaiguo();
 		break;
 	}
-	case æœ±ç´«å›½:
+	case Öì×Ï¹ú:
 	{
 		flag_image = *m_img_symbol_feixingfu_zhuziguo;
 		roi = ROI_feixingfu_zhuziguo();
@@ -2509,17 +2513,30 @@ void WindowInfo::handle_sheyaoxiang_time() {
 		}
 	}
 	if (!is_check)return;
-	log_info("æ£€æŸ¥æ‘„å¦–é¦™æ—¶é—´");
-	time_t old_time = 0;
-	auto utf_8_sheyaoxiang = AnsiToUtf8("æ‘„å¦–é¦™");
-	if (gm.db[player_id].contains(utf_8_sheyaoxiang)) old_time = gm.db[player_id][utf_8_sheyaoxiang];
+	log_info("¼ì²éÉãÑıÏãÊ±¼ä");
+	auto utf_8_sheyaoxiang = AnsiToUtf8("ÉãÑıÏã");
+	//time_t old_time = 0;
+	//if (gm->db[player_id].contains(utf_8_sheyaoxiang)) old_time = gm->db[player_id][utf_8_sheyaoxiang];
+	time_t old_time = gm->db[player_id].contains(utf_8_sheyaoxiang) ? (time_t)gm->db[player_id][utf_8_sheyaoxiang] : 0;
 	time_t now_time = time(NULL);
 	if (now_time - old_time >= 1770) {
-		log_info("æ‘„å¦–é¦™å·²è¿‡æ—¶ï¼Œä½¿ç”¨æ‘„å¦–é¦™");
+		log_info("ÉãÑıÏãÒÑ¹ıÊ±£¬Ê¹ÓÃÉãÑıÏã");
 		if (use_beibao_prop(*m_img_props_sheyaoxiang)) {
-			gm.db[player_id][utf_8_sheyaoxiang] = now_time;
-			gm.update_db();
+			gm->db[player_id][utf_8_sheyaoxiang] = now_time;
+			gm->update_db();
 		}
+	}
+}
+void WindowInfo::handle_meditation_time() {
+	auto utf_8_meditation = AnsiToUtf8("´ò×ø");
+	time_t old_time = gm->db[player_id].contains(utf_8_meditation)? (time_t)gm->db[player_id][utf_8_meditation]:0;
+	time_t now_time = time(NULL);
+	if (now_time - old_time > 180) {
+		ForceSetForegroundWindow(hwnd);
+		log_info("´ò×ø");
+		input_f6();
+		gm->db[player_id][utf_8_meditation] = now_time;
+		gm->update_db();
 	}
 }
 void WindowInfo::handle_wrong_attack() {
@@ -2537,7 +2554,7 @@ bool WindowInfo::wait_scene_change(unsigned int scene_id, int timeout) {
 		}
 		if (timeout == 0) break;
 		else if (getCurrentTimeMilliseconds() - t_ms > timeout) {
-			log_info("wait_scene_changeè¶…æ—¶");
+			log_info("wait_scene_change³¬Ê±");
 			break;
 		}
 		Sleep(5);
@@ -2547,7 +2564,7 @@ bool WindowInfo::wait_scene_change(unsigned int scene_id, int timeout) {
 }
 
 void WindowInfo::close_npc_talk() {
-	serial_move({ rect.left + 670, rect.top + 475 });  // npcå¯¹è¯æ¡†å¾ˆå¤§ï¼Œä¸ç”¨æ€•é¼ æ ‡æ¼‚ç§»ç‚¹ä¸å‡†
+	serial_move({ rect.left + 670, rect.top + 475 });  // npc¶Ô»°¿òºÜ´ó£¬²»ÓÃÅÂÊó±êÆ¯ÒÆµã²»×¼
 }
 bool WindowInfo::close_npc_talk_fast() {
 	auto pixel = MatchingRectLoc(ROI_npc_talk(), *m_img_btn_npc_talk_close);
@@ -2556,16 +2573,16 @@ bool WindowInfo::close_npc_talk_fast() {
 	return true;
 }
 bool WindowInfo::mouse_click_human(POINT pixel, int xs, int ys, int mode) {
-	// mode:0ä¸ç‚¹å‡»ï¼Œ1å·¦é”®ï¼Œ2å³é”®ï¼Œ5ctrl+å·¦é”®, 6alt+aæ”»å‡»
+	// mode:0²»µã»÷£¬1×ó¼ü£¬2ÓÒ¼ü£¬5ctrl+×ó¼ü, 6alt+a¹¥»÷
 	if (pixel.x < 0 && pixel.y < 0)return false;
 	POINT target_pos = pixel;
 	POINT mouse_move_pos = { pixel.x + xs, pixel.y + ys };
 	POINT cursor_pos;
 	auto t_ms = getCurrentTimeMilliseconds();
 	do {
-		// å› ä¸ºæœ‰é¼ æ ‡æ¼‚ç§»ï¼Œæ‰€ä»¥éœ€è¦å¤šæ¬¡ç§»åŠ¨
+		// ÒòÎªÓĞÊó±êÆ¯ÒÆ£¬ËùÒÔĞèÒª¶à´ÎÒÆ¶¯
 		if (getCurrentTimeMilliseconds() - t_ms > 1600) {
-			log_warn("é¼ æ ‡ç‚¹å‡»è¶…æ—¶");
+			log_warn("Êó±êµã»÷³¬Ê±");
 			return false;
 		}
 		serial_move(mouse_move_pos, 0);
@@ -2605,12 +2622,12 @@ bool WindowInfo::mouse_click_human(POINT pixel, int xs, int ys, int mode) {
 }
 
 POINT WindowInfo::get_cursor_pos(POINT pos) {
-	// è·å–é¼ æ ‡æ¼‚ç§»é‡
+	// »ñÈ¡Êó±êÆ¯ÒÆÁ¿
 	POINT tmp_pos = { -99, -99 };
 	auto t_ms = getCurrentTimeMilliseconds();
 	auto rc = ROI_NULL();
 	while (true) {
-		// å¾ªç¯ç­‰å¾…é¼ æ ‡ç§»åŠ¨åœæ­¢
+		// Ñ­»·µÈ´ıÊó±êÒÆ¶¯Í£Ö¹
 		if (getCurrentTimeMilliseconds() - t_ms > 900) return {-1,-1};
 		//Sleep(5);
 		auto image = hwnd2mat(hwnd);
@@ -2618,7 +2635,7 @@ POINT WindowInfo::get_cursor_pos(POINT pos) {
 		auto image_roi = image(roi_rect);
 		if (image_roi.empty()) continue;
 		cv::Mat image_inRange = ThresholdinginRange(image_roi);
-		auto cursor_pos = MatchingLoc(image_inRange, rc, *m_img_cursors_cursor, "", 0.854, cv::TM_CCORR_NORMED, MATCHLEFTTOP);  // æ¸¸æˆè‡ªèº«çš„é¼ æ ‡ï¼Œé¼ æ ‡ç”¨cv::TM_CCORR_NORMEDæ–¹æ³•åŒ¹é…å‡†ç¡®ç‡æœ€é«˜
+		auto cursor_pos = MatchingLoc(image_inRange, rc, *m_img_cursors_cursor, "", 0.854, cv::TM_CCORR_NORMED, MATCHLEFTTOP);  // ÓÎÏ·×ÔÉíµÄÊó±ê£¬Êó±êÓÃcv::TM_CCORR_NORMED·½·¨Æ¥Åä×¼È·ÂÊ×î¸ß
 		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
 		{
@@ -2638,23 +2655,23 @@ bool WindowInfo::ClickMatchImage(cv::Rect roi_rect, const cv::Mat& templ, std::s
 }
 
 bool WindowInfo::talk_to_dianxiaoer() {
-	// å¯¹è¯åº—å°äºŒ
+	// ¶Ô»°µêĞ¡¶ş
 	auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 	auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
-	log_info("ç©å®¶åæ ‡:%d,%d", player_pos.x, player_pos.y);
-	//log_info("åº—å°äºŒåæ ‡:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
-	log_info("åº—å°äºŒåæ ‡:%d,%d", dxe_x, dxe_y);
+	log_info("Íæ¼Ò×ø±ê:%d,%d", player_pos.x, player_pos.y);
+	//log_info("µêĞ¡¶ş×ø±ê:%f,%f", dianxiaoer_pos_x, dianxiaoer_pos_y);
+	log_info("µêĞ¡¶ş×ø±ê:%d,%d", dxe_x, dxe_y);
 	hide_player();
-	click_position({ dxe_x, dxe_y });  // ç‚¹å‡»ä¸åº—å°äºŒå¯¹è¯
+	click_position({ dxe_x, dxe_y });  // µã»÷ÓëµêĞ¡¶ş¶Ô»°
 	auto pos = WaitMatchingRectLoc(ROI_npc_talk(), *m_img_btn_tingtingwufang);
 	if (pos.x > 0) {
-		mouse_click_human(pos, 0, 0, 1);			// å¼¹å‡ºå¯¹è¯æ¡†ï¼Œæ¥ä»»åŠ¡
+		mouse_click_human(pos, 0, 0, 1);			// µ¯³ö¶Ô»°¿ò£¬½ÓÈÎÎñ
 		return true;
 	}
 	return false;
 }
 bool WindowInfo::is_given_pos(float x, float y, const std::vector<POINT>& pos_list) {
-	// åº—å°äºŒæ˜¯æŒ‰ç…§é¡ºæ—¶é’ˆå›ºå®šå‡ ä¸ªåæ ‡çš„è§„å¾‹ç§»åŠ¨çš„,æ ¹æ®åæ ‡åˆ¤æ–­æ˜¯å¦æ˜¯åº—å°äºŒ
+	// µêĞ¡¶şÊÇ°´ÕÕË³Ê±Õë¹Ì¶¨¼¸¸ö×ø±êµÄ¹æÂÉÒÆ¶¯µÄ,¸ù¾İ×ø±êÅĞ¶ÏÊÇ·ñÊÇµêĞ¡¶ş
 	const POINT* vector_arrary = &pos_list[0];
 	for (int i = 0;i < pos_list.size();i++) {
 		if (x > 0 && y > 0 && vector_arrary[i].x == x && vector_arrary[i].y == y) return true;
@@ -2665,7 +2682,7 @@ bool WindowInfo::is_given_pos(float x, float y, const std::vector<POINT>& pos_li
 	return false;
 }
 //bool WindowInfo::is_dianxiaoer_pos(float x, float y) {
-//	// åº—å°äºŒæ˜¯æŒ‰ç…§é¡ºæ—¶é’ˆå›ºå®šå‡ ä¸ªåæ ‡çš„è§„å¾‹ç§»åŠ¨çš„,æ ¹æ®åæ ‡åˆ¤æ–­æ˜¯å¦æ˜¯åº—å°äºŒ
+//	// µêĞ¡¶şÊÇ°´ÕÕË³Ê±Õë¹Ì¶¨¼¸¸ö×ø±êµÄ¹æÂÉÒÆ¶¯µÄ,¸ù¾İ×ø±êÅĞ¶ÏÊÇ·ñÊÇµêĞ¡¶ş
 //	POINT* vector_arrary = &dianxiaoer_pos_list[0];
 //	for (int i = 0;i < dianxiaoer_pos_list.size();i++) {
 //		if (x > 0 && y > 0 && vector_arrary[i].x == x && vector_arrary[i].y == y) return true;
@@ -2676,7 +2693,7 @@ bool WindowInfo::is_given_pos(float x, float y, const std::vector<POINT>& pos_li
 //	return false;
 //}
 //bool WindowInfo::is_changan_yizhanlaoban_pos(float x, float y) {
-//	// åº—å°äºŒæ˜¯æŒ‰ç…§é¡ºæ—¶é’ˆå›ºå®šå‡ ä¸ªåæ ‡çš„è§„å¾‹ç§»åŠ¨çš„,æ ¹æ®åæ ‡åˆ¤æ–­æ˜¯å¦æ˜¯åº—å°äºŒ
+//	// µêĞ¡¶şÊÇ°´ÕÕË³Ê±Õë¹Ì¶¨¼¸¸ö×ø±êµÄ¹æÂÉÒÆ¶¯µÄ,¸ù¾İ×ø±êÅĞ¶ÏÊÇ·ñÊÇµêĞ¡¶ş
 //	POINT* vector_arrary = &dianxiaoer_pos_list[0];
 //	for (auto& pos : changan_yizhanlaoban_pos_list) {
 //		if (x > 0 && y > 0 && pos.x == x && pos.y == y) return true;
@@ -2684,7 +2701,7 @@ bool WindowInfo::is_given_pos(float x, float y, const std::vector<POINT>& pos_li
 //	return false;
 //}
 bool WindowInfo::is_moving() {
-	// åˆ¤æ–­è‡ªå·±æ˜¯å¦åœ¨ç§»åŠ¨
+	// ÅĞ¶Ï×Ô¼ºÊÇ·ñÔÚÒÆ¶¯
 	float x0 = 0;
 	float y0 = 0;
 	for (int i = 0; i < 2; i++) {
@@ -2707,33 +2724,33 @@ bool WindowInfo::wait_moving_stop(int timeout) {
 	while (true) {
 		if (!is_moving()) return true;
 		if (getCurrentTimeMilliseconds() - t_ms > timeout) {
-			log_info("ç­‰å¾…ç§»åŠ¨è¶…æ—¶");
+			log_info("µÈ´ıÒÆ¶¯³¬Ê±");
 			break;
 		}
 	}
 	return false;
 }
 bool WindowInfo::is_near_dianxiaoer() {
-	update_npc_pos(åº—å°äºŒ);
+	update_npc_pos(µêĞ¡¶ş);
 	update_player_float_pos();
 	if (dianxiaoer_pos_x > 0) {
 		auto dxe_x = convert_to_map_pos_x(dianxiaoer_pos_x);
 		auto dxe_y = convert_to_map_pos_y(dianxiaoer_pos_y);
 		if (abs(dxe_x - player_pos.x) <= (dianxiaoer_valid_distence + 2) && abs(dxe_y - player_pos.y) <= (dianxiaoer_valid_distence + 2)) {
-			//  +1æ˜¯é˜²æ­¢é¼ æ ‡æ¼‚ç§»è¯¯å·®
+			//  +1ÊÇ·ÀÖ¹Êó±êÆ¯ÒÆÎó²î
 			return true;
 		}
 	}
 	return false;
 }
 bool WindowInfo::is_near_changan_yizhanlaoban() {
-	update_npc_pos(é•¿å®‰é©¿ç«™è€æ¿);
+	update_npc_pos(³¤°²æäÕ¾ÀÏ°å);
 	update_player_float_pos();
 	if (changan_yizhanlaoban_pos_addr > 0) {
 		auto dxe_x = convert_to_map_pos_x(changan_yizhanlaoban_pos_x);
 		auto dxe_y = convert_to_map_pos_y(changan_yizhanlaoban_pos_y);
 		if (abs(dxe_x - player_pos.x) <= NPC_TALK_VALID_DISTENCE && abs(dxe_y - player_pos.y) <= NPC_TALK_VALID_DISTENCE) {
-			//  +1æ˜¯é˜²æ­¢é¼ æ ‡æ¼‚ç§»è¯¯å·®
+			//  +1ÊÇ·ÀÖ¹Êó±êÆ¯ÒÆÎó²î
 			return true;
 		}
 	}
@@ -2747,7 +2764,7 @@ bool WindowInfo::is_near_loc(POINT dst, int near_x, int near_y) {
 }
 
 bool WindowInfo::is_npc_visible(uintptr_t npc_loc_addr) {
-	// NPCæ¶ˆå¤±ï¼Œå†…å­˜é‡Šæ”¾åï¼Œç»“æ„ä½“å˜äº†
+	// NPCÏûÊ§£¬ÄÚ´æÊÍ·Åºó£¬½á¹¹Ìå±äÁË
 	bool res = false;
 	SIZE_T regionSize = 0x8;
 	BYTE* buffer = new BYTE[regionSize];
@@ -2775,7 +2792,7 @@ bool WindowInfo::wait_fighting() {
 	return false;
 }
 bool WindowInfo::is_fighting() {
-	//æˆ˜æ–—çš„æ—¶å€™ç©å®¶åæ ‡å˜æˆ0,0
+	//Õ½¶·µÄÊ±ºòÍæ¼Ò×ø±ê±ä³É0,0
 	update_player_float_pos();
 	return player_x == 0 && player_y == 0;
 	//return MatchingRectExist(ROI_fighting(), img_fight_fighting, "", 0.85);
@@ -2798,20 +2815,20 @@ bool WindowInfo::is_four_man() {
 		MatchingExist(img_gray, ROI_four_man(), *m_img_fight_fourman_title2_gray, "", 0.83)) {
 		play_mp3_once();
 		popup_verify = true;
-		for (int i = 0; i < 5; i++) { log_info("***å››å°äººå¼¹çª—éªŒè¯,è¯·æ‰‹åŠ¨ç‚¹å‡»***"); }
+		for (int i = 0; i < 5; i++) { log_info("***ËÄĞ¡ÈËµ¯´°ÑéÖ¤,ÇëÊÖ¶¯µã»÷***"); }
 		return true;
 	}
 	return false;
 }
 bool WindowInfo::is_hangup(cv::Mat& image) {
-	// æ˜¯å¦å·²æŒ‚è‡ªåŠ¨æˆ˜æ–—
+	// ÊÇ·ñÒÑ¹Ò×Ô¶¯Õ½¶·
 	bool hangup = false;
 	if (MatchingExist(image, ROI_NULL(), *m_img_btn_cancel_auto_round))hangup = true;
 	else if (MatchingExist(image, ROI_NULL(), *m_img_btn_cancel_zhanli))hangup = true;
 	return hangup;
 }
 bool WindowInfo::is_in_mini_scene() {
-	//å°åœºæ™¯æ²¡æœ‰å°åœ°å›¾ï¼Œåªèƒ½é€šè¿‡ç‚¹å‡»å±å¹•ç§»åŠ¨
+	//Ğ¡³¡¾°Ã»ÓĞĞ¡µØÍ¼£¬Ö»ÄÜÍ¨¹ıµã»÷ÆÁÄ»ÒÆ¶¯
 	const auto* vector_arrary = &mini_scene_list[0];
 	for (int i = 0;i < mini_scene_list.size();i++) {
 		if (vector_arrary[i] == m_scene_id) return true;
@@ -2819,24 +2836,24 @@ bool WindowInfo::is_in_mini_scene() {
 	return false;
 }
 void WindowInfo::handle_datu_fight() {
-	// è‡ªåŠ¨æˆ˜æ–—æŒ‚æœºå¤„ç†
+	// ×Ô¶¯Õ½¶·¹Ò»ú´¦Àí
 	auto image = hwnd2mat(hwnd);
 	auto hangup = is_hangup(image);
 	if (hangup) {
-		//æ£€æŸ¥é‡ç½®è‡ªåŠ¨æˆ˜æ–—æŒ‚æœºå‰©ä½™å›åˆ
+		//¼ì²éÖØÖÃ×Ô¶¯Õ½¶·¹Ò»úÊ£Óà»ØºÏ
 		if (!RegionMonthly) {
 			if (MatchingExist(image, ROI_fight_action(), *m_img_fight_do_hero_action)) {
 				if (getCurrentTimeMilliseconds() - wait_hero_action_time > 2.0) {
-					log_info("æˆ˜æ–—å›åˆ+1");
+					log_info("Õ½¶·»ØºÏ+1");
 					wait_hero_action_time = getCurrentTimeMilliseconds();
 					f_round += 1;
-					auto round = gm.db[player_id]["round"];
-					gm.db[player_id]["round"] = round + 1;
-					gm.update_db();
+					auto round = gm->db[player_id]["round"];
+					gm->db[player_id]["round"] = round + 1;
+					gm->update_db();
 				}
 			}
-			if (gm.db[player_id]["round"] >= randint(19, 24) && f_round == 0) {
-				log_info("é‡ç½®è‡ªåŠ¨æˆ˜æ–—æŒ‚æœºå‰©ä½™å›åˆ");
+			if (gm->db[player_id]["round"] >= randint(19, 24) && f_round == 0) {
+				log_info("ÖØÖÃ×Ô¶¯Õ½¶·¹Ò»úÊ£Óà»ØºÏ");
 				move_cursor_center_top();
 				auto btn_pos = WaitMatchingRectLoc(ROI_NULL(), *m_img_btn_reset_auto_round, 500, "", 0.95);
 				if (btn_pos.x > 0) {
@@ -2844,41 +2861,41 @@ void WindowInfo::handle_datu_fight() {
 						if (mouse_click_human(btn_pos, 0, 30))break;
 					}
 					if (WaitMatchingRectExist(ROI_NULL(), *m_img_fight_auto_round30, 300, "", 0.95)) {
-						gm.db[player_id]["round"] = 0;
-						gm.update_db();
-						log_info("é‡ç½®å®Œæ¯•.");
+						gm->db[player_id]["round"] = 0;
+						gm->update_db();
+						log_info("ÖØÖÃÍê±Ï.");
 					}
 				}
 			}
 		}
 	}
 	else {
-		// å››å°äººéªŒè¯å¤„ç†
+		// ËÄĞ¡ÈËÑéÖ¤´¦Àí
 		if (is_four_man()) {
 			return;
 		}
 		if (MatchingExist(image, ROI_fight_action(), *m_img_fight_do_hero_action)) {
 			wait_hero_action_time = getCurrentTimeMilliseconds();
 			f_round += 1;
-			auto round = gm.db[player_id]["round"];
-			gm.db[player_id]["round"] = round+1;
-			gm.update_db();
+			auto round = gm->db[player_id]["round"];
+			gm->db[player_id]["round"] = round+1;
+			gm->update_db();
 			ClickMatchImage(ROI_fight_action(), *m_img_fight_auto,"",gThreshold,gMatchMethod,0,0,-60,0);
 		}
 		else if (MatchingExist(image, ROI_fight_action(), *m_img_fight_do_peg_action)) {
-			log_info("å® ç‰©å¹³A");
+			log_info("³èÎïÆ½A");
 			input_alt_a();
 		}
 	}
 }
 int WindowInfo::convert_to_map_pos_x(float x) {
-	// (x - 1) * 20 + 30 = player_x  å…¶ä¸­xæ˜¯åœ°å›¾ä¸Šæ˜¾ç¤ºçš„åæ ‡
+	// (x - 1) * 20 + 30 = player_x  ÆäÖĞxÊÇµØÍ¼ÉÏÏÔÊ¾µÄ×ø±ê
 	if (x == 0) return x;
 	return (x - 30) / 20 + 1;
 }
 
 int WindowInfo::convert_to_map_pos_y(float y) {
-	// (max_y - y - 1) * 20 + 30 = player_y  å…¶ä¸­yæ˜¯åœ°å›¾ä¸Šæ˜¾ç¤ºçš„åæ ‡,max_yæ˜¯åœ°å›¾yçš„æœ€å¤§å€¼ã€‚ä¾‹å¦‚å»ºé‚ºåŸyæœ€å¤§å€¼æ˜¯143
+	// (max_y - y - 1) * 20 + 30 = player_y  ÆäÖĞyÊÇµØÍ¼ÉÏÏÔÊ¾µÄ×ø±ê,max_yÊÇµØÍ¼yµÄ×î´óÖµ¡£ÀıÈç½¨Úş³Çy×î´óÖµÊÇ143
 	if (y == 0) return y;
 	update_scene_id();
 	auto max = get_map_max_loc(m_scene_id);
@@ -2886,23 +2903,23 @@ int WindowInfo::convert_to_map_pos_y(float y) {
 }
 
 void WindowInfo::parse_baotu_task_info() {
-	log_info("å¼€å§‹è§£æå®å›¾ä»»åŠ¡å†…å®¹:0x%p", hProcess);
-	//â—†æ­£åœ¨#Kç‹®é©¼å²­#Bæ‹¦è·¯æŠ¢åŠ«çš„#K<EvalFunc>{"str":"å¼ºç›—å‡Œè±¹ç¾½","evalID":2755,}</EvalFunc>#Bå–œæ¬¢æŠŠä»–çš„å®è´è—åœ¨#R56ï¼Œ76#Bé™„è¿‘ï¼Œå…ˆåˆ°å…ˆå¾—å•Šã€‚(ä»Šå¤©å·²é¢†å–#R1#Bæ¬¡)#r
-	// å®å›¾å†…å®¹æ ¼å¼ï¼šâ—†xxxx(ä»Šå¤©å·²é¢†å–xxxæ¬¡)#r
-	// â—†:C6 25
-	// "08 FF CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00 ? ? 23 00 6E 00 2F 00 35 00 30 00 21 6B 09 FF",  // ï¼ˆä»Šå¤©å·²é¢†å–#R8#n/50æ¬¡ï¼‰
+	log_info("¿ªÊ¼½âÎö±¦Í¼ÈÎÎñÄÚÈİ:0x%p", hProcess);
+	//¡ôÕıÔÚ#KÊ¨ÍÕÁë#BÀ¹Â·ÇÀ½ÙµÄ#K<EvalFunc>{"str":"Ç¿µÁÁè±ªÓğ","evalID":2755,}</EvalFunc>#BÏ²»¶°ÑËûµÄ±¦±´²ØÔÚ#R56£¬76#B¸½½ü£¬ÏÈµ½ÏÈµÃ°¡¡£(½ñÌìÒÑÁìÈ¡#R1#B´Î)#r
+	// ±¦Í¼ÄÚÈİ¸ñÊ½£º¡ôxxxx(½ñÌìÒÑÁìÈ¡xxx´Î)#r
+	// ¡ô:C6 25
+	// "08 FF CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00 ? ? 23 00 6E 00 2F 00 35 00 30 00 21 6B 09 FF",  // £¨½ñÌìÒÑÁìÈ¡#R8#n/50´Î£©
 	auto baotu_task_symbol_list = PerformAoBScanEx(
 		hProcess,
 		NULL,
-		"23 00 6E 00 2F 00 35 00 30 00 21 6B 09 FF"  // ï¼ˆä»Šå¤©å·²é¢†å–#R8#n/50æ¬¡ï¼‰
+		"23 00 6E 00 2F 00 35 00 30 00 21 6B 09 FF"  // £¨½ñÌìÒÑÁìÈ¡#R8#n/50´Î£©
 	);
 	int temp_count = 0;
-	SIZE_T regionSize = 0x260; // å®å›¾ä»»åŠ¡çš„å†…å®¹é•¿åº¦ï¼Œè¿™ä¸ªé•¿åº¦åº”è¯¥å¤Ÿç”¨äº†
+	SIZE_T regionSize = 0x260; // ±¦Í¼ÈÎÎñµÄÄÚÈİ³¤¶È£¬Õâ¸ö³¤¶ÈÓ¦¸Ã¹»ÓÃÁË
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead;
 	SIZE_T symbol_len = 14;
 	int pre_len = 22;
-	// å…ˆæ ¹æ®å’Œåº—å°äºŒçš„å¯¹è¯ï¼Œæ‰¾åˆ°ä»Šæ—¥é¢†å–æ¬¡æ•°
+	// ÏÈ¸ù¾İºÍµêĞ¡¶şµÄ¶Ô»°£¬ÕÒµ½½ñÈÕÁìÈ¡´ÎÊı
 	for (size_t i = 0; i < baotu_task_symbol_list.size(); i++) {
 		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[i] - pre_len), buffer, symbol_len + pre_len, &bytesRead);
 		if (bytesRead > 0) {
@@ -2921,7 +2938,7 @@ void WindowInfo::parse_baotu_task_info() {
 				continue;
 			}
 			if (baotu_task_count > 0) {
-				if (num <= baotu_task_count) { continue; }  // é¢†å–æ¬¡æ•°å°äºç­‰äºä¸Šä¸€æ¬¡çš„è®°å½•ï¼Œè¯´æ˜æ˜¯ä»¥å‰çš„å†…å­˜æ²¡æœ‰è¢«é‡Šæ”¾ï¼Œå¿½ç•¥æ‰
+				if (num <= baotu_task_count) { continue; }  // ÁìÈ¡´ÎÊıĞ¡ÓÚµÈÓÚÉÏÒ»´ÎµÄ¼ÇÂ¼£¬ËµÃ÷ÊÇÒÔÇ°µÄÄÚ´æÃ»ÓĞ±»ÊÍ·Å£¬ºöÂÔµô
 				else {
 					temp_count = num;
 					break;
@@ -2936,9 +2953,9 @@ void WindowInfo::parse_baotu_task_info() {
 	}
 	if (temp_count > 0) {
 		baotu_task_count = temp_count;
-		log_info("ä»Šå¤©å·²é¢†å–:%dæ¬¡", baotu_task_count);
+		log_info("½ñÌìÒÑÁìÈ¡:%d´Î", baotu_task_count);
 		std::vector<uintptr_t>baotu_task_content_list;
-		//æ‰¾åˆ°å¼ºç›—åå­—
+		//ÕÒµ½Ç¿µÁÃû×Ö
 		for (int m = 0; m < baotu_task_symbol_list.size(); m++) {
 			memset(buffer, bytesRead, 0);
 			bytesRead = 0;
@@ -2972,7 +2989,7 @@ void WindowInfo::parse_baotu_task_info() {
 				if (!tags_wstr.empty()) {
 					std::string struct_AoB = "7B 00 22 00 73 00 74 00 72 00 22 00 3A 00 22 00 ";
 					std::wstring name = tags_wstr[0].c_str();
-					setlocale(LC_ALL, ""); // è®¾ç½®æœ¬åœ°åŒ–
+					setlocale(LC_ALL, ""); // ÉèÖÃ±¾µØ»¯
 					log_info("%ls", name.c_str());
 					auto ptr1 = reinterpret_cast<char*>(&name);
 					for (int j = 0; j < name.size() * 2; j++) {
@@ -2991,7 +3008,7 @@ void WindowInfo::parse_baotu_task_info() {
 				}
 			}
 		}
-		//æ ¹æ®å¼ºç›—åå­—æ‰¾åˆ°å¼ºç›—åæ ‡å’Œåœºæ™¯
+		//¸ù¾İÇ¿µÁÃû×ÖÕÒµ½Ç¿µÁ×ø±êºÍ³¡¾°
 		for (size_t j = 0; j < baotu_task_content_list.size(); ++j) {
 			int end_len = 0xA0;
 			std::wstring qiangdao_content;
@@ -3000,7 +3017,7 @@ void WindowInfo::parse_baotu_task_info() {
 			pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_content_list[j] - regionSize + end_len * 2), buffer, regionSize, &bytesRead);
 			if (bytesRead > 0) {
 				for (int k = 0; k < bytesRead - 4; k++) {
-					if (buffer[k] == 0x00 && buffer[k + 1] == 0x00 && buffer[k + 2] == 0xC6 && buffer[k + 3] == 0x25) {	// â—†:C6 25
+					if (buffer[k] == 0x00 && buffer[k + 1] == 0x00 && buffer[k + 2] == 0xC6 && buffer[k + 3] == 0x25) {	// ¡ô:C6 25
 						qiangdao_content = bytes_to_wstring(&buffer[k + 2], bytesRead - k + 2 + end_len * 2);
 						break;
 					}
@@ -3016,7 +3033,7 @@ void WindowInfo::parse_baotu_task_info() {
 				{
 					if (baotu_target_scene_id <= 0) baotu_target_scene_id = get_scene_id_by_name(wstr);
 					if (baotu_target_pos.x <= 0) {
-						size_t pos = wstr.find(L"ï¼Œ", 0);
+						size_t pos = wstr.find(L"£¬", 0);
 						if (pos != std::wstring::npos) {
 							baotu_target_pos.x = std::stoi(wstr.substr(0, pos));
 							baotu_target_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
@@ -3024,39 +3041,39 @@ void WindowInfo::parse_baotu_task_info() {
 					}
 				}
 				if (baotu_target_scene_id > 0 && baotu_target_pos.x > 0) {
-					log_info("è§£æå®å›¾ä»»åŠ¡æˆåŠŸ:%d,(%d,%d)", baotu_target_scene_id, baotu_target_pos.x, baotu_target_pos.y);
+					log_info("½âÎö±¦Í¼ÈÎÎñ³É¹¦:%d,(%d,%d)", baotu_target_scene_id, baotu_target_pos.x, baotu_target_pos.y);
 					break;
 				}
 			}
 		}
-		if (baotu_target_scene_id <= 0) log_info("æœªæ”¯æŒçš„åœºæ™¯ï¼Œç­‰å¾…æ·»åŠ ");
+		if (baotu_target_scene_id <= 0) log_info("Î´Ö§³ÖµÄ³¡¾°£¬µÈ´ıÌí¼Ó");
 	}
-	log_info("ç»“æŸè§£æå®å›¾ä»»åŠ¡å†…å®¹:0x%p", hProcess);
+	log_info("½áÊø½âÎö±¦Í¼ÈÎÎñÄÚÈİ:0x%p", hProcess);
 	delete[]buffer;
 }
 void WindowInfo::parse_baotu_task_info_card() {
-	log_info("å¼€å§‹è§£æå®å›¾ä»»åŠ¡å†…å®¹:0x%p", hProcess);
-	//â—†æ­£åœ¨#Kç‹®é©¼å²­#Bæ‹¦è·¯æŠ¢åŠ«çš„#K<EvalFunc>{"str":"å¼ºç›—å‡Œè±¹ç¾½","evalID":2755,}</EvalFunc>#Bå–œæ¬¢æŠŠä»–çš„å®è´è—åœ¨#R56ï¼Œ76#Bé™„è¿‘ï¼Œå…ˆåˆ°å…ˆå¾—å•Šã€‚(ä»Šå¤©å·²é¢†å–#R1#Bæ¬¡)#r
-	// å®å›¾å†…å®¹æ ¼å¼ï¼šâ—†xxxx(ä»Šå¤©å·²é¢†å–xxxæ¬¡)#r
-	// â—†:C6 25
-	// "28 00 CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00 ? ? 23 00 42 00 21 6B 29 00 23 00 72 00 00 00",  // (ä»Šå¤©å·²é¢†å–#R1#Bæ¬¡)#r
+	log_info("¿ªÊ¼½âÎö±¦Í¼ÈÎÎñÄÚÈİ:0x%p", hProcess);
+	//¡ôÕıÔÚ#KÊ¨ÍÕÁë#BÀ¹Â·ÇÀ½ÙµÄ#K<EvalFunc>{"str":"Ç¿µÁÁè±ªÓğ","evalID":2755,}</EvalFunc>#BÏ²»¶°ÑËûµÄ±¦±´²ØÔÚ#R56£¬76#B¸½½ü£¬ÏÈµ½ÏÈµÃ°¡¡£(½ñÌìÒÑÁìÈ¡#R1#B´Î)#r
+	// ±¦Í¼ÄÚÈİ¸ñÊ½£º¡ôxxxx(½ñÌìÒÑÁìÈ¡xxx´Î)#r
+	// ¡ô:C6 25
+	// "28 00 CA 4E 29 59 F2 5D 86 98 D6 53 23 00 52 00 ? ? 23 00 42 00 21 6B 29 00 23 00 72 00 00 00",  // (½ñÌìÒÑÁìÈ¡#R1#B´Î)#r
 	auto baotu_task_symbol_list = PerformAoBScanEx(
 		hProcess,
 		NULL,
-		"? ? 23 00 42 00 21 6B 29 00 23 00 72 00 00 00"  // (ä»Šå¤©å·²é¢†å–#R1#Bæ¬¡)#r
+		"? ? 23 00 42 00 21 6B 29 00 23 00 72 00 00 00"  // (½ñÌìÒÑÁìÈ¡#R1#B´Î)#r
 	);
 	int symbol_len = 16;
 	int pre_symbol_len = 20;
 	int temp_count = 0;
 	int index = 0;
-	SIZE_T regionSize = 0x260; // å®å›¾ä»»åŠ¡çš„å†…å®¹é•¿åº¦ï¼Œè¿™ä¸ªé•¿åº¦åº”è¯¥å¤Ÿç”¨äº†
+	SIZE_T regionSize = 0x260; // ±¦Í¼ÈÎÎñµÄÄÚÈİ³¤¶È£¬Õâ¸ö³¤¶ÈÓ¦¸Ã¹»ÓÃÁË
 	for (size_t i = 0; i < baotu_task_symbol_list.size(); ++i) {
 		BYTE* buffer = new BYTE[regionSize];
 		SIZE_T bytesRead;
 		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[i] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
 		if (bytesRead > 0) {
 			auto today_num = bytes_to_wstring(&buffer[regionSize - symbol_len - pre_symbol_len], symbol_len + pre_symbol_len);
-			auto tag_number = findContentBetweenTags(today_num, L"(ä»Šå¤©å·²é¢†å–#R", L"#Bæ¬¡)");
+			auto tag_number = findContentBetweenTags(today_num, L"(½ñÌìÒÑÁìÈ¡#R", L"#B´Î)");
 			int num = 0;
 			try {
 				num = std::stoi(tag_number.at(0));
@@ -3068,7 +3085,7 @@ void WindowInfo::parse_baotu_task_info_card() {
 				continue;
 			}
 			if (baotu_task_count > 0) {
-				if (num <= baotu_task_count) { continue; }  // é¢†å–æ¬¡æ•°å°äºç­‰äºä¸Šä¸€æ¬¡çš„è®°å½•ï¼Œè¯´æ˜æ˜¯ä»¥å‰çš„å†…å­˜æ²¡æœ‰è¢«é‡Šæ”¾ï¼Œå¿½ç•¥æ‰
+				if (num <= baotu_task_count) { continue; }  // ÁìÈ¡´ÎÊıĞ¡ÓÚµÈÓÚÉÏÒ»´ÎµÄ¼ÇÂ¼£¬ËµÃ÷ÊÇÒÔÇ°µÄÄÚ´æÃ»ÓĞ±»ÊÍ·Å£¬ºöÂÔµô
 				else {
 					temp_count = num;
 					index = i;
@@ -3091,7 +3108,7 @@ void WindowInfo::parse_baotu_task_info_card() {
 		pNtReadVirtualMemory(hProcess, (PVOID)(baotu_task_symbol_list[index] - regionSize + symbol_len), buffer, regionSize, &bytesRead);
 		if (bytesRead > 0) {
 			for (int i = 0; i < bytesRead - 4; i++) {
-				if (buffer[i] == 0x00 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0xC6 && buffer[i + 3] == 0x25) {	// â—†:C6 25
+				if (buffer[i] == 0x00 && buffer[i + 1] == 0x00 && buffer[i + 2] == 0xC6 && buffer[i + 3] == 0x25) {	// ¡ô:C6 25
 					content = bytes_to_wstring(&buffer[i + 2], bytesRead - i + 2 - symbol_len - pre_symbol_len + 4);
 					break;
 				}
@@ -3099,7 +3116,7 @@ void WindowInfo::parse_baotu_task_info_card() {
 		}
 		if (!content.empty()) {
 			baotu_task_count = temp_count;
-			log_info("ä»Šå¤©å·²é¢†å–:%dæ¬¡", baotu_task_count);
+			log_info("½ñÌìÒÑÁìÈ¡:%d´Î", baotu_task_count);
 			std::vector<std::wstring> all_tags_wstr;
 			auto tag_wstr1 = findContentBetweenTags(content, L"#K", L"#B");
 			auto tag_wstr2 = findContentBetweenTags(content, L"#R", L"#B");
@@ -3109,42 +3126,42 @@ void WindowInfo::parse_baotu_task_info_card() {
 			{
 				if (baotu_target_scene_id <= 0) baotu_target_scene_id = get_scene_id_by_name(wstr);
 				if (baotu_target_pos.x <= 0) {
-					size_t pos = wstr.find(L"ï¼Œ", 0);
+					size_t pos = wstr.find(L"£¬", 0);
 					if (pos != std::wstring::npos) {
 						baotu_target_pos.x = std::stoi(wstr.substr(0, pos));
 						baotu_target_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
 					}
 				}
 			}
-			if (baotu_target_scene_id <= 0) { log_info("æœªæ”¯æŒçš„åœºæ™¯ï¼Œç­‰å¾…æ·»åŠ "); }
-			else{ log_info("è§£æå®å›¾ä»»åŠ¡æˆåŠŸ:%d,(%d,%d)", baotu_target_scene_id, baotu_target_pos.x, baotu_target_pos.y); }
+			if (baotu_target_scene_id <= 0) { log_info("Î´Ö§³ÖµÄ³¡¾°£¬µÈ´ıÌí¼Ó"); }
+			else{ log_info("½âÎö±¦Í¼ÈÎÎñ³É¹¦:%d,(%d,%d)", baotu_target_scene_id, baotu_target_pos.x, baotu_target_pos.y); }
 		}
 		delete[]buffer;
 	}
-	log_info("ç»“æŸè§£æå®å›¾ä»»åŠ¡å†…å®¹:0x%p", hProcess);
+	log_info("½áÊø½âÎö±¦Í¼ÈÎÎñÄÚÈİ:0x%p", hProcess);
 }
 void WindowInfo::parse_zeiwang_info() {
-	log_info("å¼€å§‹è§£æè´¼ç‹å†…å®¹:0x%p", hProcess);
-	// â—†ç¼‰æ‹¿æ½œä¼åœ¨#Rå‚²æ¥å®¢æ ˆäºŒæ¥¼#Bå†…å¾…æœºä½œæ¡ˆçš„#R<EvalFunc>{"str":"è´¼ç‹å¸é©¬é¾š","estr":"è´¼ç‹å¸é©¬é¾š","evalID":2755,}</EvalFunc>ã€‚å½“å‰å‰©ä½™æ—¶é—´30åˆ†é’Ÿã€‚#r
-	// æ¥ä¸‹ä¸€æ¬¡å®å›¾ä»»åŠ¡åï¼Œè´¼ç‹å†…å­˜ç»“æ„å°±ä¼šé‡Šæ”¾ï¼Œæ‰€ä»¥åŸºæœ¬åªæœ‰å­˜åœ¨ä¸€æ¡åŒ¹é…è®°å½•
-	//è´¼ç‹ä½ç½®æœ‰æ—¶å€™ä¼šåˆ·æ–°å˜åŠ¨ï¼Œä½†åªæ˜¯ç•Œé¢æ˜¾ç¤ºå˜äº†ï¼Œå®é™…åæ ‡æ²¡å˜
+	log_info("¿ªÊ¼½âÎöÔôÍõÄÚÈİ:0x%p", hProcess);
+	// ¡ô¼©ÄÃÇ±·üÔÚ#R°ÁÀ´¿ÍÕ»¶şÂ¥#BÄÚ´ı»ú×÷°¸µÄ#R<EvalFunc>{"str":"ÔôÍõË¾Âí¹¨","estr":"ÔôÍõË¾Âí¹¨","evalID":2755,}</EvalFunc>¡£µ±Ç°Ê£ÓàÊ±¼ä30·ÖÖÓ¡£#r
+	// ½ÓÏÂÒ»´Î±¦Í¼ÈÎÎñºó£¬ÔôÍõÄÚ´æ½á¹¹¾Í»áÊÍ·Å£¬ËùÒÔ»ù±¾Ö»ÓĞ´æÔÚÒ»ÌõÆ¥Åä¼ÇÂ¼
+	//ÔôÍõÎ»ÖÃÓĞÊ±ºò»áË¢ĞÂ±ä¶¯£¬µ«Ö»ÊÇ½çÃæÏÔÊ¾±äÁË£¬Êµ¼Ê×ø±êÃ»±ä
 	auto zeiwang_symbol_list = PerformAoBScanEx(
 		hProcess,
 		NULL,
-		"22 00 2C 00 22 00 65 00 73 00 74 00 72 00 22 00 3A 00 22 00 3C 8D 8B 73"  // ","estr":"è´¼ç‹
+		"22 00 2C 00 22 00 65 00 73 00 74 00 72 00 22 00 3A 00 22 00 3C 8D 8B 73"  // ","estr":"ÔôÍõ
 	);
 	int symbol_len = 24;
 	int tail_symbol_len = 0xC0;
-	SIZE_T regionSize = 0x300; // å®å›¾ä»»åŠ¡çš„å†…å®¹é•¿åº¦ï¼Œè¿™ä¸ªé•¿åº¦åº”è¯¥å¤Ÿç”¨äº†
+	SIZE_T regionSize = 0x300; // ±¦Í¼ÈÎÎñµÄÄÚÈİ³¤¶È£¬Õâ¸ö³¤¶ÈÓ¦¸Ã¹»ÓÃÁË
 	BYTE* buffer = new BYTE[regionSize];
 	SIZE_T bytesRead = 0;
 	for(int s=0;s < zeiwang_symbol_list.size();s++){
-		//log_info("æ‰¾åˆ°è´¼ç‹ä»»åŠ¡å†…å®¹ï¼Œå¼€å§‹è§£æ");
+		//log_info("ÕÒµ½ÔôÍõÈÎÎñÄÚÈİ£¬¿ªÊ¼½âÎö");
 		std::wstring content;
 		pNtReadVirtualMemory(hProcess, (PVOID)(zeiwang_symbol_list[s] - regionSize + symbol_len + tail_symbol_len), buffer, regionSize, &bytesRead);
 		if (bytesRead > 0) {
 			for (int i = 0; i < bytesRead - 4; i++) {
-				if (buffer[i] == 0x00 && buffer[i + 1] == 0x00 && buffer[i+2] == 0xC6 && buffer[i + 3] == 0x25) {	// â—†:C6 25
+				if (buffer[i] == 0x00 && buffer[i + 1] == 0x00 && buffer[i+2] == 0xC6 && buffer[i + 3] == 0x25) {	// ¡ô:C6 25
 					content = bytes_to_wstring(&buffer[i+2], bytesRead - i+2);
 					break;
 				}
@@ -3160,7 +3177,7 @@ void WindowInfo::parse_zeiwang_info() {
 			{
 				if (zeiwang_scene_id <= 0) zeiwang_scene_id = get_scene_id_by_name(wstr);
 				if (zeiwang_fake_pos.x <= 0) {
-					size_t pos = wstr.find(L"ï¼Œ", 0);
+					size_t pos = wstr.find(L"£¬", 0);
 					if (pos != std::wstring::npos) {
 						zeiwang_fake_pos.x = std::stoi(wstr.substr(0, pos));
 						zeiwang_fake_pos.y = std::stoi(wstr.substr(pos + 1, wstr.length()));
@@ -3176,7 +3193,7 @@ void WindowInfo::parse_zeiwang_info() {
 					auto tags_str = findContentBetweenTags(content, L"\"estr\":\"", L"\",\"");
 					if (!tags_str.empty()) zeiwang_name = tags_str[0];
 				}
-				setlocale(LC_ALL, ""); // è®¾ç½®æœ¬åœ°åŒ–
+				setlocale(LC_ALL, ""); // ÉèÖÃ±¾µØ»¯
 				log_info("%d,%ls", zeiwang_scene_id, zeiwang_name.c_str());
 				break;
 			}
@@ -3185,20 +3202,20 @@ void WindowInfo::parse_zeiwang_info() {
 		memset(buffer, 0, regionSize);
 	}
 	delete[]buffer;
-	if (zeiwang_scene_id <= 0) log_info("æœªæ”¯æŒçš„åœºæ™¯ï¼Œç­‰å¾…æ·»åŠ ");
-	log_info("ç»“æŸè§£æè´¼ç‹å†…å®¹:0x%p", hProcess);
+	if (zeiwang_scene_id <= 0) log_info("Î´Ö§³ÖµÄ³¡¾°£¬µÈ´ıÌí¼Ó");
+	log_info("½áÊø½âÎöÔôÍõÄÚÈİ:0x%p", hProcess);
 }
 
 void WindowInfo::move_to_position(POINT dst, long active_x, long active_y) {
-	// active_x, active_y:NPCåœ¨è¿™ä¸ªåæ ‡èŒƒå›´å†…å¯¹è¯æ‰æœ‰æ•ˆ
+	// active_x, active_y:NPCÔÚÕâ¸ö×ø±ê·¶Î§ÄÚ¶Ô»°²ÅÓĞĞ§
 	if (abs(player_pos.x - dst.x) <= active_x && abs(player_pos.y - dst.y) <= active_y) {
-		log_info("æœ‰æ•ˆå¯¹è¯èŒƒå›´å†…ï¼Œä¸ç”¨ç§»åŠ¨");
-		return;  // æœ‰æ•ˆå¯¹è¯èŒƒå›´å†…ï¼Œä¸ç”¨ç§»åŠ¨
+		log_info("ÓĞĞ§¶Ô»°·¶Î§ÄÚ£¬²»ÓÃÒÆ¶¯");
+		return;  // ÓĞĞ§¶Ô»°·¶Î§ÄÚ£¬²»ÓÃÒÆ¶¯
 	}
 	handle_sheyaoxiang_time();
 	POINT astar_pos = dst;
 	if (active_x != 0 && active_y != 0) {
-		// Aæ˜Ÿå¯»è·¯
+		// AĞÇÑ°Â·
 		astar_pos = astar(player_pos.x, player_pos.y, dst.x, dst.y, m_scene_id, active_x, active_y);
 		if (astar_pos.x < 0) {
 			if (player_pos.x < dst.x) astar_pos.x = dst.x - active_x;
@@ -3206,53 +3223,53 @@ void WindowInfo::move_to_position(POINT dst, long active_x, long active_y) {
 			if (player_pos.y < dst.y) astar_pos.y = dst.y - active_y;
 			else player_pos.y = dst.y + active_y;
 		}
-		log_info("å¯»è·¯åæ ‡:%d,%d", astar_pos.x, astar_pos.y);
+		log_info("Ñ°Â·×ø±ê:%d,%d", astar_pos.x, astar_pos.y);
 	}
 	if (is_in_mini_scene()) {
-		log_info("å±å¹•è§†çº¿å†…ç§»åŠ¨");
+		log_info("ÆÁÄ»ÊÓÏßÄÚÒÆ¶¯");
 		click_position_at_edge(astar_pos);
 	}
 	else {
 		move_via_map(astar_pos);
 	}
 	//if (abs(player_pos.x - astar_pos.x) <= mScreen_x && abs(player_pos.y - astar_pos.y) <= mScreen_y) {
-	//	log_info("å±å¹•è§†çº¿å†…ç§»åŠ¨");
+	//	log_info("ÆÁÄ»ÊÓÏßÄÚÒÆ¶¯");
 	//	click_position(astar_pos);
 	//}
 	//else {
-	//log_info("åœ°å›¾ç§»åŠ¨");
+	//log_info("µØÍ¼ÒÆ¶¯");
 	//move_via_map(astar_pos);
 	handle_health();
 	//}
 	moving = true;
 }
 void WindowInfo::move_to_position_flat(POINT dst, long active_x, long active_y) {
-	// active_x, active_y:NPCåœ¨è¿™ä¸ªåæ ‡èŒƒå›´å†…å¯¹è¯æ‰æœ‰æ•ˆ
-	// é’ˆå¯¹æ²¡æœ‰éšœç¢ç‰©çš„åœ°å›¾ï¼Œéšæ„ç‚¹å‡»ä»»ä½•åœ°æ–¹éƒ½èƒ½ç§»åŠ¨
-	// æœ‰äº›å›¾æœ‰å¤§éšœç¢ç‰©ï¼Œç‚¹å‡»äº†æ˜¯ä¸ä¼šç§»åŠ¨çš„
+	// active_x, active_y:NPCÔÚÕâ¸ö×ø±ê·¶Î§ÄÚ¶Ô»°²ÅÓĞĞ§
+	// Õë¶ÔÃ»ÓĞÕÏ°­ÎïµÄµØÍ¼£¬ËæÒâµã»÷ÈÎºÎµØ·½¶¼ÄÜÒÆ¶¯
+	// ÓĞĞ©Í¼ÓĞ´óÕÏ°­Îï£¬µã»÷ÁËÊÇ²»»áÒÆ¶¯µÄ
 	if (abs(player_pos.x - dst.x) <= mScreen_x && abs(player_pos.y - dst.y) <= mScreen_y) {
-		log_info("å±å¹•è§†çº¿å†…ç§»åŠ¨");
+		log_info("ÆÁÄ»ÊÓÏßÄÚÒÆ¶¯");
 		click_position_at_edge(dst);
 	}
 	else {
-		log_info("åœ°å›¾ç§»åŠ¨");
+		log_info("µØÍ¼ÒÆ¶¯");
 		move_via_map(dst);
 	}
 	moving = true;
 }
 void WindowInfo::move_via_map(POINT dst) {
-	// ç›®æ ‡ä¸åœ¨è§†é‡èŒƒå›´å†…ï¼Œé€šè¿‡åœ°å›¾è¿›è¡Œç§»åŠ¨
-	// dst:ç›®çš„åæ ‡
+	// Ä¿±ê²»ÔÚÊÓÒ°·¶Î§ÄÚ£¬Í¨¹ıµØÍ¼½øĞĞÒÆ¶¯
+	// dst:Ä¿µÄ×ø±ê
 	auto map_pos = open_map();
 	if (map_pos.x < 0) {
-		log_info("æ‰“å¼€åœ°å›¾å¤±è´¥");
+		log_info("´ò¿ªµØÍ¼Ê§°Ü");
 		return;
 	}
-	auto max_px = get_map_max_pixel(m_scene_id);  // åœ°å›¾çš„åƒç´ é«˜å’Œå®½
-	auto max_loc = get_map_max_loc(m_scene_id);  // åœ°å›¾çš„xyæœ€å¤§åæ ‡å€¼
-	long x_base = map_pos.x - 7; // åœ°å›¾å·¦ä¸Šè§’å®é™…çš„åƒç´ ä½ç½®
-	long y_base = map_pos.y + 58 + max_px.y; // åœ°å›¾å·¦ä¸Šè§’å®é™…çš„åƒç´ ä½ç½®
-	// è¾¹ç¼˜å¯èƒ½ç‚¹ä¸ä¸­ï¼Œä¿®å¤ä¸€ä¸‹
+	auto max_px = get_map_max_pixel(m_scene_id);  // µØÍ¼µÄÏñËØ¸ßºÍ¿í
+	auto max_loc = get_map_max_loc(m_scene_id);  // µØÍ¼µÄxy×î´ó×ø±êÖµ
+	long x_base = map_pos.x - 7; // µØÍ¼×óÉÏ½ÇÊµ¼ÊµÄÏñËØÎ»ÖÃ
+	long y_base = map_pos.y + 58 + max_px.y; // µØÍ¼×óÉÏ½ÇÊµ¼ÊµÄÏñËØÎ»ÖÃ
+	// ±ßÔµ¿ÉÄÜµã²»ÖĞ£¬ĞŞ¸´Ò»ÏÂ
 	int edge = 7;
 	long x = dst.x;
 	long y = dst.y;
@@ -3266,8 +3283,8 @@ void WindowInfo::move_via_map(POINT dst) {
 	close_map();
 }
 void WindowInfo::move_to_other_scene(POINT door, unsigned int scene_id, int xs, int ys, bool close_beibao) {
-	//doorï¼šå¦ä¸€ä¸ªåœºæ™¯å…¥å£
-	//scene_id:å¦ä¸€ä¸ªåœºæ™¯id
+	//door£ºÁíÒ»¸ö³¡¾°Èë¿Ú
+	//scene_id:ÁíÒ»¸ö³¡¾°id
 	if (is_near_loc(door, mScreen_x, mScreen_x)) {
 		handle_sheyaoxiang_time();
 		click_position_at_edge(door, xs, ys);
@@ -3281,9 +3298,9 @@ void WindowInfo::move_to_other_scene(POINT door, unsigned int scene_id, int xs, 
 	moving = true;
 }
 void WindowInfo::ship_to_other_scene(POINT door, unsigned int scene_id, int xs, int ys, bool close_beibao) {
-	// é€šè¿‡é©¿ç«™è€æ¿æˆ–NPCä¼ é€åˆ°å¦ä¸€ä¸ªåœºæ™¯
-	//doorï¼šå¦ä¸€ä¸ªåœºæ™¯å…¥å£
-	//scene_id:å¦ä¸€ä¸ªåœºæ™¯id
+	// Í¨¹ıæäÕ¾ÀÏ°å»òNPC´«ËÍµ½ÁíÒ»¸ö³¡¾°
+	//door£ºÁíÒ»¸ö³¡¾°Èë¿Ú
+	//scene_id:ÁíÒ»¸ö³¡¾°id
 	click_position(door,0,-5);
 	auto pos = WaitMatchingRectLoc(ROI_npc_talk(), *m_img_btn_shide_woyaoqu);
 	if (pos.x > 0) {
@@ -3292,9 +3309,9 @@ void WindowInfo::ship_to_other_scene(POINT door, unsigned int scene_id, int xs, 
 	}
 }
 bool WindowInfo::click_position(POINT dst, int xs, int ys, int x_fix, int y_fix, int mode) {
-	// é€šè¿‡é¼ æ ‡ç‚¹å‡»ç›®çš„åæ ‡
-	// å¦‚æœNPCåœ¨è§†é‡èŒƒå›´å†…ï¼Œå¯ä»¥å’ŒNPCå¯¹è¯
-	// å¦‚æœæ²¡æœ‰NPCï¼Œåˆ™ç§»åŠ¨åˆ°ç›®çš„åæ ‡
+	// Í¨¹ıÊó±êµã»÷Ä¿µÄ×ø±ê
+	// Èç¹ûNPCÔÚÊÓÒ°·¶Î§ÄÚ£¬¿ÉÒÔºÍNPC¶Ô»°
+	// Èç¹ûÃ»ÓĞNPC£¬ÔòÒÆ¶¯µ½Ä¿µÄ×ø±ê
 	update_player_float_pos();
 	auto px = compute_pos_pixel(dst, m_scene_id, xs == 0 && ys == 0);
 	return mouse_click_human({px.x + x_fix, px.y + y_fix }, xs, ys, mode);
@@ -3310,37 +3327,37 @@ bool WindowInfo::talk_to_npc_fight(POINT dst, const cv::Mat& templ) {
 	for (int i = 0;i < 2;i++) {
 		update_player_float_pos();
 		if (temp_pos.x != player_pos.x && temp_pos.y != player_pos.y) {
-			//äººç‰©åæ ‡å‘ç”Ÿæ”¹å˜ï¼Œè¦é‡æ–°éšè—ä¸€ä¸‹ç©å®¶
+			//ÈËÎï×ø±ê·¢Éú¸Ä±ä£¬ÒªÖØĞÂÒş²ØÒ»ÏÂÍæ¼Ò
 			hide_player_n_stalls();
 		}
 		temp_pos = player_pos;
-		log_info("ç©å®¶åæ ‡:%d,%d", player_pos.x, player_pos.y);
-		log_info("ç‚¹å‡»çš„åæ ‡:%d,%d", dst.x, dst.y);
+		log_info("Íæ¼Ò×ø±ê:%d,%d", player_pos.x, player_pos.y);
+		log_info("µã»÷µÄ×ø±ê:%d,%d", dst.x, dst.y);
 		int ys = -5;
 		if (i > 0)ys = -40;
 		click_position_at_edge(dst,0,0,0,ys);
 		if (ClickMatchImage(ROI_npc_talk(), templ, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 1, 1200) && wait_fighting()) {
-			log_info("å‘èµ·æˆ˜æ–—æˆåŠŸ");
+			log_info("·¢ÆğÕ½¶·³É¹¦");
 			is_four_man();
 			return true;
 		}
 		handle_wrong_attack();
 	}
-	log_info("æ£€æŸ¥æ˜¯å¦é‡å ");
+	log_info("¼ì²éÊÇ·ñÖØµş");
 	for (int j = 0;j <= 3;j++) {
 		update_player_float_pos();
 		if (temp_pos.x != player_pos.x && temp_pos.y != player_pos.y) {
-			//äººç‰©åæ ‡å‘ç”Ÿæ”¹å˜ï¼Œè¦é‡æ–°éšè—ä¸€ä¸‹ç©å®¶
+			//ÈËÎï×ø±ê·¢Éú¸Ä±ä£¬ÒªÖØĞÂÒş²ØÒ»ÏÂÍæ¼Ò
 			hide_player_n_stalls();
 		}
 		temp_pos = player_pos;
-		log_info("ç©å®¶åæ ‡:%d,%d", player_pos.x, player_pos.y);
-		log_info("ç‚¹å‡»çš„åæ ‡:%d,%d", dst.x, dst.y);
+		log_info("Íæ¼Ò×ø±ê:%d,%d", player_pos.x, player_pos.y);
+		log_info("µã»÷µÄ×ø±ê:%d,%d", dst.x, dst.y);
 		click_position_at_edge({ dst.x,dst.y}, 0, 0, 0, -3,5);
-		// ä¸€é¡µæ˜¾ç¤º5ä¸ªNPCï¼Œåªå°è¯•å‰3ä¸ª
+		// Ò»Ò³ÏÔÊ¾5¸öNPC£¬Ö»³¢ÊÔÇ°3¸ö
 		click_position_at_edge({ dst.x,dst.y}, 0, 0, 15, 30+j*20);
 		if (ClickMatchImage(ROI_npc_talk(), templ, "", gThreshold, gMatchMethod, 0, 0, 0, 0, 1, 1200) && wait_fighting()) {
-			log_info("å‘èµ·æˆ˜æ–—æˆåŠŸ");
+			log_info("·¢ÆğÕ½¶·³É¹¦");
 			is_four_man();
 			return true;
 		}
@@ -3396,7 +3413,7 @@ void WindowInfo::supply_mana_hero() {
 	}
 }
 void WindowInfo::handle_health() {
-	log_info("æ£€æŸ¥è¡€è“");
+	log_info("¼ì²éÑªÀ¶");
 	supply_health_hero();
 	supply_health_peg();
 	supply_mana_hero();
@@ -3415,8 +3432,8 @@ void WindowInfo::play_mp3_once() {
 	}
 }
 void WindowInfo::UpdateWindowRect() {
-	// å®é™…æˆªå›¾ä¸çª—å£åœ¨å±å¹•ä¸Šçš„åæ ‡æœ‰åå·®ï¼Œä¿®æ­£
-	// åå°æˆªå›¾ï¼Œçª—å£å³å8åƒç´ ï¼Œçª—å£æ ‡é¢˜31åƒç´ 
+	// Êµ¼Ê½ØÍ¼Óë´°¿ÚÔÚÆÁÄ»ÉÏµÄ×ø±êÓĞÆ«²î£¬ĞŞÕı
+	// ºóÌ¨½ØÍ¼£¬´°¿ÚÓÒÆ«8ÏñËØ£¬´°¿Ú±êÌâ31ÏñËØ
 	int x_fix = 8;
 	int y_fix = 31;
 	GetWindowRect(hwnd, &rect);
@@ -3426,7 +3443,7 @@ void WindowInfo::UpdateWindowRect() {
 	rect.bottom = rect.top + y_fix + wHeight;
 }
 void WindowInfo::SplitTitleAsPlayerId() {
-	// æ ¹æ®çª—å£titleï¼Œè§£æç©å®¶id
+	// ¸ù¾İ´°¿Útitle£¬½âÎöÍæ¼Òid
 	int start, end;
 	start = end = 0;
 	start = player_name.find_last_of('[');
@@ -3459,156 +3476,156 @@ cv::Rect WindowInfo::ROI_task() {
 	return cv::Rect(820, 100, 204, 310);
 }
 cv::Rect WindowInfo::ROI_changan777_changanjiudian() {
-	log_info("é•¿å®‰åˆæˆæ——-é•¿å®‰é…’åº—");
+	log_info("³¤°²ºÏ³ÉÆì-³¤°²¾Æµê");
 	npc_found = false;
 	return cv::Rect(680, 350, 40, 40);
 }
 
 cv::Rect WindowInfo::ROI_changan777_yizhan_laoban() {
-	log_info("é•¿å®‰åˆæˆæ——-é©¿ç«™è€æ¿");
+	log_info("³¤°²ºÏ³ÉÆì-æäÕ¾ÀÏ°å");
 	npc_found = false;
 	return cv::Rect(495, 470, 45, 40);
 }
 
 cv::Rect WindowInfo::ROI_changan777_datangguojing() {
-	log_info("é•¿å®‰åˆæˆæ——-å¤§å”å›½å¢ƒ");
+	log_info("³¤°²ºÏ³ÉÆì-´óÌÆ¹ú¾³");
 	return cv::Rect(235, 498, 35, 45);
 }
 cv::Rect WindowInfo::ROI_changan777_jiangnanyewai() {
-	log_info("é•¿å®‰åˆæˆæ——-æ±Ÿå—é‡å¤–");
+	log_info("³¤°²ºÏ³ÉÆì-½­ÄÏÒ°Íâ");
 	return cv::Rect(750, 498, 50, 45);
 }
 cv::Rect WindowInfo::ROI_changan777_huashengsi() {
-	log_info("é•¿å®‰åˆæˆæ——-åŒ–ç”Ÿå¯º");
+	log_info("³¤°²ºÏ³ÉÆì-»¯ÉúËÂ");
 	return cv::Rect(710, 240, 80, 60);
 }
 cv::Rect WindowInfo::ROI_changan777_dangpu() {
-	log_info("é•¿å®‰åˆæˆæ——-å½“é“º");
+	log_info("³¤°²ºÏ³ÉÆì-µ±ÆÌ");
 	return cv::Rect(530, 490, 60, 50);
 }
 cv::Rect WindowInfo::ROI_changshoucun777_lucheng_n_qiangzhuan() {
-	// è½åœ°åæ ‡:125,110 é’±åº„
-	// è½åœ°åæ ‡:144,141 é²æˆ
-	log_info("é•¿å¯¿æ‘åˆæˆæ——-é²æˆ+é’±åº„");
+	// ÂäµØ×ø±ê:125,110 Ç®×¯
+	// ÂäµØ×ø±ê:144,141 Â³³É
+	log_info("³¤ÊÙ´åºÏ³ÉÆì-Â³³É+Ç®×¯");
 	return cv::Rect(550, 285, 100, 130);
 }
 cv::Rect WindowInfo::ROI_changshoucun777_fangcunshan() {
-	// è½åœ°åæ ‡:108,203
-	log_info("é•¿å¯¿æ‘åˆæˆæ——-æ–¹å¯¸å±±");
+	// ÂäµØ×ø±ê:108,203
+	log_info("³¤ÊÙ´åºÏ³ÉÆì-·½´çÉ½");
 	return cv::Rect(515, 195, 135, 95);
 }
 cv::Rect WindowInfo::ROI_changshoucun777_zhongshusheng() {
-	// è½åœ°åæ ‡:45,160
-	log_info("é•¿å¯¿æ‘åˆæˆæ——-é’Ÿä¹¦ç”Ÿ");
+	// ÂäµØ×ø±ê:45,160
+	log_info("³¤ÊÙ´åºÏ³ÉÆì-ÖÓÊéÉú");
 	return cv::Rect(385, 210, 130, 120);
 }
 cv::Rect WindowInfo::ROI_changshoucun777_dangpu() {
-	// è½åœ°åæ ‡:25,112
-	log_info("é•¿å¯¿æ‘åˆæˆæ——-å½“é“º");
+	// ÂäµØ×ø±ê:25,112
+	log_info("³¤ÊÙ´åºÏ³ÉÆì-µ±ÆÌ");
 	return cv::Rect(385, 330, 115, 125);
 }
 cv::Rect WindowInfo::ROI_changshoucun777_taibaijinxing() {
-	// è½åœ°åæ ‡:44,23
-	log_info("é•¿å¯¿æ‘åˆæˆæ——-å¤ªç™½é‡‘æ˜Ÿ");
+	// ÂäµØ×ø±ê:44,23
+	log_info("³¤ÊÙ´åºÏ³ÉÆì-Ì«°×½ğĞÇ");
 	return cv::Rect(385, 455, 135, 120);
 }
 cv::Rect WindowInfo::ROI_changshoucun777_changshoujiaowai() {
-	// è½åœ°åæ ‡:144,6
-	log_info("é•¿å¯¿æ‘åˆæˆæ——-é•¿å¯¿éƒŠå¤–");
+	// ÂäµØ×ø±ê:144,6
+	log_info("³¤ÊÙ´åºÏ³ÉÆì-³¤ÊÙ½¼Íâ");
 	return cv::Rect(520, 455, 130, 120);
 }
 cv::Rect WindowInfo::ROI_aolaiguo777_nvercun() {
-	// è½åœ°åæ ‡:8,141
-	log_info("å‚²æ¥å›½åˆæˆæ——-å¥³å„¿æ‘");
+	// ÂäµØ×ø±ê:8,141
+	log_info("°ÁÀ´¹úºÏ³ÉÆì-Å®¶ù´å");
 	return cv::Rect(305, 240, 55, 55);
 }
 cv::Rect WindowInfo::ROI_aolaiguo777_qianzhuang() {
-	// è½åœ°åæ ‡:105,55
-	log_info("å‚²æ¥å›½åˆæˆæ——-é’±åº„");
+	// ÂäµØ×ø±ê:105,55
+	log_info("°ÁÀ´¹úºÏ³ÉÆì-Ç®×¯");
 	return cv::Rect(440, 375, 135, 105);
 }
 cv::Rect WindowInfo::ROI_aolaiguo777_penglaixiandao() {
-	// è½åœ°åæ ‡:24,97
-	log_info("å‚²æ¥å›½åˆæˆæ——-è“¬è±ä»™å²›");
+	// ÂäµØ×ø±ê:24,97
+	log_info("°ÁÀ´¹úºÏ³ÉÆì-ÅîÀ³ÏÉµº");
 	return cv::Rect(305, 315, 145, 90);
 }
 cv::Rect WindowInfo::ROI_aolaiguo777_yaodian() {
-	// è½åœ°åæ ‡:48,28
-	log_info("å‚²æ¥å›½åˆæˆæ——-è¯åº—");
+	// ÂäµØ×ø±ê:48,28
+	log_info("°ÁÀ´¹úºÏ³ÉÆì-Ò©µê");
 	return cv::Rect(305, 405, 145, 120);
 }
 cv::Rect WindowInfo::ROI_aolaiguo777_donghaiwan() {
-	// è½åœ°åæ ‡:165,14
-	log_info("å‚²æ¥å›½åˆæˆæ——-ä¸œæµ·æ¹¾");
+	// ÂäµØ×ø±ê:165,14
+	log_info("°ÁÀ´¹úºÏ³ÉÆì-¶«º£Íå");
 	return cv::Rect(550, 445, 180, 80);
 }
 cv::Rect WindowInfo::ROI_aolaiguo777_dangpu() {
-	// è½åœ°åæ ‡:185,62
-	log_info("å‚²æ¥å›½åˆæˆæ——-å½“é“º");
+	// ÂäµØ×ø±ê:185,62
+	log_info("°ÁÀ´¹úºÏ³ÉÆì-µ±ÆÌ");
 	return cv::Rect(550, 350, 180, 95);
 }
 cv::Rect WindowInfo::ROI_aolaiguo777_huaguoshan() {
-	// è½åœ°åæ ‡:215,143
-	log_info("å‚²æ¥å›½åˆæˆæ——-èŠ±æœå±±");
+	// ÂäµØ×ø±ê:215,143
+	log_info("°ÁÀ´¹úºÏ³ÉÆì-»¨¹ûÉ½");
 	return cv::Rect(630, 225, 100, 130);
 }
 cv::Rect WindowInfo::ROI_zhuziguo777_datangjingwai() {
-	// è½åœ°åæ ‡:6,3
-	log_info("æœ±ç´«å›½åˆæˆæ——-å¤§å”å¢ƒå¤–");
+	// ÂäµØ×ø±ê:6,3
+	log_info("Öì×Ï¹úºÏ³ÉÆì-´óÌÆ¾³Íâ");
 	return cv::Rect(290, 490, 60, 50);
 }
 cv::Rect WindowInfo::ROI_zhuziguo777_qilinshan() {
-	// è½åœ°åæ ‡:4,110
-	log_info("æœ±ç´«å›½åˆæˆæ——-éº’éºŸå±±");
+	// ÂäµØ×ø±ê:4,110
+	log_info("Öì×Ï¹úºÏ³ÉÆì-÷è÷ëÉ½");
 	return cv::Rect(285, 245, 95, 100);
 }
 cv::Rect WindowInfo::ROI_zhuziguo777_shenjidaozhang() {
-	// è½åœ°åæ ‡:72,98
-	log_info("æœ±ç´«å›½åˆæˆæ——-ç¥æœºé“äºº");
+	// ÂäµØ×ø±ê:72,98
+	log_info("Öì×Ï¹úºÏ³ÉÆì-Éñ»úµÀÈË");
 	return cv::Rect(380, 245, 235, 115);
 }
 cv::Rect WindowInfo::ROI_zhuziguo777_jiudian() {
-	// è½åœ°åæ ‡:53,42
-	log_info("æœ±ç´«å›½åˆæˆæ——-é…’åº—");
+	// ÂäµØ×ø±ê:53,42
+	log_info("Öì×Ï¹úºÏ³ÉÆì-¾Æµê");
 	return cv::Rect(300, 360, 240, 105);
 }
 cv::Rect WindowInfo::ROI_zhuziguo777_duanmuniangzi() {
-	// è½åœ°åæ ‡:84,9
-	log_info("æœ±ç´«å›½åˆæˆæ——-ç«¯æœ¨å¨˜å­");
+	// ÂäµØ×ø±ê:84,9
+	log_info("Öì×Ï¹úºÏ³ÉÆì-¶ËÄ¾Äï×Ó");
 	return cv::Rect(430, 455, 120, 75);
 }
 cv::Rect WindowInfo::ROI_zhuziguo777_yaodian() {
-	// è½åœ°åæ ‡:147,43
-	log_info("æœ±ç´«å›½åˆæˆæ——-è¯åº—");
+	// ÂäµØ×ø±ê:147,43
+	log_info("Öì×Ï¹úºÏ³ÉÆì-Ò©µê");
 	return cv::Rect(540, 355, 200, 110);
 }
 cv::Rect WindowInfo::ROI_zhuziguo777_sichouzhilu() {
-	// è½åœ°åæ ‡:151,12
-	log_info("æœ±ç´«å›½åˆæˆæ——-ä¸ç»¸ä¹‹è·¯");
+	// ÂäµØ×ø±ê:151,12
+	log_info("Öì×Ï¹úºÏ³ÉÆì-Ë¿³ñÖ®Â·");
 	return cv::Rect(560, 455, 180, 75);
 }
 cv::Rect WindowInfo::ROI_feixingfu_baoxiangguo() {
-	log_info("é£è¡Œç¬¦-å®è±¡å›½");
+	log_info("·ÉĞĞ·û-±¦Ïó¹ú");
 	return cv::Rect(375, 390, 55, 60);
 }
 cv::Rect WindowInfo::ROI_feixingfu_xiliangnvguo() {
-	log_info("é£è¡Œç¬¦-è¥¿å‡‰å¥³å›½");
+	log_info("·ÉĞĞ·û-Î÷Á¹Å®¹ú");
 	return cv::Rect(385, 310, 50, 60);
 }
 cv::Rect WindowInfo::ROI_feixingfu_jianyecheng() {
-	log_info("é£è¡Œç¬¦-å»ºé‚ºåŸ");
+	log_info("·ÉĞĞ·û-½¨Úş³Ç");
 	return cv::Rect(610, 410, 65, 70);
 }
 cv::Rect WindowInfo::ROI_feixingfu_changshoucun() {
-	log_info("é£è¡Œç¬¦-é•¿å¯¿æ‘");
+	log_info("·ÉĞĞ·û-³¤ÊÙ´å");
 	return cv::Rect(390, 240, 50, 70);
 }
 cv::Rect WindowInfo::ROI_feixingfu_zhuziguo() {
-	log_info("é£è¡Œç¬¦-æœ±ç´«å›½");
+	log_info("·ÉĞĞ·û-Öì×Ï¹ú");
 	return cv::Rect(440, 450, 45, 60);
 }
 cv::Rect WindowInfo::ROI_feixingfu_aolaiguo() {
-	log_info("é£è¡Œç¬¦-å‚²æ¥å›½");
+	log_info("·ÉĞĞ·û-°ÁÀ´¹ú");
 	return cv::Rect(755, 465, 70, 70);
 }
 //cv::Rect WindowInfo::ROI_fighting() {
@@ -3636,7 +3653,7 @@ cv::Rect WindowInfo::ROI_fight_action() {
 	return cv::Rect(850, 100, 150, 550);
 }
 void WindowInfo::test() {
-	// ç©å®¶åæ ‡åœ°å€
+	// Íæ¼Ò×ø±êµØÖ·
 	//is_verifying();
 	//scan_npc_pos_addr(NPC_ZEIWANG);
 	//parse_baotu_task_info();
@@ -3645,24 +3662,24 @@ void WindowInfo::test() {
 	//mouse_click_human({ rect.left + 996, rect.top + 8 },0,0,0);
 	//mouse_click_human({ rect.left + 130, rect.top + 645 }, 30, -30, 0);
 	//update_scene_id();
-	//scan_npc_pos_addr_by_id(åº—å°äºŒ);
-	//scan_npc_pos_addr(åº—å°äºŒ);
-	//scan_npc_pos_addr_by_id(é•¿å®‰é©¿ç«™è€æ¿);
-	//scan_npc_pos_addr_by_id(è´¼ç‹);
+	//scan_npc_pos_addr_by_id(µêĞ¡¶ş);
+	//scan_npc_pos_addr(µêĞ¡¶ş);
+	//scan_npc_pos_addr_by_id(³¤°²æäÕ¾ÀÏ°å);
+	//scan_npc_pos_addr_by_id(ÔôÍõ);
 	//scan_npc_pos_addr_by_id(26946341);
 	//update_player_float_pos();
 	//scan_current_scene_npc_id();
-	//update_npc_pos(åº—å°äºŒ);
+	//update_npc_pos(µêĞ¡¶ş);
 	//move_to_position({ 460,140 }, NPC_TALK_VALID_DISTENCE, NPC_TALK_VALID_DISTENCE);
 	//hwnd2mat(hwnd);
 	while (1) {
 		//Sleep(2000);
-		//update_npc_pos(åº—å°äºŒ);
+		//update_npc_pos(µêĞ¡¶ş);
 		update_scene_id();
 		update_player_float_pos();
-		move_to_other_scene({ 6,5 }, å¤§å”å›½å¢ƒ, 60, -60);
+		move_to_other_scene({ 6,5 }, ´óÌÆ¹ú¾³, 60, -60);
 		update_player_float_pos();
-		//log_info("æµ‹è¯•æ—¥å¿—22222");
+		//log_info("²âÊÔÈÕÖ¾22222");
 	}
 }
 
@@ -3673,7 +3690,7 @@ bool TimeProcessor::timeout(uint64_t time) {
 	bool out = getCurrentTimeMilliseconds() - mTime_ms >= time;
 	if (out) {
 		update();
-		//log_info("è¶…æ—¶");
+		//log_info("³¬Ê±");
 	}
 	return out;
 }
@@ -3685,11 +3702,14 @@ bool TimeProcessor::time_wait(uint64_t time) {
 }
 
 GoodMorning::GoodMorning() {
+
+}
+void GoodMorning::find_windows() {
+	winsInfo.clear();
 	for (auto processID : FindPidsByName(TARGET_APP_NAME)) {
 		EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
 	}
 }
-
 void GoodMorning::init() {
 	struct stat st = { 0 };
 	if (stat("screenshot", &st) == -1) {
@@ -3746,24 +3766,56 @@ void GoodMorning::hook_data() {
 	}
 }
 
+//void GoodMorning::work() {
+//	// ´´½¨Ïß³Ì³Ø
+//	std::vector<std::thread> threads;
+//	for (int i = 0;i < this->winsInfo.size();i++) {
+//		auto t1= std::thread(&WindowInfo::scan_npc_pos_in_thread, this->winsInfo[i].get());
+//		t1.detach();
+//		threads.emplace_back(std::move(t1));
+//	}
+//
+//	bool www = true;
+//	while (www) {
+//		//std::thread t1;
+//		for (const auto& winfo : this->winsInfo) {
+//			//log_info("²âÊÔÈÕÖ¾");
+//			//winfo->tScan_npc = 1;
+//			//Sleep(3000);
+//			//continue;
+//
+//			winfo->datu();
+//			if (winfo->popup_verify) {
+//				winfo->datu();
+//			}
+//			if (winfo->time_pawn.timeout(300000)) {
+//				winfo->play_mp3_once();
+//				ForceSetForegroundWindow(winfo->hwnd);
+//				for (int i = 0;i < 5;i++) { log_info("ÔËĞĞ³¬Ê±£¬ÍË³ö"); }
+//				www = false;
+//				break;
+//			}
+//			if (winfo->failure) {
+//				winfo->play_mp3_once();
+//				ForceSetForegroundWindow(winfo->hwnd);
+//				for (int i = 0;i < 5;i++) { log_info("ÔËĞĞÊ§°Ü£¬ÇëÖØĞÂÔËĞĞ³ÌĞòÍË³ö"); }
+//				www = false;
+//				break;
+//			}
+//
+//		}
+//		//Sleep(10);
+//	}
+//	while (true) {
+//		Sleep(10000);
+//	}
+//}
 void GoodMorning::work() {
-	// åˆ›å»ºçº¿ç¨‹æ± 
-	std::vector<std::thread> threads;
-	for (int i = 0;i < this->winsInfo.size();i++) {
-		auto t1= std::thread(&WindowInfo::scan_npc_pos_in_thread, this->winsInfo[i].get());
-		t1.detach();
-		threads.emplace_back(std::move(t1));
-	}
-
-	bool www = true;
-	while (www) {
-		//std::thread t1;
-		for (const auto& winfo : this->winsInfo) {
-			//log_info("æµ‹è¯•æ—¥å¿—");
-			//winfo->tScan_npc = 1;
-			//Sleep(3000);
-			//continue;
-
+	while (pawn) {
+		for(int w=0;w<gm->win_selected.size();w++)
+		{
+			if (!gm->win_selected[w])continue;
+			const auto winfo = gm->winsInfo[w].get();
 			winfo->datu();
 			if (winfo->popup_verify) {
 				winfo->datu();
@@ -3771,31 +3823,36 @@ void GoodMorning::work() {
 			if (winfo->time_pawn.timeout(300000)) {
 				winfo->play_mp3_once();
 				ForceSetForegroundWindow(winfo->hwnd);
-				for (int i = 0;i < 5;i++) { log_info("è¿è¡Œè¶…æ—¶ï¼Œé€€å‡º"); }
-				www = false;
+				for (int i = 0;i < 5;i++) { log_info("ÔËĞĞ³¬Ê±£¬ÍË³ö"); }
+				pawn = false;
 				break;
 			}
 			if (winfo->failure) {
 				winfo->play_mp3_once();
 				ForceSetForegroundWindow(winfo->hwnd);
-				for (int i = 0;i < 5;i++) { log_info("è¿è¡Œå¤±è´¥ï¼Œè¯·é‡æ–°è¿è¡Œç¨‹åºé€€å‡º"); }
-				www = false;
+				for (int i = 0;i < 5;i++) { log_info("ÔËĞĞÊ§°Ü£¬ÇëÖØĞÂÔËĞĞ³ÌĞòÍË³ö"); }
+				pawn = false;
 				break;
 			}
-
+			if (!pawn)break;
 		}
-		//Sleep(10);
-	}
-	while (true) {
-		Sleep(10000);
 	}
 }
 //void GoodMorning::time_pawn_update() {
 //	time_pawn.update();
 //	task_pawn.update();
 //}
+void GoodMorning::scan_thread() {
+	// ´´½¨Ïß³Ì³Ø
+	std::vector<std::thread> threads;
+	for (int i = 0;i < this->winsInfo.size();i++) {
+		auto t1 = std::thread(&WindowInfo::scan_npc_pos_in_thread, this->winsInfo[i].get());
+		t1.detach();
+		threads.emplace_back(std::move(t1));
+	}
+}
 void GoodMorning::update_db() {
-	// å°† JSON å¯¹è±¡åºåˆ—åŒ–å¹¶å†™å…¥æ–‡ä»¶ï¼Œå‚æ•° 4 è¡¨ç¤ºä½¿ç”¨ 4 ä¸ªç©ºæ ¼è¿›è¡Œç¾è§‚æ ¼å¼åŒ–è¾“å‡º
+	// ½« JSON ¶ÔÏóĞòÁĞ»¯²¢Ğ´ÈëÎÄ¼ş£¬²ÎÊı 4 ±íÊ¾Ê¹ÓÃ 4 ¸ö¿Õ¸ñ½øĞĞÃÀ¹Û¸ñÊ½»¯Êä³ö
 	std::ofstream o(dbFile);
 	o << std::setw(4) << db << std::endl;
 }
@@ -3814,7 +3871,7 @@ void GoodMorning::test() {
 		//cv::Rect roi_test(450, 338, 300, 300);
 		//cv::Rect roi_test;
 		//MatchingRectPos(roi_test, "screenshot\\2025-12-09 01-11-22-r30319.png", "object\\btn\\tingtingwufang.png");
-		//auto cursor_pos = MatchingRectLeftTop(winfo.hwnd, ROI_NULL(), img_btn_tingtingwufang, "", 0.78, cv::TM_CCOEFF_NORMED);  // æ¸¸æˆè‡ªèº«çš„é¼ æ ‡
+		//auto cursor_pos = MatchingRectLeftTop(winfo.hwnd, ROI_NULL(), img_btn_tingtingwufang, "", 0.78, cv::TM_CCOEFF_NORMED);  // ÓÎÏ·×ÔÉíµÄÊó±ê
 		//MatchingRectLoc(cv::Rect(200, 200, 3000, 3000), "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor_15.png", "object\\cursors\\cursor_mask.png", 0.78, cv::TM_CCOEFF_NORMED, MATCHLEFTTOP);
 		//MatchingRectLoc(roi_test, "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor.png", "", 0.78, cv::TM_CCOEFF_NORMED, MATCHCENTER);
 		//MatchingRectLoc(cv::Rect(10, 10, 3000, 3000), "screenshot\\2025-12-09 14-19-30-r20911.png", "object\\cursors\\cursor.png", "", 0.78, cv::TM_CCOEFF_NORMED, MATCHLEFTTOP);
@@ -3914,7 +3971,7 @@ cv::Rect ROI_NULL() {
 	return roi_empty;
 }
 
-// --- è¾…åŠ©å‡½æ•°ï¼šå°†åå…­è¿›åˆ¶å­—ç¬¦ä¸²è½¬æ¢ä¸ºå­—èŠ‚å‘é‡å’Œæ©ç å‘é‡ ---
+// --- ¸¨Öúº¯Êı£º½«Ê®Áù½øÖÆ×Ö·û´®×ª»»Îª×Ö½ÚÏòÁ¿ºÍÑÚÂëÏòÁ¿ ---
 void parseAobString(const std::string& aobStr, std::vector<unsigned char>& pattern, std::vector<char>& mask) {
 	int start, end;
 	start = end = 0;
@@ -3928,7 +3985,7 @@ void parseAobString(const std::string& aobStr, std::vector<unsigned char>& patte
 		// to the given end index
 		auto sub_s = aobStr.substr(start, end - start);
 		if (sub_s == "?") {
-			pattern.push_back(0x00); // å ä½ç¬¦
+			pattern.push_back(0x00); // Õ¼Î»·û
 			mask.push_back(1);
 		}
 		else {
@@ -3953,7 +4010,7 @@ std::vector<DWORD> FindPidsByName(const wchar_t* name)
 		//printf("szExeFile: %ws\n", singleProcess.szExeFile);
 		if (_wcsicmp(singleProcess.szExeFile, name) == 0)
 		{
-			// ä¸åŒºåˆ†å¤§å°å†™æ¯”è¾ƒ
+			// ²»Çø·Ö´óĞ¡Ğ´±È½Ï
 			DWORD pid = singleProcess.th32ProcessID;
 			pids.push_back(pid);
 		}
@@ -3981,8 +4038,8 @@ HMODULE getProcessModulesAddress(HANDLE hProcess, const TCHAR* moduleName)
 			GetModuleBaseName(hProcess, hMods[i], lpBaseName, sizeof(lpBaseName) / sizeof(TCHAR));
 
 			if (_wcsicmp(lpBaseName, moduleName) == 0) {
-				// ä¸åŒºåˆ†å¤§å°å†™æ¯”è¾ƒ
-				return *(HMODULE*)&hMods[i];  // 64ä½éœ€è¦è½¬åœ°å€æ‰æ­£ç¡®
+				// ²»Çø·Ö´óĞ¡Ğ´±È½Ï
+				return *(HMODULE*)&hMods[i];  // 64Î»ĞèÒª×ªµØÖ·²ÅÕıÈ·
 			}
 		}
 	}
@@ -4012,7 +4069,7 @@ cv::Mat hwnd2mat(HWND hwnd) {
 
 	hwindowDC = GetDC(hwnd);
 	hwindowCompatibleDC = CreateCompatibleDC(hwindowDC);
-	// HALFTONE ä¸å…¶ä»–ä¸‰ç§æ¨¡å¼ç›¸æ¯”ï¼ŒHALFTONE æ¨¡å¼è¾ƒæ…¢ï¼Œéœ€è¦å¯¹æºå›¾åƒè¿›è¡Œæ›´å¤šçš„å¤„ç†;ä½†ä¼šç”Ÿæˆæ›´é«˜è´¨é‡çš„å›¾åƒã€‚ å¦è¯·æ³¨æ„ï¼Œåœ¨è®¾ç½® HALFTONE æ¨¡å¼åï¼Œå¿…é¡»è°ƒç”¨ SetBrushOrgEx ï¼Œä»¥é¿å…ç”»ç¬”é”™ä½ã€‚
+	// HALFTONE ÓëÆäËûÈıÖÖÄ£Ê½Ïà±È£¬HALFTONE Ä£Ê½½ÏÂı£¬ĞèÒª¶ÔÔ´Í¼Ïñ½øĞĞ¸ü¶àµÄ´¦Àí;µ«»áÉú³É¸ü¸ßÖÊÁ¿µÄÍ¼Ïñ¡£ ÁíÇë×¢Òâ£¬ÔÚÉèÖÃ HALFTONE Ä£Ê½ºó£¬±ØĞëµ÷ÓÃ SetBrushOrgEx £¬ÒÔ±ÜÃâ»­±Ê´íÎ»¡£
 	//SetStretchBltMode(hwindowDC, HALFTONE);
 	//SetBrushOrgEx(hwindowDC, 16, 16, nullptr);
 
@@ -4085,11 +4142,11 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 		// For example, you could store it in a global variable or a vector
 		// and return FALSE to stop enumeration if you only need one HWND.
 		// If you need all HWNDs, return TRUE to continue.
-		// æ¢¦å¹»æœ‰å¥½å‡ ä¸ªçª—å£ï¼Œéœ€è¦è¿‡æ»¤ä¸€ä¸‹
-		// "æ¢¦å¹»è¥¿æ¸¸ ONLINE - "
+		// ÃÎ»ÃÓĞºÃ¼¸¸ö´°¿Ú£¬ĞèÒª¹ıÂËÒ»ÏÂ
+		// "ÃÎ»ÃÎ÷ÓÎ ONLINE - "
 		int cTxtLen = 100;
-		std::string gametitle = "æ¢¦å¹»è¥¿æ¸¸ ONLINE";
-		//std::string gametitle = "æ¢¦å¹»è¥¿æ¸¸ ONLINE - ";
+		std::string gametitle = "ÃÎ»ÃÎ÷ÓÎ ONLINE";
+		//std::string gametitle = "ÃÎ»ÃÎ÷ÓÎ ONLINE - ";
 		// Allocate memory for the string and copy 
 		// the string into the memory. 
 		auto pszMem = (PSTR)VirtualAlloc((LPVOID)NULL,
@@ -4100,17 +4157,28 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 			//printf("111111111\n");
 			//hwnd2mat(hwnd);
 			//win_hwnd = hwnd;
-			// å¦‚æœæ˜¯å¤šæ ‡ç­¾æ¨¡å¼,åªæœ‰mhtab.exeæœ‰çª—å£
+			// Èç¹ûÊÇ¶à±êÇ©Ä£Ê½,Ö»ÓĞmhtab.exeÓĞ´°¿Ú
 			auto winfo = std::make_unique<WindowInfo>((HANDLE)targetProcessId);
 			//WindowInfo winfo((HANDLE)targetProcessId);
 			winfo->hwnd = hwnd;
-			winfo->player_name = pszMem;
+			std::string title = pszMem;
+			int start, end;
+			start = end = 0;
+			start = title.find_last_of('- (');
+			if (start != std::string::npos) {
+				end = title.find_last_of(')');
+				winfo->player_name = title.substr(start + 1, end - start - 1);
+			}
+			else {
+				winfo->player_name = "Î´µÇÂ¼";
+			}
+			//winfo->player_name = pszMem;
 			auto parent_region=findContentBetweenTags(pszMem,"ONLINE - (", "[");
 			if (!parent_region.empty()) {
-				winfo->RegionMonthly=parent_region[0] == "ç•…ç©æœ";//ç•…ç©æœä¸æ—¶é—´æœåŒºåˆ†
+				winfo->RegionMonthly=parent_region[0] == "³©Íæ·ş";//³©Íæ·şÓëÊ±¼ä·şÇø·Ö
 			}
-			gm.winsInfo.push_back(std::move(winfo));
-			printf("çª—å£å¥æŸ„å›è°ƒæˆåŠŸï¼š%s\n", pszMem);
+			gm->winsInfo.push_back(std::move(winfo));
+			printf("´°¿Ú¾ä±ú»Øµ÷³É¹¦£º%s\n", pszMem);
 			VirtualFree(
 				pszMem,       // Base address of block
 				0,             // Bytes of committed pages
@@ -4125,27 +4193,27 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 	return TRUE; // Continue enumeration
 }
 void ForceSetForegroundWindow(HWND hWnd) {
-	// 1. è·å–å½“å‰å‰å°çª—å£çš„çº¿ç¨‹ ID
+	// 1. »ñÈ¡µ±Ç°Ç°Ì¨´°¿ÚµÄÏß³Ì ID
 	DWORD dwForeThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
-	// 2. è·å–è‡ªå·±ç¨‹åºçš„çº¿ç¨‹ ID
+	// 2. »ñÈ¡×Ô¼º³ÌĞòµÄÏß³Ì ID
 	DWORD dwCurrentThreadId = GetCurrentThreadId();
 
-	// 3. å¦‚æœä¸¤ä¸ªçº¿ç¨‹ä¸åŒï¼Œåˆ™è¿›è¡ŒæŒ‚è½½
+	// 3. Èç¹ûÁ½¸öÏß³Ì²»Í¬£¬Ôò½øĞĞ¹ÒÔØ
 	if (dwCurrentThreadId != dwForeThreadId) {
-		// å°†è‡ªå·±çš„è¾“å…¥çŠ¶æ€è¿æ¥åˆ°å‰å°çª—å£çš„è¾“å…¥çŠ¶æ€
+		// ½«×Ô¼ºµÄÊäÈë×´Ì¬Á¬½Óµ½Ç°Ì¨´°¿ÚµÄÊäÈë×´Ì¬
 		AttachThreadInput(dwCurrentThreadId, dwForeThreadId, TRUE);
 
-		// 4. æ‰§è¡Œç½®é¡¶å’Œæ¿€æ´»æ“ä½œ
+		// 4. Ö´ĞĞÖÃ¶¥ºÍ¼¤»î²Ù×÷
 		SetForegroundWindow(hWnd);
 		BringWindowToTop(hWnd);
-		ShowWindow(hWnd, SW_RESTORE); // ç¡®ä¿çª—å£ä¸æ˜¯æœ€å°åŒ–çŠ¶æ€
+		ShowWindow(hWnd, SW_RESTORE); // È·±£´°¿Ú²»ÊÇ×îĞ¡»¯×´Ì¬
 
-		// 5. å®Œæˆåè§£é™¤æŒ‚è½½ï¼ˆéå¸¸é‡è¦ï¼Œå¦åˆ™å¯èƒ½å¯¼è‡´è¾“å…¥çŠ¶æ€æ··ä¹±ï¼‰
+		// 5. Íê³Éºó½â³ı¹ÒÔØ£¨·Ç³£ÖØÒª£¬·ñÔò¿ÉÄÜµ¼ÖÂÊäÈë×´Ì¬»ìÂÒ£©
 		AttachThreadInput(dwCurrentThreadId, dwForeThreadId, FALSE);
 	}
-	else {
-		SetForegroundWindow(hWnd);
-	}
+	//else {
+	//	SetForegroundWindow(hWnd);
+	//}
 }
 void init_log() {
 	log_close();
@@ -4179,7 +4247,7 @@ int randint(int min, int max) {
 }
 void test222(void* uintptr_t) {
 	while (1) {
-		log_info("æµ‹è¯•æ—¥å¿—22222");
+		log_info("²âÊÔÈÕÖ¾22222");
 		Sleep(2000);
 	}
 }
@@ -4430,9 +4498,9 @@ POINT MatchingLoc(cv::Mat& image, cv::Rect roi_rect, const cv::Mat& templ, std::
 	//Drawing shapes on a black canvas
 	//Thresholding an existing image
 
-	// cv2.TM_CCORR_NORMED  # è¿™ä¸ªå¯¹é¢œè‰²æ•æ„Ÿåº¦é«˜ï¼Œå¦‚æœç›®æ ‡å­˜åœ¨ï¼Œå¾ˆå®¹æ˜“é…åˆ°ã€‚ä½†æ˜¯å¦‚æœç›®æ ‡ä¸å­˜åœ¨ä¹Ÿå¾ˆå®¹æ˜“è¯¯åŒ¹é…ä¸”è¿”å›çš„åŒ¹é…ç»“æœä¹Ÿå¾ˆé«˜ã€‚æ‰€ä»¥è¿™ä¸ªæ–¹æ³•åªé€‚ç”¨åŒ¹é…100%å­˜åœ¨çš„ç›®æ ‡
-	// cv::TM_CCOEFF_NORMED è¿™ä¸ªé€šç”¨æ€§å¥½
-	// loc:1åŒ¹é…ä¸­å¿ƒåæ ‡ï¼Œ2åŒ¹é…å·¦ä¸Šè§’åæ ‡ï¼Œå³åŸå§‹åŒ¹é…,3ä¸è®¡ç®—åæ ‡ï¼ŒåªåŒ¹é…æ˜¯å¦å­˜åœ¨
+	// cv2.TM_CCORR_NORMED  # Õâ¸ö¶ÔÑÕÉ«Ãô¸Ğ¶È¸ß£¬Èç¹ûÄ¿±ê´æÔÚ£¬ºÜÈİÒ×Åäµ½¡£µ«ÊÇÈç¹ûÄ¿±ê²»´æÔÚÒ²ºÜÈİÒ×ÎóÆ¥ÅäÇÒ·µ»ØµÄÆ¥Åä½á¹ûÒ²ºÜ¸ß¡£ËùÒÔÕâ¸ö·½·¨Ö»ÊÊÓÃÆ¥Åä100%´æÔÚµÄÄ¿±ê
+	// cv::TM_CCOEFF_NORMED Õâ¸öÍ¨ÓÃĞÔºÃ
+	// loc:1Æ¥ÅäÖĞĞÄ×ø±ê£¬2Æ¥Åä×óÉÏ½Ç×ø±ê£¬¼´Ô­Ê¼Æ¥Åä,3²»¼ÆËã×ø±ê£¬Ö»Æ¥ÅäÊÇ·ñ´æÔÚ
 	cv::Mat image_roi = image;
 	if (!roi_rect.empty()) {
 		// Ensure the ROI is within the image boundaries
@@ -4513,7 +4581,7 @@ POINT MatchingRectLoc(cv::Rect roi_rect, std::string image_path, std::string tem
 	//Drawing shapes on a black canvas
 	//Thresholding an existing image
 
-	// cv2.TM_CCORR_NORMED  # è¿™ä¸ªå¯¹é¢œè‰²æ•æ„Ÿåº¦é«˜
+	// cv2.TM_CCORR_NORMED  # Õâ¸ö¶ÔÑÕÉ«Ãô¸Ğ¶È¸ß
 	POINT pos{ -1, -1 };
 
 	auto image = cv::imread((current_path / image_path).string(), cv::IMREAD_COLOR);
@@ -4588,12 +4656,12 @@ void ThresholdinginRange()
 	// Convert from BGR to HSV colorspace
 	cv::cvtColor(frame, frame_HSV, cv::COLOR_BGR2HSV);
 	// Detect the object based on HSV Range Values
-	// è‰²è°ƒHï¼ˆHueï¼‰ï¼šç”¨è§’åº¦åº¦é‡ï¼Œå–å€¼èŒƒå›´ä¸º0Â°~360Â°ï¼Œä»çº¢è‰²å¼€å§‹æŒ‰é€†æ—¶é’ˆæ–¹å‘è®¡ç®—ï¼Œçº¢è‰²ä¸º0Â°ï¼Œç»¿è‰²ä¸º120Â°,è“è‰²ä¸º240Â°ã€‚
-	// é¥±å’Œåº¦Sï¼ˆSaturationï¼‰ï¼šå–å€¼èŒƒå›´ä¸º0.0~1.0ï¼Œå€¼è¶Šå¤§ï¼Œé¢œè‰²è¶Šé¥±å’Œã€‚ç”¨è·Vè½´çš„è·ç¦»æ¥åº¦é‡ 
-	// æ˜åº¦Vï¼ˆValueï¼‰ï¼šå–å€¼èŒƒå›´ä¸º0(é»‘è‰²)~1(ç™½è‰²)ã€‚è½´V=0ç«¯ä¸ºé»‘è‰²ï¼Œè½´V=1ç«¯ä¸ºç™½è‰²ã€‚
+	// É«µ÷H£¨Hue£©£ºÓÃ½Ç¶È¶ÈÁ¿£¬È¡Öµ·¶Î§Îª0¡ã~360¡ã£¬´ÓºìÉ«¿ªÊ¼°´ÄæÊ±Õë·½Ïò¼ÆËã£¬ºìÉ«Îª0¡ã£¬ÂÌÉ«Îª120¡ã,À¶É«Îª240¡ã¡£
+	// ±¥ºÍ¶ÈS£¨Saturation£©£ºÈ¡Öµ·¶Î§Îª0.0~1.0£¬ÖµÔ½´ó£¬ÑÕÉ«Ô½±¥ºÍ¡£ÓÃ¾àVÖáµÄ¾àÀëÀ´¶ÈÁ¿ 
+	// Ã÷¶ÈV£¨Value£©£ºÈ¡Öµ·¶Î§Îª0(ºÚÉ«)~1(°×É«)¡£ÖáV=0¶ËÎªºÚÉ«£¬ÖáV=1¶ËÎª°×É«¡£
 	//The mask will have 255 (white) for pixels within the range, and 0 (black)otherwise.
-	cv::inRange(frame_HSV, cv::Scalar(30, 100, 100), cv::Scalar(110, 255, 255), frame_threshold);  // é¼ æ ‡
-	//cv::inRange(frame_HSV, cv::Scalar(98, 97, 97), cv::Scalar(188, 255, 255), frame_threshold);  // è°ƒè¯•
+	cv::inRange(frame_HSV, cv::Scalar(30, 100, 100), cv::Scalar(110, 255, 255), frame_threshold);  // Êó±ê
+	//cv::inRange(frame_HSV, cv::Scalar(98, 97, 97), cv::Scalar(188, 255, 255), frame_threshold);  // µ÷ÊÔ
 	//cv::inRange(frame_HSV, cv::Scalar(100, 100, 100), cv::Scalar(140, 255, 255), frame_threshold);  // demo
 	// 3. (Optional) Use bitwise AND to show *only* the blue pixels on the original image
 	cv::Mat blue_only_result;
@@ -4612,12 +4680,12 @@ cv::Mat ThresholdinginRange(cv::Mat frame)
 	// Convert from BGR to HSV colorspace
 	cv::cvtColor(frame, frame_HSV, cv::COLOR_BGR2HSV);
 	// Detect the object based on HSV Range Values
-	// è‰²è°ƒHï¼ˆHueï¼‰ï¼šç”¨è§’åº¦åº¦é‡ï¼Œå–å€¼èŒƒå›´ä¸º0Â°~360Â°ï¼Œä»çº¢è‰²å¼€å§‹æŒ‰é€†æ—¶é’ˆæ–¹å‘è®¡ç®—ï¼Œçº¢è‰²ä¸º0Â°ï¼Œç»¿è‰²ä¸º120Â°,è“è‰²ä¸º240Â°ã€‚
-	// é¥±å’Œåº¦Sï¼ˆSaturationï¼‰ï¼šå–å€¼èŒƒå›´ä¸º0.0~1.0ï¼Œå€¼è¶Šå¤§ï¼Œé¢œè‰²è¶Šé¥±å’Œã€‚ç”¨è·Vè½´çš„è·ç¦»æ¥åº¦é‡ 
-	// æ˜åº¦Vï¼ˆValueï¼‰ï¼šå–å€¼èŒƒå›´ä¸º0(é»‘è‰²)~1(ç™½è‰²)ã€‚è½´V=0ç«¯ä¸ºé»‘è‰²ï¼Œè½´V=1ç«¯ä¸ºç™½è‰²ã€‚
+	// É«µ÷H£¨Hue£©£ºÓÃ½Ç¶È¶ÈÁ¿£¬È¡Öµ·¶Î§Îª0¡ã~360¡ã£¬´ÓºìÉ«¿ªÊ¼°´ÄæÊ±Õë·½Ïò¼ÆËã£¬ºìÉ«Îª0¡ã£¬ÂÌÉ«Îª120¡ã,À¶É«Îª240¡ã¡£
+	// ±¥ºÍ¶ÈS£¨Saturation£©£ºÈ¡Öµ·¶Î§Îª0.0~1.0£¬ÖµÔ½´ó£¬ÑÕÉ«Ô½±¥ºÍ¡£ÓÃ¾àVÖáµÄ¾àÀëÀ´¶ÈÁ¿ 
+	// Ã÷¶ÈV£¨Value£©£ºÈ¡Öµ·¶Î§Îª0(ºÚÉ«)~1(°×É«)¡£ÖáV=0¶ËÎªºÚÉ«£¬ÖáV=1¶ËÎª°×É«¡£
 	//The mask will have 255 (white) for pixels within the range, and 0 (black)otherwise.
-	cv::inRange(frame_HSV, cv::Scalar(30, 100, 100), cv::Scalar(110, 255, 255), frame_threshold);  // é¼ æ ‡
-	//cv::inRange(frame_HSV, cv::Scalar(98, 97, 97), cv::Scalar(188, 255, 255), frame_threshold);  // è°ƒè¯•
+	cv::inRange(frame_HSV, cv::Scalar(30, 100, 100), cv::Scalar(110, 255, 255), frame_threshold);  // Êó±ê
+	//cv::inRange(frame_HSV, cv::Scalar(98, 97, 97), cv::Scalar(188, 255, 255), frame_threshold);  // µ÷ÊÔ
 	//cv::inRange(frame_HSV, cv::Scalar(100, 100, 100), cv::Scalar(140, 255, 255), frame_threshold);  // demo
 	// 3. (Optional) Use bitwise AND to show *only* the blue pixels on the original image
 	cv::Mat blue_only_result;
@@ -4635,7 +4703,7 @@ int Serial() {
 	auto comPortName = getArduinoLeonardoComPort();
 	if (comPortName.empty())
 	{
-		log_error("æ²¡æ‰¾åˆ°com");
+		log_error("Ã»ÕÒµ½com");
 		return 1;
 	}
 	DCB dcbSerialParams = { 0 };
@@ -4643,7 +4711,7 @@ int Serial() {
 
 	// Open the serial port
 	// Use "\\\\.\\COM3" for COM ports >= 10, or "COM3" for COM ports < 10
-	gm.hSerial = CreateFile((L"\\\\.\\" + comPortName).c_str(),
+	gm->hSerial = CreateFile((L"\\\\.\\" + comPortName).c_str(),
 		GENERIC_READ | GENERIC_WRITE,
 		0,                          // No sharing
 		NULL,                       // No security attributes
@@ -4651,16 +4719,16 @@ int Serial() {
 		FILE_ATTRIBUTE_NORMAL,      // Normal file attributes
 		NULL);                      // No template file
 
-	if (gm.hSerial == INVALID_HANDLE_VALUE) {
+	if (gm->hSerial == INVALID_HANDLE_VALUE) {
 		std::cerr << "Error opening serial port." << GetLastError() << std::endl;
 		return 1;
 	}
 
 	// Get current serial port parameters
 	dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
-	if (!GetCommState(gm.hSerial, &dcbSerialParams)) {
+	if (!GetCommState(gm->hSerial, &dcbSerialParams)) {
 		std::cerr << "Error getting comm state." << std::endl;
-		CloseHandle(gm.hSerial);
+		CloseHandle(gm->hSerial);
 		return 1;
 	}
 
@@ -4670,9 +4738,9 @@ int Serial() {
 	dcbSerialParams.Parity = NOPARITY;
 	dcbSerialParams.StopBits = ONESTOPBIT;
 
-	if (!SetCommState(gm.hSerial, &dcbSerialParams)) {
+	if (!SetCommState(gm->hSerial, &dcbSerialParams)) {
 		std::cerr << "Error setting comm state." << std::endl;
-		CloseHandle(gm.hSerial);
+		CloseHandle(gm->hSerial);
 		return 1;
 	}
 
@@ -4683,9 +4751,9 @@ int Serial() {
 	timeouts.WriteTotalTimeoutConstant = 1000;
 	timeouts.WriteTotalTimeoutMultiplier = 10;
 
-	if (!SetCommTimeouts(gm.hSerial, &timeouts)) {
+	if (!SetCommTimeouts(gm->hSerial, &timeouts)) {
 		std::cerr << "Error setting timeouts." << std::endl;
-		CloseHandle(gm.hSerial);
+		CloseHandle(gm->hSerial);
 		return 1;
 	}
 
@@ -4696,7 +4764,7 @@ int Serial() {
 
 void SerialWrite(const char* data) {
 	DWORD bytes_written;
-	if (!WriteFile(gm.hSerial, data, strlen(data), &bytes_written, NULL)) {
+	if (!WriteFile(gm->hSerial, data, strlen(data), &bytes_written, NULL)) {
 		//std::cerr << "Error writing to serial port." << std::endl;
 	}
 	else {
@@ -4708,7 +4776,7 @@ void SerialRead() {
 	// Example: Reading data (simplified, typically done in a loop/thread)
 	char buffer[256];
 	DWORD bytes_read;
-	if (!ReadFile(gm.hSerial, buffer, sizeof(buffer) - 1, &bytes_read, NULL)) {
+	if (!ReadFile(gm->hSerial, buffer, sizeof(buffer) - 1, &bytes_read, NULL)) {
 		//std::cerr << "Error reading from serial port." << std::endl;
 	}
 	else {
@@ -4719,11 +4787,11 @@ void SerialRead() {
 
 void serial_move(POINT pos, int mode) {
 	int64_t snp_len = strlen(MS_MOVE_SYMBOL) + LEN_OF_INT64 + LEN_OF_INT64 + LEN_OF_INT64 + 1;
-	// åœ¨å †ä¸Šåˆ†é…å†…å­˜
+	// ÔÚ¶ÑÉÏ·ÖÅäÄÚ´æ
 	char* data_buf = new char[snp_len];
 	snprintf(data_buf, snp_len, MS_MOVE_SYMBOL, pos.x, pos.y, mode);
 	SerialWrite(data_buf);
-	// ä½¿ç”¨å®Œæ¯•åï¼Œå¿…é¡»æ‰‹åŠ¨é‡Šæ”¾å†…å­˜ï¼Œé˜²æ­¢å†…å­˜æ³„æ¼
+	// Ê¹ÓÃÍê±Ïºó£¬±ØĞëÊÖ¶¯ÊÍ·ÅÄÚ´æ£¬·ÀÖ¹ÄÚ´æĞ¹Â©
 	delete[] data_buf;
 	SerialRead();
 	//Sleep(50);
@@ -4732,11 +4800,11 @@ void serial_move(POINT pos, int mode) {
 //	POINT mouse_pos;
 //	GetCursorPos(&mouse_pos);
 //	int64_t snp_len = strlen(MS_MOVE_HUMAN_SYMBOL) + LEN_OF_INT64 + LEN_OF_INT64 + LEN_OF_INT64 + LEN_OF_INT64 + LEN_OF_INT64 + 1;
-//	// åœ¨å †ä¸Šåˆ†é…å†…å­˜
+//	// ÔÚ¶ÑÉÏ·ÖÅäÄÚ´æ
 //	char* data_buf = new char[snp_len];
 //	snprintf(data_buf, snp_len, MS_MOVE_HUMAN_SYMBOL, mouse_pos.x, mouse_pos.y, pos.x, pos.y, mode);
 //	SerialWrite(data_buf);
-//	// ä½¿ç”¨å®Œæ¯•åï¼Œå¿…é¡»æ‰‹åŠ¨é‡Šæ”¾å†…å­˜ï¼Œé˜²æ­¢å†…å­˜æ³„æ¼
+//	// Ê¹ÓÃÍê±Ïºó£¬±ØĞëÊÖ¶¯ÊÍ·ÅÄÚ´æ£¬·ÀÖ¹ÄÚ´æĞ¹Â©
 //	delete[] data_buf;
 //	SerialRead();
 //	//Sleep(50);
@@ -4755,11 +4823,11 @@ void serial_ctrl_click_cur() {
 }
 void input_alt_xxx(const char* data) {
 	int64_t snp_len = strlen(KEY_ALT_xxx) + strlen(data) + 1;
-	// åœ¨å †ä¸Šåˆ†é…å†…å­˜
+	// ÔÚ¶ÑÉÏ·ÖÅäÄÚ´æ
 	char* data_buf = new char[snp_len];
 	snprintf(data_buf, snp_len, KEY_ALT_xxx, data);
 	SerialWrite(data_buf);
-	// ä½¿ç”¨å®Œæ¯•åï¼Œå¿…é¡»æ‰‹åŠ¨é‡Šæ”¾å†…å­˜ï¼Œé˜²æ­¢å†…å­˜æ³„æ¼
+	// Ê¹ÓÃÍê±Ïºó£¬±ØĞëÊÖ¶¯ÊÍ·ÅÄÚ´æ£¬·ÀÖ¹ÄÚ´æĞ¹Â©
 	delete[] data_buf;
 	SerialRead();
 }
@@ -4774,11 +4842,11 @@ void input_alt_e() {
 
 void input_key_xxx(const char* data) {
 	int64_t snp_len = strlen(KEY_PRESS) + strlen(data) + 1;
-	// åœ¨å †ä¸Šåˆ†é…å†…å­˜
+	// ÔÚ¶ÑÉÏ·ÖÅäÄÚ´æ
 	char* data_buf = new char[snp_len];
 	snprintf(data_buf, snp_len, KEY_PRESS, data);
 	SerialWrite(data_buf);
-	// ä½¿ç”¨å®Œæ¯•åï¼Œå¿…é¡»æ‰‹åŠ¨é‡Šæ”¾å†…å­˜ï¼Œé˜²æ­¢å†…å­˜æ³„æ¼
+	// Ê¹ÓÃÍê±Ïºó£¬±ØĞëÊÖ¶¯ÊÍ·ÅÄÚ´æ£¬·ÀÖ¹ÄÚ´æĞ¹Â©
 	delete[] data_buf;
 	SerialRead();
 }
@@ -4790,35 +4858,38 @@ void input_tab() {
 void input_f1() {
 	input_key_xxx("F1");
 }
+void input_f6() {
+	input_key_xxx("F6");
+}
 void hide_player() {
 	input_key_xxx("F9");
-	log_info("éšè—ç©å®¶");
+	log_info("Òş²ØÍæ¼Ò");
 }
 void hide_stalls() {
 	input_alt_xxx("h");
-	log_info("éšè—æ‘†æ‘Š");
+	log_info("Òş²Ø°ÚÌ¯");
 }
 void hide_player_n_stalls() {
 	SerialWrite(KEY_HIDE);
-	log_info("éšè—ç©å®¶å’Œæ‘†æ‘Š");
+	log_info("Òş²ØÍæ¼ÒºÍ°ÚÌ¯");
 	SerialRead();
 }
 void stop_laba() {
-	log_info("å¼€å§‹åœæ­¢å–‡å­");
+	log_info("¿ªÊ¼Í£Ö¹À®°È");
 	for (int i = 0;i < 1;i++) { 
 		SerialWrite(STOP_MP3); 
 		SerialRead();
 	}
-	log_info("ç»“æŸåœæ­¢å–‡å­");
+	log_info("½áÊøÍ£Ö¹À®°È");
 }
 void play_mp3() {
-	log_info("æ’­æ”¾å–‡å­");
+	log_info("²¥·ÅÀ®°È");
 	int64_t snp_len = strlen(PLAY_MP3) + LEN_OF_INT64 + 1;
-	// åœ¨å †ä¸Šåˆ†é…å†…å­˜
+	// ÔÚ¶ÑÉÏ·ÖÅäÄÚ´æ
 	char* data_buf = new char[snp_len];
 	snprintf(data_buf, snp_len, PLAY_MP3, 1);
 	SerialWrite(data_buf);
-	// ä½¿ç”¨å®Œæ¯•åï¼Œå¿…é¡»æ‰‹åŠ¨é‡Šæ”¾å†…å­˜ï¼Œé˜²æ­¢å†…å­˜æ³„æ¼
+	// Ê¹ÓÃÍê±Ïºó£¬±ØĞëÊÖ¶¯ÊÍ·ÅÄÚ´æ£¬·ÀÖ¹ÄÚ´æĞ¹Â©
 	delete[] data_buf;
 	SerialRead();
 }
@@ -4847,12 +4918,12 @@ std::vector<std::wstring> findContentBetweenTags(
 
 	// Loop until find() returns std::wstring::npos (not found)
 	while ((pos = source.find(startTag, pos)) != std::wstring::npos) {
-		// è®¡ç®—å®é™…å†…å®¹çš„èµ·å§‹ç´¢å¼•ï¼šèµ·å§‹æ ‡è®°çš„ä½ç½® + èµ·å§‹æ ‡è®°çš„é•¿åº¦
+		// ¼ÆËãÊµ¼ÊÄÚÈİµÄÆğÊ¼Ë÷Òı£ºÆğÊ¼±ê¼ÇµÄÎ»ÖÃ + ÆğÊ¼±ê¼ÇµÄ³¤¶È
 		size_t contentStartIdx = pos + startTag.length();
 		size_t endPos = source.find(endTag, contentStartIdx);
-		// æ£€æŸ¥æ˜¯å¦æ‰¾åˆ°äº†ç»“æŸæ ‡è®°
+		// ¼ì²éÊÇ·ñÕÒµ½ÁË½áÊø±ê¼Ç
 		if (endPos != std::wstring::npos) {
-			// substr() çš„ç¬¬äºŒä¸ªå‚æ•°æ˜¯éœ€è¦æå–çš„é•¿åº¦ï¼Œè€Œä¸æ˜¯ç»“æŸç´¢å¼•ã€‚
+			// substr() µÄµÚ¶ş¸ö²ÎÊıÊÇĞèÒªÌáÈ¡µÄ³¤¶È£¬¶ø²»ÊÇ½áÊøË÷Òı¡£
 			size_t length = endPos - contentStartIdx;
 			res.push_back(source.substr(contentStartIdx, length));
 			pos = endPos + endTag.length();
@@ -4872,12 +4943,12 @@ std::vector<std::string> findContentBetweenTags(
 
 	// Loop until find() returns std::wstring::npos (not found)
 	while ((pos = source.find(startTag, pos)) != std::string::npos) {
-		// è®¡ç®—å®é™…å†…å®¹çš„èµ·å§‹ç´¢å¼•ï¼šèµ·å§‹æ ‡è®°çš„ä½ç½® + èµ·å§‹æ ‡è®°çš„é•¿åº¦
+		// ¼ÆËãÊµ¼ÊÄÚÈİµÄÆğÊ¼Ë÷Òı£ºÆğÊ¼±ê¼ÇµÄÎ»ÖÃ + ÆğÊ¼±ê¼ÇµÄ³¤¶È
 		size_t contentStartIdx = pos + startTag.length();
 		size_t endPos = source.find(endTag, contentStartIdx);
-		// æ£€æŸ¥æ˜¯å¦æ‰¾åˆ°äº†ç»“æŸæ ‡è®°
+		// ¼ì²éÊÇ·ñÕÒµ½ÁË½áÊø±ê¼Ç
 		if (endPos != std::string::npos) {
-			// substr() çš„ç¬¬äºŒä¸ªå‚æ•°æ˜¯éœ€è¦æå–çš„é•¿åº¦ï¼Œè€Œä¸æ˜¯ç»“æŸç´¢å¼•ã€‚
+			// substr() µÄµÚ¶ş¸ö²ÎÊıÊÇĞèÒªÌáÈ¡µÄ³¤¶È£¬¶ø²»ÊÇ½áÊøË÷Òı¡£
 			size_t length = endPos - contentStartIdx;
 			res.push_back(source.substr(contentStartIdx, length));
 			pos = endPos + endTag.length();
@@ -4907,92 +4978,112 @@ std::string AnsiToUtf8(const std::string& ansiStr) {
 POINT get_map_max_pixel(unsigned int scene_id) {
 	switch (scene_id)
 	{
-		case å¥³å„¿æ‘:
+		case Å®¶ù´å:
 			return { 320, 360 };
-		case æ™®é™€å±±:
+		case ÆÕÍÓÉ½:
 			return { 369, 276 };
-		case æ±Ÿå—é‡å¤–:
+		case ½­ÄÏÒ°Íâ:
 			return { 369, 273 };
-		case å¤§å”å›½å¢ƒ:
+		case ´óÌÆ¹ú¾³:
 			return { 377, 360 };
-		case å¤§å”å¢ƒå¤–:
+		case ´óÌÆ¾³Íâ:
 			return { 583, 108 };
-		case æœ±ç´«å›½:
+		case Öì×Ï¹ú:
 			return { 439, 276 };
-		case å‚²æ¥å›½:
+		case °ÁÀ´¹ú:
 			return { 410, 276 };
-		case å®è±¡å›½:
+		case ±¦Ïó¹ú:
 			return { 441, 331 };
-		case å»ºé‚ºåŸ:
+		case ½¨Úş³Ç:
 			return { 556, 276 };
-		case äº”åº„è§‚:
+		case Îå×¯¹Û:
 			return { 369, 276 };
-		case é•¿å¯¿æ‘:
+		case ³¤ÊÙ´å:
 			return { 267, 350 };
-		case è¥¿æ¢å¥³å›½:
+		case Î÷ÁºÅ®¹ú:
 			return { 371, 281 };
-		case é•¿å®‰é…’åº—:
+		case ³¤°²¾Æµê:
 			return { 384, 285 };
-		case é•¿å®‰é…’åº—äºŒæ¥¼:
+		case ³¤°²¾Æµê¶şÂ¥:
 			return { 384, 285 };
-		case é•¿å®‰åŸ:
+		case ³¤°²³Ç:
 			return { 545, 276 };
-		case ä¸œæµ·æ¹¾:
+		case ¶«º£Íå:
 			return { 276, 276 };
-		case åŒ–ç”Ÿå¯º:
+		case »¯ÉúËÂ:
 			return { 379, 276 };
-		case é•¿å®‰å›½å­ç›‘:
+		case ³¤°²¹ú×Ó¼à:
 			return { 384, 284 };
-		case é•¿å®‰æ‚è´§åº—:
-			return { 31, 38 };  //ä¹±å†™ï¼Œç›®å‰ä¸ç”¨åˆ°
-		case åœ°åºœ:
+		case ³¤°²ÔÓ»õµê:
+			return { 31, 38 };  //ÂÒĞ´£¬Ä¿Ç°²»ÓÃµ½
+		case µØ¸®:
 			return { 369, 276 };
-		case ç‹®é©¼å²­:
+		case Ê¨ÍÕÁë:
 			return { 369, 276 };
-		case å»ºé‚ºæ‚è´§åº—:
-			return { 119, 119 }; //ä¹±å†™ï¼Œç›®å‰ä¸ç”¨åˆ°
-		case èŠ±æœå±±:
+		case ½¨ÚşÔÓ»õµê:
+			return { 119, 119 }; //ÂÒĞ´£¬Ä¿Ç°²»ÓÃµ½
+		case »¨¹ûÉ½:
 			return { 369, 276 };
-		case é•¿å¯¿éƒŠå¤–:
+		case ³¤ÊÙ½¼Íâ:
 			return { 316, 276 };
-		case å‚²æ¥å®¢æ ˆ:
-			return { 119, 119 }; //ä¹±å†™ï¼Œç›®å‰ä¸ç”¨åˆ°
-		case å‚²æ¥å®¢æ ˆäºŒæ¥¼:
+		case °ÁÀ´¿ÍÕ»:
+			return { 119, 119 }; //ÂÒĞ´£¬Ä¿Ç°²»ÓÃµ½
+		case °ÁÀ´¿ÍÕ»¶şÂ¥:
 			return { 384, 284 };
-		case å‚²æ¥å›½è¯åº—:
-			return { 119, 119 }; //ä¹±å†™ï¼Œç›®å‰ä¸ç”¨åˆ°
+		case °ÁÀ´¹úÒ©µê:
+			return { 119, 119 }; //ÂÒĞ´£¬Ä¿Ç°²»ÓÃµ½
 	}
 	return { -1, -1 };
 }
 //std::vector<POINT> get_scene_npc_list(unsigned int scene_id) {
 //	switch (scene_id)
 //	{
-//		case é•¿å®‰æ‚è´§åº—:
+//		case ³¤°²ÔÓ»õµê:
 //			return changan_zahuodian_npc_list;
-//		case é•¿å®‰é¥°å“åº—:
+//		case ³¤°²ÊÎÆ·µê:
 //			return changan_shipindian_npc_list;
-//		case é•¿å®‰å›½å­ç›‘:
+//		case ³¤°²¹ú×Ó¼à:
 //			return changan_guozijian_npc_list;
-//		case å»ºé‚ºåŸ:
+//		case ½¨Úş³Ç:
 //			return jianyecheng_npc_list;
-//		//case å»ºé‚ºè¡™é—¨:
+//		//case ½¨ÚşÑÃÃÅ:
 //		//	return jianyeyamen_npc_list;
-//		case å»ºé‚ºæ‚è´§åº—:
+//		case ½¨ÚşÔÓ»õµê:
 //			return jianyezahuodian_npc_list;
-//		case å‚²æ¥å®¢æ ˆäºŒæ¥¼:
+//		case °ÁÀ´¿ÍÕ»¶şÂ¥:
 //			return aolaikezhanerlou_npc_list;
-//		case å‚²æ¥å›½è¯åº—:
+//		case °ÁÀ´¹úÒ©µê:
 //			return aolaiguo_yaodian_npc_list;
-//		case é•¿å¯¿æ‘å½“é“º:
+//		case ³¤ÊÙ´åµ±ÆÌ:
 //			return changshoucun_dangpu_npc_list;
-//		//case é•¿å¯¿éƒŠå¤–:
+//		//case ³¤ÊÙ½¼Íâ:
 //		//	return changshoujiaowai_npc_list;
 //	}
 //	return std::vector<POINT>{};
 //}
+
+void handle_hotkey() {
+	// ×¢²áÈÈ¼ü£ºIDÎª1£¬×éºÏ¼üÎª MOD_CONTROL (Ctrl) + '1' (0x31)
+// 0x31 ÊÇ×Ö·û '1' µÄĞéÄâ¼üÂë
+	if (RegisterHotKey(NULL, 1, MOD_CONTROL | MOD_NOREPEAT, 0x31)) {
+		std::cout << "Ctrl + 1 ÈÈ¼ü×¢²á³É¹¦£¬ÕıÔÚ¼àÌı...\n";
+	}
+
+	MSG msg = { 0 };
+	// ±ØĞëÓĞÏûÏ¢Ñ­»·À´½ÓÊÕ WM_HOTKEY ÏûÏ¢
+	while (GetMessage(&msg, NULL, 0, 0)) {
+		if (msg.message == WM_HOTKEY) {
+			if (msg.wParam == 1) { // ¶ÔÓ¦ÉÏÃæ×¢²áµÄ ID 1
+				//std::cout << "¼ì²âµ½ Ctrl + 1 ±»°´ÏÂ£¡" << std::endl;
+				// ÔÚÕâÀïÖ´ĞĞÄãµÄÂß¼­
+				show_win = true;
+			}
+		}
+	}
+}
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nCmdShow)
 {
-	//log_info("æ—¥å¿—è¾“å‡ºæµ‹è¯•");
+	//log_info("ÈÕÖ¾Êä³ö²âÊÔ");
 
 	//CannyThreshold(0, 0);
 	//Image2Gray();
@@ -5017,7 +5108,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 	//for (auto processID : FindPidsByName(TARGET_APP_NAME)) {
 	//	EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&processID));
 	//}
-	//Sleep(10);  // ç­‰ä¸€ä¸‹æšä¸¾çª—å£å¥æŸ„å›è°ƒå®Œæˆå†æ‰§è¡Œ
+	//Sleep(10);  // µÈÒ»ÏÂÃ¶¾Ù´°¿Ú¾ä±ú»Øµ÷Íê³ÉÔÙÖ´ĞĞ
 
 	//HWND hwnd = GetConsoleWindow();
 	// 2. Set new position (x=100, y=100)
@@ -5026,7 +5117,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 	//SetWindowPos(hwnd, NULL, 1280, 510, 640, 530, SWP_NOZORDER);
 
 	init_log();
-	log_info("å¼€å§‹ï¼Œæ£€æµ‹åˆ°çª—å£æ•°é‡:%dä¸ª.", gm.winsInfo.size());
+	gm->find_windows();
+
+	log_info("¿ªÊ¼£¬¼ì²âµ½´°¿ÚÊıÁ¿:%d¸ö.", gm->winsInfo.size());
 
 	// SEED the generator ONCE at the start of the program
 	std::srand(static_cast<unsigned int>(time(nullptr)));
@@ -5061,17 +5154,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
-	// è·¯å¾„é€šå¸¸ä¸º Windows å­—ä½“ç›®å½•ï¼Œæˆ–è€…å°†å­—ä½“æ–‡ä»¶æ‹·è´åˆ°é¡¹ç›®ç›®å½•ä¸‹
-	// æ³¨æ„ï¼šä½¿ç”¨ u8 å‰ç¼€ç¡®ä¿å­—ç¬¦ä¸²ä»¥ UTF-8 å¤„ç†
+	// Â·¾¶Í¨³£Îª Windows ×ÖÌåÄ¿Â¼£¬»òÕß½«×ÖÌåÎÄ¼ş¿½±´µ½ÏîÄ¿Ä¿Â¼ÏÂ
+	// ×¢Òâ£ºÊ¹ÓÃ u8 Ç°×ºÈ·±£×Ö·û´®ÒÔ UTF-8 ´¦Àí
 	ImFont* font = io.Fonts->AddFontFromFileTTF(
-		"fonts/msyh.ttc", // å¾®è½¯é›…é»‘
-		18.0f,                          // å­—å·
+		"fonts/msyh.ttc", // Î¢ÈíÑÅºÚ
+		18.0f,                          // ×ÖºÅ
 		NULL,
-		io.Fonts->GetGlyphRangesChineseFull() // åŠ è½½å®Œæ•´çš„ä¸­æ–‡èŒƒå›´
+		io.Fonts->GetGlyphRangesChineseFull() // ¼ÓÔØÍêÕûµÄÖĞÎÄ·¶Î§
 	);
-	// æ£€æŸ¥å­—ä½“æ˜¯å¦åŠ è½½æˆåŠŸ
+	// ¼ì²é×ÖÌåÊÇ·ñ¼ÓÔØ³É¹¦
 	//if (font == NULL) {
-	//    // å¤„ç†é”™è¯¯ï¼ˆå¦‚è·¯å¾„ä¸å¯¹ï¼‰
+	//    // ´¦Àí´íÎó£¨ÈçÂ·¾¶²»¶Ô£©
 	//}
 
 	// Setup Platform/Renderer backends
@@ -5079,6 +5172,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 	ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+	gm->init();
+	gm->hook_data();
+	gm->scan_thread();
+	//gm.test();
+	//gm.work();
+	static std::thread worker_thread;
+	auto t2 = std::thread(handle_hotkey);
+	t2.detach();
+
+	//auto t2 = std::thread(&GoodMorning::work, &gm);
+	// ×¢²áÈÈ¼ü£ºIDÎª1£¬×éºÏ¼üÎª MOD_CONTROL (Ctrl) + '1' (0x31)
+	// 0x31 ÊÇ×Ö·û '1' µÄĞéÄâ¼üÂë
+	//if (RegisterHotKey(NULL, 1, MOD_CONTROL | MOD_NOREPEAT, 0x31)) {
+	//	std::cout << "Ctrl + 1 ÈÈ¼ü×¢²á³É¹¦£¬ÕıÔÚ¼àÌı...\n";
+	//}
+	//MSG msg = { 0 };
 
 	// Main loop
 	bool done = false;
@@ -5097,6 +5207,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 		if (done)
 			break;
 
+		if (show_win) {
+			gm->find_windows();
+			ForceSetForegroundWindow(hwnd);
+			show_win = false;
+		}
 		// Handle window being minimized or screen locked
 		if (g_SwapChainOccluded && g_pSwapChain->Present(0, DXGI_PRESENT_TEST) == DXGI_STATUS_OCCLUDED)
 		{
@@ -5119,71 +5234,200 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 
-		//ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-		//ImGui::SetNextWindowSize(ImVec2(620, 440), ImGuiCond_Always);
+		// 1. ¶¨ÒåÒ»¸öÈ«¾Ö»ò¾²Ì¬µÄ²¼¶û±äÁ¿À´¿ØÖÆ´°¿ÚÏÔÊ¾×´Ì¬
+		static bool show_settings_window = false;
 
-		auto f_size = ImGui::GetFontSize();
+		// 1. Ñ¹ÈëĞÂµÄ FramePadding ±äÁ¿
+		// Ôö¼ÓµÚ¶ş¸ö²ÎÊı (y) µÄÊıÖµ»áÖ±½Ó³Å¸ß²Ëµ¥À¸
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetFontSize() * 4.0f, ImGui::GetFontSize() * 0.5f));/// µÚÒ»¸öÖµÊÇË®Æ½¼ä¾à£¬µÚ¶ş¸öÖµÊÇ´¹Ö±¼ä¾à£¨¿ØÖÆ¸ß¶ÈµÄ¹Ø¼ü£©
+		if (ImGui::BeginMainMenuBar()) {
+			if (ImGui::BeginMenu(u8"´ò×ø")) {
+				show_settings_window = true;
+				ImGui::EndMenu();
+			}
+			//ImGui::Separator(); // ·Ö¸îÏß
+			if (ImGui::BeginMenu(u8"ÉèÖÃ")) {
+				if (ImGui::MenuItem(u8"Õ¼Î»¸ñ×Ó1", "Ctrl+N")) {
+					/* ´¦ÀíĞÂ½¨Âß¼­ */
+				}
+				if (ImGui::MenuItem(u8"Õ¼Î»¸ñ×Ó2", "Ctrl+O")) {
+					/* ´¦Àí´ò¿ªÂß¼­ */
+				}
+				ImGui::Separator(); // ·Ö¸îÏß
+				if (ImGui::MenuItem(u8"Õ¼Î»¸ñ×Ó3", "Alt+F4")) {
+					// ÍË³ö³ÌĞòÂß¼­
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
+		}
+		// 2. Îñ±Øµ¯³ö±äÁ¿£¬ÒÔÃâÓ°ÏìºóĞø UI
+		ImGui::PopStyleVar();
 
-		// 1. è·å–ä¸»è§†å£çš„ä¿¡æ¯
+		// 3. ¸ù¾İ±êÖ¾Î»äÖÈ¾ĞÂ´°¿Ú
+		if (show_settings_window) {
+			//// 1. ÉèÖÃÁÁÉ«±³¾°£¨´¿°×»òÇ³»Ò£©
+			//ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));
+			//// 2. ÉèÖÃÎÄ×ÖÑÕÉ«ÎªÉîÉ«£¨·ñÔò°×É«±³¾°ÏÂ¿´²»Çå°×É«ÎÄ×Ö£©
+			//ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.10f, 0.10f, 0.10f, 1.00f));
+			//// 3. ÉèÖÃ±êÌâÀ¸ÎªÇ³À¶É«»òÇ³»ÒÉ«
+			//ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.85f, 0.85f, 0.90f, 1.00f));
+
+			ImGui::SetNextWindowSize(ImVec2(450, 300));
+
+			// ¶¨Òå´æ´¢×´Ì¬µÄ±äÁ¿£¨½¨Òé·ÅÔÚÀà³ÉÔ±»ò¾²Ì¬Çø£©
+			// selection[0] ´æ´¢µÚÒ»ĞĞµÄÑ¡ÖĞÖµ£¨0»ò1£©
+			// selection[1] ´æ´¢µÚ¶şĞĞµÄÑ¡ÖĞÖµ£¨0»ò1£©
+			static int selection[2] = { 0, 0 };
+			ImGui::Begin(u8"ÉèÖÃ½ÇÉ«´ò×ø¼¼ÄÜ");
+
+			// ¶¨ÒåÒ»¸ö 3 ÁĞµÄ±í¸ñ£º
+			// 1. Text ÁĞ (×Ô¶¯ÉìËõ¿í¶È)
+			// 2. RadioButton 1 ÁĞ (¹Ì¶¨¿í¶È)
+			// 3. RadioButton 2 ÁĞ (¹Ì¶¨¿í¶È)
+			if (ImGui::BeginTable("RadioTable", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_SizingFixedFit)) {
+
+				// ÉèÖÃÁĞ¿íºÍ¶ÔÆë·½Ê½
+				ImGui::TableSetupColumn(u8"½ÇÉ«Ãû", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_NoSort);
+				ImGui::TableSetupColumn(u8" ", ImGuiTableColumnFlags_WidthFixed);
+				ImGui::TableSetupColumn(u8" ", ImGuiTableColumnFlags_WidthFixed);
+				ImGui::TableHeadersRow();
+
+				for (int i = 0; i < gm->winsInfo.size(); i++) {
+					ImGui::TableNextRow(); // ¿ªÊ¼ĞÂµÄÒ»ĞĞ
+
+					// --- µÚÒ»ÁĞ£º×ó¶ÔÆëµÄÎÄ±¾ ---
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text(AnsiToUtf8(gm->winsInfo[i]->player_name).c_str(), ImVec2(ImGui::GetFontSize() * 12.0f, ImGui::GetFontSize() * 2.0f));
+					// ImGui::Text Ä¬ÈÏ¾ÍÊÇ×ó¶ÔÆëµÄ
+
+					// --- µÚ¶şÁĞ£ºRadioButton 1 ---
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushID(i * 2); // ¸ôÀë ID
+					if (ImGui::RadioButton(u8"F6", &selection[i], 0)) {
+
+					}
+					ImGui::PopID();
+
+					// --- µÚÈıÁĞ£ºRadioButton 2 ---
+					ImGui::TableSetColumnIndex(2);
+					ImGui::PushID(i * 2 + 1); // ¸ôÀë ID
+					if (ImGui::RadioButton(u8"ÎŞ", &selection[i], 1)) {
+
+					}
+					ImGui::PopID();
+				}
+
+				ImGui::EndTable();
+			}
+			ImGui::End();
+			// Îñ±Øµ¯³öÑùÊ½£¬ÒÔÃâÓ°ÏìÆäËû´°¿Ú
+			//ImGui::PopStyleColor(3);
+
+		}
+
+		// 1. »ñÈ¡Ö÷ÊÓ¿ÚµÄĞÅÏ¢
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
-		// 2. è®¾ç½®ä¸‹ä¸€ä¸ªçª—å£çš„ä½ç½®å’Œå¤§å°ä¸ºè§†å£çš„å…¨éƒ¨èŒƒå›´
+		// 2. ÉèÖÃÏÂÒ»¸ö´°¿ÚµÄÎ»ÖÃºÍ´óĞ¡ÎªÊÓ¿ÚµÄÈ«²¿·¶Î§
 		ImGui::SetNextWindowPos(viewport->WorkPos);
 		ImGui::SetNextWindowSize(viewport->WorkSize);
-		// 3. ä½¿ç”¨ç‰¹å®šçš„ Flag ç§»é™¤æ ‡é¢˜æ ã€ç¼©æ”¾æ‰‹æŸ„å’ŒèƒŒæ™¯ï¼Œä½¿å…¶çœ‹èµ·æ¥åƒèƒŒæ™¯å±‚
-		ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | // æ— æ ‡é¢˜æ ã€æ— è¾¹æ¡†ã€æ— ç¼©æ”¾
-			ImGuiWindowFlags_NoMove |       // ç¦æ­¢ç”¨æˆ·ç§»åŠ¨
-			ImGuiWindowFlags_NoResize |     // ç¦æ­¢ç”¨æˆ·ç¼©æ”¾
-			ImGuiWindowFlags_NoSavedSettings | // ä¸ä¿å­˜åˆ° .ini
-			ImGuiWindowFlags_NoBringToFrontOnFocus; // ç‚¹å‡»æ—¶ä¸æ”¹å˜å±‚çº§
+		// 3. Ê¹ÓÃÌØ¶¨µÄ Flag ÒÆ³ı±êÌâÀ¸¡¢Ëõ·ÅÊÖ±úºÍ±³¾°£¬Ê¹Æä¿´ÆğÀ´Ïñ±³¾°²ã
+		ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | // ÎŞ±êÌâÀ¸¡¢ÎŞ±ß¿ò¡¢ÎŞËõ·Å
+			ImGuiWindowFlags_NoMove |       // ½ûÖ¹ÓÃ»§ÒÆ¶¯
+			ImGuiWindowFlags_NoResize |     // ½ûÖ¹ÓÃ»§Ëõ·Å
+			ImGuiWindowFlags_NoSavedSettings | // ²»±£´æµ½ .ini
+			ImGuiWindowFlags_NoBringToFrontOnFocus; // µã»÷Ê±²»¸Ä±ä²ã¼¶
 
-		// 2. ç¼–å†™ UI ç•Œé¢
+		static int task_index = 0; // ¼ÇÂ¼ÄÄ¸öË÷Òı±»Ñ¡ÖĞ
+		// 2. ±àĞ´ UI ½çÃæ
 		ImGui::Begin("FullscreenWindow", NULL, flags);
-		if (ImGui::Button("å®å›¾", ImVec2(f_size * 8.0f, f_size * 2.0f))) {
-			/* ç‚¹å‡»é€»è¾‘ */
+		if(task_index == 0) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+		if (ImGui::Button(u8"±¦Í¼", ImVec2(ImGui::GetFontSize() * 8.0f, ImGui::GetFontSize() * 2.0f))) {
+			task_index = 0;
+		}
+		else {
+			if (task_index == 0) ImGui::PopStyleColor();
 		}
 
-		ImGui::SameLine(); // å…³é”®ï¼šå‘Šè¯‰ ImGui ä¸è¦æ¢è¡Œ
-		ImGui::SameLine(0.0f, 20.0f); // 20.0f æ˜¯ä¸¤ä¸ªæŒ‰é’®ä¹‹é—´çš„åƒç´ é—´è·
-		if (ImGui::Button("æ‰é¬¼", ImVec2(f_size * 8.0f, f_size * 2.0f))) {
-			/* ç‚¹å‡»é€»è¾‘ */
+		ImGui::SameLine(); // ¹Ø¼ü£º¸æËß ImGui ²»Òª»»ĞĞ
+		ImGui::SameLine(0.0f, 20.0f); // 20.0f ÊÇÁ½¸ö°´Å¥Ö®¼äµÄÏñËØ¼ä¾à
+		if (task_index == 1) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+		if (ImGui::Button(u8"×½¹í", ImVec2(ImGui::GetFontSize() * 8.0f, ImGui::GetFontSize() * 2.0f))) {
+			/* µã»÷Âß¼­ */
+			task_index = 1;
+		}
+		else {
+			if (task_index == 1) ImGui::PopStyleColor();
+		}
+		int num = gm->winsInfo.size();
+		static std::vector<char> selection_states(num, 1); // 0 ÎªÎ´Ñ¡£¬1 ÎªÑ¡ÖĞ
+
+		if (task_index == 0) {
+			ImGui::Text(u8"Ñ¡Ôñ½ÇÉ«£º");
+			if (selection_states.size() != num) {
+				selection_states.resize(num, 1);
+			}
+			// ½¨ÒéÊ¹ÓÃ char Êı×é»ò std::vector<char>£¬ÒòÎª std::vector<bool> ÎŞ·¨È¡µØÖ·
+			static bool select_all = true;
+			if (ImGui::Checkbox(u8"È«Ñ¡", &select_all)) {
+				for (int i = 0; i < num; i++) selection_states[i] = select_all;
+			}
+
+			for (int i = 0; i < num; i++) {
+				// ImGui::Checkbox ĞèÒª´«Èë bool µÄÖ¸Õë
+				// Ê¹ÓÃ char Ç¿×ª bool Ö¸ÕëÊÇ°²È«µÄ
+				bool selected = (bool)selection_states[i];
+				if (ImGui::Checkbox(AnsiToUtf8(gm->winsInfo[i]->player_name).c_str(), &selected)) {
+					// µ±×´Ì¬¸Ä±äÊ±Ö´ĞĞÂß¼­
+					selection_states[i] = (char)selected;
+				}
+			}
 		}
 
-		// 1. è·å–çª—å£çš„å¯ç”¨ç©ºé—´å¤§å°
+		// 1. »ñÈ¡´°¿ÚµÄ¿ÉÓÃ¿Õ¼ä´óĞ¡
 		ImVec2 windowSize = ImGui::GetWindowSize();
 		ImVec2 contentSize = ImGui::GetContentRegionAvail();
 
-		// 2. å®šä¹‰æŒ‰é’®çš„å¤§å°
-		ImVec2 buttonSize(f_size * 8.0f, f_size * 2.0f);
-		float spacing = ImGui::GetStyle().ItemSpacing.x; // æŒ‰é’®é—´çš„é—´è·
-		float padding = ImGui::GetStyle().WindowPadding.y; // åº•éƒ¨ç•™ç™½
+		// 2. ¶¨Òå°´Å¥µÄ´óĞ¡
+		ImVec2 buttonSize(ImGui::GetFontSize() * 8.0f, ImGui::GetFontSize() * 2.0f);
+		float spacing = ImGui::GetStyle().ItemSpacing.x; // °´Å¥¼äµÄ¼ä¾à
+		float padding = ImGui::GetStyle().WindowPadding.y; // µ×²¿Áô°×
 
-		// 3. è®¡ç®—å³ä¸‹è§’çš„èµ·å§‹ä½ç½®
-		// X è½´ï¼šçª—å£å®½åº¦ - ä¸¤ä¸ªæŒ‰é’®å®½åº¦ - æŒ‰é’®é—´è· - å³ä¾§è¾¹è·
+		// 3. ¼ÆËãÓÒÏÂ½ÇµÄÆğÊ¼Î»ÖÃ
+		// X Öá£º´°¿Ú¿í¶È - Á½¸ö°´Å¥¿í¶È - °´Å¥¼ä¾à - ÓÒ²à±ß¾à
 		float posX = windowSize.x - (buttonSize.x * 3) - spacing - ImGui::GetStyle().WindowPadding.x;
-		// Y è½´ï¼šçª—å£é«˜åº¦ - æŒ‰é’®é«˜åº¦ - åº•éƒ¨è¾¹è·
+		// Y Öá£º´°¿Ú¸ß¶È - °´Å¥¸ß¶È - µ×²¿±ß¾à
 		float posY = windowSize.y - buttonSize.y - padding;
 
-		// 4. è®¾ç½®å…‰æ ‡ä½ç½®ï¼ˆè¿™æ˜¯å…³é”®ï¼‰
+		// 4. ÉèÖÃ¹â±êÎ»ÖÃ£¨ÕâÊÇ¹Ø¼ü£©
 		ImGui::SetCursorPos(ImVec2(posX, posY));
 
-		// 5. æ¸²æŸ“æŒ‰é’®
-		if (ImGui::Button("åˆ·æ–°", buttonSize)) {
-			// å¤„ç†ç¡®å®šé€»è¾‘
+		// 5. äÖÈ¾°´Å¥
+		if (ImGui::Button(u8"Ë¢ĞÂ", buttonSize)) {
+			// ´¦ÀíÈ·¶¨Âß¼­
+			gm->find_windows();
 		}
-
-		ImGui::SameLine(); // å¹¶æ’
-
-		if (ImGui::Button("æš‚åœ", buttonSize)) {
-			// å¤„ç†å–æ¶ˆé€»è¾‘
+		ImGui::SameLine(); // ²¢ÅÅ
+		if (ImGui::Button(u8"ÔİÍ£", buttonSize)) {
+			// ´¦ÀíÈ¡ÏûÂß¼­
+			pawn = false;
 		}
-		ImGui::SameLine(); // å¹¶æ’
-
-		if (ImGui::Button("å¼€å§‹", buttonSize)) {
-			// å¤„ç†å–æ¶ˆé€»è¾‘
+		ImGui::SameLine(); // ²¢ÅÅ
+		if (ImGui::Button(u8"¿ªÊ¼", buttonSize)) {
+			// ´¦ÀíÈ¡ÏûÂß¼­
+			pawn = true;
+			gm->win_selected = selection_states;
+			// °²È«¼ì²é£ºÈç¹ûÖ®Ç°µÄÏß³ÌÒÑ¾­½áÊøµ«Ã»»ØÊÕ£¬ÏÈ join »ØÊÕ×ÊÔ´
+			//if (worker_thread.joinable()) {
+			//	worker_thread.join();
+			//}
+			worker_thread = std::thread(&GoodMorning::work, gm.get());
+			// Èç¹ûÄã²»´òËã join Ò²¿ÉÒÔÓÃ detach£¬µ« joinable ¹ÜÀí¸ü°²È«
+			worker_thread.detach(); 
+			ShowWindow(hwnd, SW_HIDE);
+			show_win = false;
 		}
 		ImGui::End();
-
-
 
 		// Rendering
 		ImGui::Render();
@@ -5207,10 +5451,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 	::DestroyWindow(hwnd);
 	::UnregisterClassW(wc.lpszClassName, wc.hInstance);
 
-	gm.init();
-	gm.hook_data();
-	//gm.test();
-	gm.work();
 	return 0;
 }
 
