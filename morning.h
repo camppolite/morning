@@ -377,7 +377,7 @@ public:
 	std::string scene;
 	unsigned int m_scene_id = 0;
 	std::string player_name;  // 梦幻西游 ONLINE - (四川1区[嘉陵江] - Ⅻ闵Ξ青[16705567])
-	std::string player_id="0";
+	std::string player_id;
 	bool is_leader = false;//队长
 	bool mp3_playing = false;
 	bool moving = false;
