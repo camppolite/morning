@@ -68,8 +68,10 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define 长安驿站老板 1073741826  // 长安驿站老板
 #define 长安驿站老板_card 536870914  // 长安驿站老板
 #define 贼王 2  // 贼王
-#define TASK_BAOTU 4  // 宝图任务
-#define TASK_ZEIWANG 5  // 贼王任务
+#define 宝图任务 4  // 宝图任务
+#define 贼王任务 5  // 贼王任务
+#define 捉鬼任务 6  // 捉鬼任务
+
 
 const char* PLAY_MP3 = "mmp3:PLAY_%d\n";
 const char* STOP_MP3 = "mmp3:STOP\n";
@@ -84,7 +86,7 @@ const char* KEY_ALT_xxx = "hkey:ALT_%s\n";
 const char* KEY_PRESS = "hkey:%s\n";
 const char* KEY_HIDE = "hide\n";
 
-std::string work_start("work_start");
+std::string datu_start("datu_start");
 std::string to_changan_jiudian("to_changan_jiudian");
 std::string scan_dianxiaoer_pos("scan_dianxiaoer");
 std::string to_dianxiaoer_get_task("to_dianxiaoer_get_task");
@@ -98,7 +100,7 @@ std::string scan_zeiwang_pos("scan_zeiwang_pos");
 std::string attack_zeiwang("attack_zeiwang");
 std::string baotu_end("baotu_end");
 std::vector<std::string*> datu_step = {
-	&work_start,
+	&datu_start,
 	&to_changan_jiudian,
 	& scan_dianxiaoer_pos,
 	&to_dianxiaoer_get_task, 
@@ -111,6 +113,22 @@ std::vector<std::string*> datu_step = {
 	& scan_zeiwang_pos,
 	& attack_zeiwang,
 	&baotu_end
+};
+std::string zhuogui_start("zhuogui_start");
+std::string to_zhongkui("to_zhongkui");
+std::string to_zhongkui_get_task("to_zhongkui_get_task");
+std::string use_tianyantong("use_tianyantong");
+std::string goto_gui_scene("goto_gui_scene");
+std::string attack_gui("attack_gui");
+std::string zhuogui_end("zhuogui_end");
+std::vector<std::string*> zhuogui_step = {
+	&zhuogui_start,
+	& to_zhongkui,
+	& to_zhongkui_get_task,
+	& use_tianyantong,
+	& goto_gui_scene,
+	& attack_gui,
+	& zhuogui_end
 };
 //std::vector<std::thread>
 double gThreshold = 0.83;  // 默认值
@@ -145,7 +163,6 @@ public:
 	std::vector<std::string*> steps;
 	std::string* current;
 	int index=0;
-	bool end = false;
 };
 class TimeProcessor {
 public:
@@ -162,7 +179,7 @@ public:
 	void init();
 	void data_reset();
 	void hook_init();
-	void datu();
+	void do_work();
 	void test();
 
 	std::vector<uintptr_t> ScanMemoryRegionEx(HANDLE hProcess, LPCVOID startAddress, SIZE_T regionSize, const BYTE* pattern, size_t pattern_size, const char* mask);
@@ -179,7 +196,7 @@ public:
 	bool WaitMatchingGrayRectExist(cv::Rect roi_rect, const cv::Mat& templ, int timeout = 2000, std::string mask_path = "", double threshold = gThreshold, int match_method = cv::TM_CCORR_NORMED);
 	bool WaitMatchingRectExist(cv::Rect roi_rect, const cv::Mat& templ, int timeout = 2000, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
 	bool WaitMatchingRectDisapper(cv::Rect roi_rect, const cv::Mat& templ, int timeout = 1000, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod);
-	bool mouse_click_human(POINT pos, int xs = 0, int ys = 0, int mode = 1);
+	bool mouse_click_human(POINT pos, int xs = 0, int ys = 0, int mode = 1, int threshold=6);
 	POINT get_cursor_pos(POINT pos);
 	bool ClickMatchImage(cv::Rect roi_rect, const cv::Mat& templ, std::string mask_path = "", double threshold = gThreshold, int match_method = gMatchMethod, int x_fix = 0, int y_fix = 0, int xs = 0, int ys = 0, int mode = 1, int timeout = 500);
 	void scan_npc_pos_in_thread();
@@ -222,18 +239,21 @@ public:
 	int convert_to_map_pos_x(float x);
 	int convert_to_map_pos_y(float y);
 	bool talk_to_dianxiaoer();
+	bool talk_to_zhongkui();
 	void parse_baotu_task_info();
 	void parse_baotu_task_info_card();
 	void parse_zeiwang_info();
-	bool goto_scene(POINT dst, unsigned int scene_id);
-	void move_to_position(POINT dst, long active_x = 0, long active_y = 0);
+	void parse_zhuogui_info_card();
+	bool goto_scene(POINT dst, unsigned int scene_id, bool star = true);
+	void move_to_position(POINT dst, long active_x = 0, long active_y = 0, bool star=true);
 	void move_to_position_flat(POINT dst, long active_x = 0, long active_y = 0);
 	void move_via_map(POINT dst);
 	void move_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao=false);
 	void ship_to_other_scene(POINT door, unsigned int scene_id, int xs = 0, int ys = 0, bool close_beibao = false);
-	bool click_position(POINT dst, int xs = 0, int ys = 0, int x_fix = 0, int y_fix = 0, int mode = 1);
-	void click_position_at_edge(POINT dst, int xs = 0, int ys = 0, int x_fix = 0, int y_fix = 0, int mode = 1);
+	bool click_position(POINT dst, int xs = 0, int ys = 0, int x_fix = 0, int y_fix = 0, int mode = 1, int threshold = 6);
+	void click_position_at_edge(POINT dst, int xs = 0, int ys = 0, int x_fix = 0, int y_fix = 0, int mode = 1, int threshold = 6);
 	bool talk_to_npc_fight(POINT dst, const cv::Mat& templ);
+	bool attack_npc_fight(POINT dst);
 	void goto_changanjiudian();
 	void from_changan_fly_to_datangguojing();
 	void from_datangguojing_to_datangjingwai();
@@ -258,6 +278,7 @@ public:
 	bool wait_scene_change(unsigned int scene_id, int timeout = 1700);
 	void close_npc_talk();
 	bool close_npc_talk_fast();
+	void close_npc_talk2();
 	bool low_health(cv::Rect roi, int deadline);
 	bool low_mana(cv::Rect roi, int deadline);
 	void supply_health_hero();
@@ -340,6 +361,9 @@ public:
 	float changan_yizhanlaoban_pos_x = 0;
 	float changan_yizhanlaoban_pos_y = 0;
 
+	unsigned int zhuogui_target_scene_id = 0;
+	POINT zhuogui_target_pos = { 0, 0 };
+
 	unsigned int baotu_target_scene_id = 0;
 	POINT baotu_target_pos = { 0, 0 };
 	unsigned int baotu_task_count = 0;  // 今日领取第几次任务
@@ -353,7 +377,8 @@ public:
 	std::string scene;
 	unsigned int m_scene_id = 0;
 	std::string player_name;  // 梦幻西游 ONLINE - (四川1区[嘉陵江] - Ⅻ闵Ξ青[16705567])
-	std::string player_id;
+	std::string player_id="0";
+	bool is_leader = false;//队长
 	bool mp3_playing = false;
 	bool moving = false;
 	bool failure = false;
@@ -376,7 +401,7 @@ public:
 	HMODULE mhmainDllBase = 0;
 	PFN_NtReadVirtualMemory pNtReadVirtualMemory;
 
-	Step step = Step(datu_step);
+	Step step;
 	TimeProcessor time_pawn = TimeProcessor();
 	//std::thread thread1 = std::thread(&WindowInfo::test, this);
 
@@ -405,12 +430,14 @@ private:
 	const cv::Mat* m_img_btn_womenhouhuiyouqi;
 	const cv::Mat* m_img_btn_luanchiyao_hairenming;
 	const cv::Mat* m_img_btn_woshenmedoubuzuo;
+	const cv::Mat* m_img_btn_haode_wobangni;
 
 	const cv::Mat* m_img_props_red_777;
 	const cv::Mat* m_img_props_white_777;
 	const cv::Mat* m_img_props_green_777;
 	const cv::Mat* m_img_props_yellow_777;
 	const cv::Mat* m_img_props_sheyaoxiang;
+	const cv::Mat* m_img_props_tianyantong;
 	const cv::Mat* m_img_npc_dianxiaoer;
 
 
@@ -458,6 +485,7 @@ private:
 	const cv::Mat* m_img_symbol_zeiwang;
 	const cv::Mat* m_img_symbol_paixu_verify_reset;
 	const cv::Mat* m_img_symbol_jibaile50geqiangdao;
+	const cv::Mat* m_img_symbol_zhuogui_title_gray;
 
 	const cv::Mat* m_img_cursors_cursor;
 };
@@ -476,7 +504,7 @@ public:
 
 	const char* dbFile = "database";
 	json db;
-	bool waiting = false;
+	int task_enum = 宝图任务;
 	std::vector<std::unique_ptr<WindowInfo>> winsInfo;
 	std::vector<char> win_selected;
 	HANDLE hSerial;
