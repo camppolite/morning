@@ -58,6 +58,8 @@ typedef NTSTATUS(NTAPI* PFN_NtReadVirtualMemory)(
 #define dianxiaoer_valid_distence 4  // 与店小二对话时的最大有效距离
 #define MAP_MOVE_DISTENCE 5  // 地图移动保持距离
 #define NPC_TALK_VALID_DISTENCE 9  // 与NPC对话时的最大有效距离
+#define ATTACK_VALID_DISTENCE_X 12 
+#define ATTACK_VALID_DISTENCE_Y 10 
 #define MATCHCENTER 1
 #define MATCHLEFTTOP 2
 #define MATCHEXIST 3
@@ -326,6 +328,7 @@ public:
 	cv::Rect ROI_feixingfu_changshoucun();
 	cv::Rect ROI_feixingfu_zhuziguo();
 	cv::Rect ROI_feixingfu_aolaiguo();
+	cv::Rect ROI_feixingfu_changancheng();
 	//cv::Rect ROI_fighting();
 	cv::Rect ROI_health_hero();
 	cv::Rect ROI_health_peg();
@@ -401,7 +404,7 @@ public:
 	HMODULE mhmainDllBase = 0;
 	PFN_NtReadVirtualMemory pNtReadVirtualMemory;
 
-	Step step;
+	Step step = Step(datu_step);
 	TimeProcessor time_pawn = TimeProcessor();
 	//std::thread thread1 = std::thread(&WindowInfo::test, this);
 
@@ -436,6 +439,7 @@ private:
 	const cv::Mat* m_img_props_white_777;
 	const cv::Mat* m_img_props_green_777;
 	const cv::Mat* m_img_props_yellow_777;
+	const cv::Mat* m_img_props_blue_777;
 	const cv::Mat* m_img_props_sheyaoxiang;
 	const cv::Mat* m_img_props_tianyantong;
 	const cv::Mat* m_img_npc_dianxiaoer;
@@ -477,6 +481,7 @@ private:
 	const cv::Mat* m_img_symbol_feixingfu_changshoucun;
 	const cv::Mat* m_img_symbol_feixingfu_aolaiguo;
 	const cv::Mat* m_img_symbol_feixingfu_zhuziguo;
+	const cv::Mat* m_img_symbol_feixingfu_changancheng;
 	const cv::Mat* m_img_symbol_yidongdezi_gray;
 	const cv::Mat* m_img_symbol_gaosunitadecangshenweizhi;
 	const cv::Mat* m_img_symbol_wozhidaowomenlaodadexingzong;
