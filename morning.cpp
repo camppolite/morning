@@ -5237,15 +5237,15 @@ void ThresholdinginRange()
 	// 饱和度S（Saturation）：取值范围为0.0~1.0，值越大，颜色越饱和。用距V轴的距离来度量 
 	// 明度V（Value）：取值范围为0(黑色)~1(白色)。轴V=0端为黑色，轴V=1端为白色。
 	//The mask will have 255 (white) for pixels within the range, and 0 (black)otherwise.
-	cv::inRange(frame_HSV, cv::Scalar(30, 100, 100), cv::Scalar(110, 255, 255), frame_threshold);  // 鼠标
-	//cv::inRange(frame_HSV, cv::Scalar(98, 97, 97), cv::Scalar(188, 255, 255), frame_threshold);  // 调试
+	//cv::inRange(frame_HSV, cv::Scalar(30, 100, 100), cv::Scalar(110, 255, 255), frame_threshold);  // 鼠标
+	cv::inRange(frame_HSV, cv::Scalar(40, 100, 100), cv::Scalar(90, 255, 255), frame_threshold);  // 四小人调试
 	//cv::inRange(frame_HSV, cv::Scalar(100, 100, 100), cv::Scalar(140, 255, 255), frame_threshold);  // demo
 	// 3. (Optional) Use bitwise AND to show *only* the blue pixels on the original image
 	cv::Mat blue_only_result;
 	bitwise_and(frame, frame, blue_only_result, frame_threshold);
-	auto current_path = fs::current_path();
-	current_path /= "mask.png";
-	cv::imwrite(current_path.string(), frame_threshold); // A black and white mask
+	//auto current_path = fs::current_path();
+	//current_path /= "mask.png";
+	//cv::imwrite(current_path.string(), frame_threshold); // A black and white mask
 
 	cv::imwrite("222.png", blue_only_result);// Original colors where blue was found
 	//cv::imshow("output", frame_threshold);
