@@ -205,6 +205,7 @@ public:
 	//void scan_npc_pos_addr(int npc);
 	void scan_npc_pos_addr_by_id(unsigned int npc);
 	void scan_zeiwang_id();
+	void scan_zeiwang_id_card();
 	void scan_current_scene_npc_id();
 	void update_player_float_pos();
 	void update_scene();
@@ -391,6 +392,7 @@ public:
 	int tScan_npc = THREAD_IDLE;  //线程后台扫描内存
 	// Atomic variable shared across threads
 	//std::atomic<int> tScan_npc{ NPC_IDLE }; //线程后台扫描内存
+	WORD last_baotu_task_day = 0;//上次接宝图任务日期
 
 	HANDLE pid;
 	HWND hwnd;
@@ -507,6 +509,7 @@ public:
 	//void time_pawn_update();
 	void update_db();
 
+	bool failure = false;
 	const char* dbFile = "database";
 	json db;
 	int task_enum = 宝图任务;
