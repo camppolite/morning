@@ -1100,7 +1100,10 @@ void WindowInfo::do_work() {
 			my_log.AddLog("attack_gui,%s\n", player_id);
 			if (is_near_loc(zhuogui_target_pos, ATTACK_VALID_DISTENCE_X, ATTACK_VALID_DISTENCE_Y)) {
 				ForceSetForegroundWindow(hwnd);
-				attack_npc_fight(zhuogui_target_pos);
+				for (int i = 0;i < 10;i++) {
+					if (attack_npc_fight(zhuogui_target_pos))break;
+				}
+
 				data_reset();
 			}
 			else { step.set_current(&goto_gui_scene); };
@@ -2988,8 +2991,9 @@ POINT WindowInfo::get_cursor_pos(POINT pos) {
 		cv::Rect roi_rect = ROI_cursor(pos) & cv::Rect(0, 0, image.cols, image.rows);
 		auto image_roi = image(roi_rect);
 		if (image_roi.empty()) continue;
-		cv::Mat image_inRange = ThresholdinginRange(image_roi);
-		auto cursor_pos = MatchingLoc(image_inRange, rc, *m_img_cursors_cursor, "", 0.854, cv::TM_CCORR_NORMED, MATCHLEFTTOP);  // 游戏自身的鼠标，鼠标用cv::TM_CCORR_NORMED方法匹配准确率最高
+		//cv::Mat image_inRange = ThresholdinginRange(image_roi);
+		auto processed_img = remove_bg(image, roi_rect);
+		auto cursor_pos = MatchingLoc(processed_img, rc, *m_img_cursors_cursor, "", 0.854, cv::TM_CCORR_NORMED, MATCHLEFTTOP);  // 游戏自身的鼠标，鼠标用cv::TM_CCORR_NORMED方法匹配准确率最高
 		if (cursor_pos.x == -1 && cursor_pos.y == -1) continue;
 		if (tmp_pos.x == cursor_pos.x && tmp_pos.y == cursor_pos.y)
 		{
@@ -5276,6 +5280,25 @@ cv::Mat ThresholdinginRange(cv::Mat frame)
 	//cv::waitKey(0);
 	return blue_only_result;
 }
+cv::Mat remove_bg(cv::Mat src, cv::Rect roi_rect) {
+	cv::Mat bgModel, fgModel; // GrabCut 内部模型
+	cv::Mat mask; // 生成的掩码 (值范围 0-3)
+
+	// 3. 运行 GrabCut
+	// GC_INIT_WITH_RECT 表示使用上面定义的矩形框初始化
+	grabCut(src, mask, roi_rect, bgModel, fgModel, 5, cv::GC_INIT_WITH_RECT);
+
+	// 4. 处理掩码
+	// GrabCut 产生 0-3 的值。我们需要保留的是 1 (前景) 和 3 (可能的前景)。
+	// 我们将前景像素设为 255，其余设为 0。
+	compare(mask, cv::GC_PR_FGD, mask, cv::CMP_EQ);
+
+	// 5. 将掩码应用于原图
+	cv::Mat foreground(src.size(), CV_8UC3, cv::Scalar(0, 0, 0)); // 黑色背景
+	src.copyTo(foreground, mask);
+	return foreground;
+}
+
 int Serial() {
 	auto comPortName = getArduinoLeonardoComPort();
 	if (comPortName.empty())

@@ -543,6 +543,7 @@ POINT get_map_max_pixel(unsigned int scene_id);
 //std::vector<POINT> get_scene_npc_list(unsigned int scene_id);
 cv::Mat CannyThreshold(cv::Mat src);
 cv::Mat ThresholdinginRange(cv::Mat frame);
+cv::Mat remove_bg(cv::Mat src, cv::Rect roi_rect);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
 void ForceSetForegroundWindow(HWND hWnd);
 void init_log();
